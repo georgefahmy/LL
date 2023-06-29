@@ -160,7 +160,7 @@ layout = [
                     )
                 ],
                 [
-                    sg.Button("Show", key="show/hide", size=(6, 1), font=("Arial", 12)),
+                    sg.Button("Show Answer", key="show/hide", size=(12, 1), font=("Arial", 12)),
                     sg.Text("", expand_x=True),
                     sg.Combo(
                         values=[],
@@ -171,8 +171,8 @@ layout = [
                         readonly=True,
                         enable_events=True,
                     ),
-                    sg.Button("Next", key="next"),
-                    sg.Button("Previous", key="previous"),
+                    sg.Button("Next", key="next", disabled=True, disabled_button_color=("black","gray")),
+                    sg.Button("Previous", key="previous", disabled=True, disabled_button_color=("black","gray")),
                 ],
             ],
         )
@@ -180,7 +180,7 @@ layout = [
 ]
 
 window = sg.Window(
-    "LL",
+    "LearnedLeague",
     layout=layout,
     finalize=True,
     resizable=True,
@@ -226,18 +226,19 @@ while True:
         window["%_correct"].update(value=question_object["percent"])
         window["question_number"].update(value=question_object["question_num"])
         window["answer"].update(value="******")
-        window["show/hide"].update(text="Show")
+        window["show/hide"].update(text="Show Answer")
+        window["next"].update(disabled=False)
 
     if event == "show/hide":
-        if window["show/hide"].get_text() == "Show":
+        if window["show/hide"].get_text() == "Show Answer":
             try:
-                window["show/hide"].update(text="Hide")
+                window["show/hide"].update(text="Hide Answer")
                 window["answer"].update(value=decode(answer), font=("Arial", 16))
             except:
                 continue
 
-        elif window["show/hide"].get_text() == "Hide":
-            window["show/hide"].update(text="Show")
+        elif window["show/hide"].get_text() == "Hide Answer":
+            window["show/hide"].update(text="Show Answer")
             try:
                 if answer:
                     window["answer"].update(value="******")
@@ -249,7 +250,7 @@ while True:
     if event == "dropdown":
         i = values["dropdown"]
         window["answer"].update(value="******")
-        window["show/hide"].update(text="Show")
+        window["show/hide"].update(text="Show Answer")
         question_object = questions.get(i)
         if not question_object:
             i -= 1
@@ -259,11 +260,19 @@ while True:
         window["question"].update(value=question)
         window["%_correct"].update(value=question_object["percent"])
         window["question_number"].update(value=question_object["question_num"])
+        if i == len(questions.keys()):
+            window["next"].update(disabled=True)
+        else:
+            window["next"].update(disabled=False)
+        if i == 1:
+            window["previous"].update(disabled=True)
+        else:
+            window["previous"].update(disabled=False)
 
     if event == "next":
         i += 1
         window["answer"].update(value="******")
-        window["show/hide"].update(text="Show")
+        window["show/hide"].update(text="Show Answer")
         question_object = questions.get(i)
         if not question_object:
             i -= 1
@@ -274,11 +283,19 @@ while True:
         window["dropdown"].update(value=i)
         window["%_correct"].update(value=question_object["percent"])
         window["question_number"].update(value=question_object["question_num"])
+        if i == len(questions.keys()):
+            window["next"].update(disabled=True)
+        else:
+            window["next"].update(disabled=False)
+        if i == 1:
+            window["previous"].update(disabled=True)
+        else:
+            window["previous"].update(disabled=False)
 
     if event == "previous":
         i -= 1
         window["answer"].update(value="******")
-        window["show/hide"].update(text="Show")
+        window["show/hide"].update(text="Show Answer")
         question_object = questions.get(i)
         if not question_object:
             i += 1
@@ -289,6 +306,15 @@ while True:
         window["dropdown"].update(value=i)
         window["%_correct"].update(value=question_object["percent"])
         window["question_number"].update(value=question_object["question_num"])
+
+        if i == len(questions.keys()):
+            window["next"].update(disabled=True)
+        else:
+            window["next"].update(disabled=False)
+        if i == 1:
+            window["previous"].update(disabled=True)
+        else:
+            window["previous"].update(disabled=False)
 
 
 # question_dict = get_questions(season_number, min_threshold, max_threshold)
