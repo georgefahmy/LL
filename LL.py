@@ -171,8 +171,18 @@ layout = [
                         readonly=True,
                         enable_events=True,
                     ),
-                    sg.Button("Next", key="next", disabled=True, disabled_button_color=("black","gray")),
-                    sg.Button("Previous", key="previous", disabled=True, disabled_button_color=("black","gray")),
+                    sg.Button(
+                        "Next",
+                        key="next",
+                        disabled=True,
+                        disabled_button_color=("black","gray")
+                    ),
+                    sg.Button(
+                        "Previous",
+                        key="previous",
+                        disabled=True,
+                        disabled_button_color=("black","gray")
+                    ),
                 ],
             ],
         )
