@@ -29,19 +29,31 @@ def get_questions(season_number, min_threshold, max_threshold):
         max_threshold = min_threshold + 5
 
     results = [
-        BASE_URL + link["href"]
+        link
         for link in bs(requests.get(url).content, "html.parser", parse_only=ss("a"))
         if str(link.decode_contents()).isnumeric()
         and int(str(link.decode_contents())) < max_threshold
         and int(str(link.decode_contents())) > min_threshold
     ]
+
     question_dict = {}
 
-    for i, question in enumerate(results):
-        soup = bs(requests.get(question).content, "html.parser")
+    for i, link in enumerate(results):
+        url = BASE_URL + link["href"]
+        soup = bs(requests.get(url).content, "html.parser")
+
+        question_num = "Day " + str(url.split("&")[1]) + " Q"+ str(url.split("&")[2])
+
+
         question_text = soup.find_all("div", {"class": "indivqQuestion"})[0].text.strip()
         answer_text = soup.find_all("div", {"id": "xyz"})[0].span.text.strip()
-        question_dict[i+1] = {"_question": question_text, "answer": encode(answer_text)}
+
+        question_dict[i+1] = {
+            "_question": question_text,
+            "answer": encode(answer_text),
+            "percent": str(link.decode_contents())+"%",
+            "question_num": question_num
+        }
 
     return question_dict
 
@@ -82,15 +94,27 @@ layout = [
                     sg.Text("",key="season_title", font=("Arial", 16))
                 ],
                 [
-                    sg.Text("Number of Questions: ", font=("Arial", 16)),
+                    sg.Text("Total Number of Questions: ", font=("Arial", 16)),
                     sg.Text(expand_x=True),
                     sg.Text("",key="num_questions", font=("Arial", 16))
+                ],
+                [
+                    sg.Text("Question: ", font=("Arial", 16)),
+                    sg.Text(expand_x=True),
+                    sg.Text("",key="question_number", font=("Arial", 16))
+                ],
+                [
+                    sg.Text("Correct %: ", font=("Arial", 16)),
+                    sg.Text(expand_x=True),
+                    sg.Text("",key="%_correct", font=("Arial", 16))
                 ],
             ]
         ),
     ],
     [
         sg.Frame("Questions",
+            expand_x=True,
+            expand_y=True,
             layout=[
                 [
                     sg.Multiline(
@@ -98,7 +122,9 @@ layout = [
                         size=(50, 7),
                         font=("Arial", 16),
                         disabled=True,
-                        no_scrollbar=True
+                        no_scrollbar=True,
+                        expand_x=True,
+                        expand_y=True,
                     )
                 ],
                 [
@@ -166,6 +192,8 @@ while True:
         window["info_box"].update(visible=True)
         window["season_title"].update(value=values["season"])
         window["num_questions"].update(value=len(list(questions.keys())))
+        window["%_correct"].update(value=question_object["percent"])
+        window["question_number"].update(value=question_object["question_num"])
         window["answer"].update(value="******")
         window["show/hide"].update(text="Show")
 
@@ -199,6 +227,8 @@ while True:
         question = question_object.get("_question")
         answer = question_object.get("answer")
         window["question"].update(value=question)
+        window["%_correct"].update(value=question_object["percent"])
+        window["question_number"].update(value=question_object["question_num"])
 
     if event=="next":
         i+=1
@@ -212,6 +242,8 @@ while True:
         answer = question_object.get("answer")
         window["question"].update(value=question)
         window["dropdown"].update(value=i)
+        window["%_correct"].update(value=question_object["percent"])
+        window["question_number"].update(value=question_object["question_num"])
 
     if event == "previous":
         i-=1
@@ -225,6 +257,8 @@ while True:
         answer = question_object.get("answer")
         window["question"].update(value=question)
         window["dropdown"].update(value=i)
+        window["%_correct"].update(value=question_object["percent"])
+        window["question_number"].update(value=question_object["question_num"])
 
 
 # question_dict = get_questions(season_number, min_threshold, max_threshold)
