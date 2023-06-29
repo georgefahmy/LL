@@ -7,17 +7,19 @@ from cryptography.fernet import Fernet
 from pprint import pprint
 
 
-
 BASE_URL = "https://www.learnedleague.com"
 
 key = Fernet.generate_key()
 fernet = Fernet(key)
 
+
 def encode(answer):
     return fernet.encrypt(answer.encode())
 
+
 def decode(coded_answer):
     return fernet.decrypt(coded_answer).decode()
+
 
 def get_questions(season_number, min_threshold, max_threshold):
     url = BASE_URL + "/allrundles.php?" + season_number
@@ -42,48 +44,68 @@ def get_questions(season_number, min_threshold, max_threshold):
         url = BASE_URL + link["href"]
         soup = bs(requests.get(url).content, "html.parser")
 
-        question_num = "Day " + str(url.split("&")[1]) + " Q"+ str(url.split("&")[2])
-
+        question_num = "Day " + str(url.split("&")[1]) + " Q" + str(url.split("&")[2])
 
         question_text = soup.find_all("div", {"class": "indivqQuestion"})[0].text.strip()
         answer_text = soup.find_all("div", {"id": "xyz"})[0].span.text.strip()
 
-        question_dict[i+1] = {
+        question_dict[i + 1] = {
             "_question": question_text,
             "answer": encode(answer_text),
-            "percent": str(link.decode_contents())+"%",
-            "question_num": question_num
+            "percent": str(link.decode_contents()) + "%",
+            "question_num": question_num,
         }
 
     return question_dict
 
+
 layout = [
     [
-        sg.Frame("Input",
+        sg.Frame(
+            "Input",
             layout=[
                 [
                     sg.Text("Season: ", font=("Arial", 16)),
                     sg.Text(expand_x=True),
-                    sg.Input(default_text="97", key="season", font=("Arial", 16), size=(3, 1), justification="right")
+                    sg.Input(
+                        default_text="97",
+                        key="season",
+                        font=("Arial", 16),
+                        size=(3, 1),
+                        justification="right",
+                    ),
                 ],
                 [
                     sg.Text("Min % Correct: ", font=("Arial", 16)),
                     sg.Text(expand_x=True),
-                    sg.Input(default_text="0", key="min_%", font=("Arial", 16), size=(3, 1), justification="right")
+                    sg.Input(
+                        default_text="0",
+                        key="min_%",
+                        font=("Arial", 16),
+                        size=(3, 1),
+                        justification="right",
+                    ),
                 ],
                 [
                     sg.Text("Max % Correct: ", font=("Arial", 16)),
                     sg.Text(expand_x=True),
-                    sg.Input(default_text="100", key="max_%", font=("Arial", 16), size=(3, 1), justification="right")
+                    sg.Input(
+                        default_text="100",
+                        key="max_%",
+                        font=("Arial", 16),
+                        size=(3, 1),
+                        justification="right",
+                    ),
                 ],
                 [
                     sg.Text(expand_x=True),
                     sg.Button("Retrieve Questions", key="retrieve"),
-                    sg.Cancel()
-                ]
-            ]
+                    sg.Cancel(),
+                ],
+            ],
         ),
-        sg.Frame("Information",
+        sg.Frame(
+            "Information",
             vertical_alignment="top",
             visible=False,
             key="info_box",
@@ -91,28 +113,29 @@ layout = [
                 [
                     sg.Text("Season: ", font=("Arial", 16)),
                     sg.Text(expand_x=True),
-                    sg.Text("",key="season_title", font=("Arial", 16))
+                    sg.Text("", key="season_title", font=("Arial", 16)),
                 ],
                 [
                     sg.Text("Total Number of Questions: ", font=("Arial", 16)),
                     sg.Text(expand_x=True),
-                    sg.Text("",key="num_questions", font=("Arial", 16))
+                    sg.Text("", key="num_questions", font=("Arial", 16)),
                 ],
                 [
                     sg.Text("Question: ", font=("Arial", 16)),
                     sg.Text(expand_x=True),
-                    sg.Text("",key="question_number", font=("Arial", 16))
+                    sg.Text("", key="question_number", font=("Arial", 16)),
                 ],
                 [
                     sg.Text("Correct %: ", font=("Arial", 16)),
                     sg.Text(expand_x=True),
-                    sg.Text("",key="%_correct", font=("Arial", 16))
+                    sg.Text("", key="%_correct", font=("Arial", 16)),
                 ],
-            ]
+            ],
         ),
     ],
     [
-        sg.Frame("Questions",
+        sg.Frame(
+            "Questions",
             expand_x=True,
             expand_y=True,
             layout=[
@@ -128,36 +151,40 @@ layout = [
                     )
                 ],
                 [
-                    sg.Frame("Answer",
+                    sg.Frame(
+                        "Answer",
                         expand_x=True,
                         layout=[
-                            [
-                                sg.Text(key="answer", font=("Arial", 16), size=(10, 1), expand_x=True)
-                            ]
-                        ]
+                            [sg.Text(key="answer", font=("Arial", 16), size=(10, 1), expand_x=True)]
+                        ],
                     )
                 ],
                 [
-                    sg.Button("Show", key="show/hide", size=(6,1), font=("Arial", 12)),
+                    sg.Button("Show", key="show/hide", size=(6, 1), font=("Arial", 12)),
                     sg.Text("", expand_x=True),
                     sg.Combo(
-                        values = [],
+                        values=[],
                         default_value="1",
                         key="dropdown",
-                        size=(3,1),
+                        size=(3, 1),
                         font=("Arial", 16),
                         readonly=True,
-                        enable_events=True
+                        enable_events=True,
                     ),
                     sg.Button("Next", key="next"),
-                    sg.Button("Previous", key="previous")
-                ]
-            ]
+                    sg.Button("Previous", key="previous"),
+                ],
+            ],
         )
-    ]
+    ],
 ]
 
-window = sg.Window("LL",layout=layout, finalize=True, resizable=True, )
+window = sg.Window(
+    "LL",
+    layout=layout,
+    finalize=True,
+    resizable=True,
+)
 i = 1
 while True:
     event, values = window.read()
@@ -172,6 +199,9 @@ while True:
         i = 1
 
     if event == "retrieve":
+        if int(values["min_%"]) > int(values["max_%"]):
+            values["max_%"] = str(int(values["min_%"]) + 5)
+
         if int(values["season"]) < 60:
             values["season"] = "60"
             window["season"].update(value="60")
@@ -181,7 +211,7 @@ while True:
         if not questions:
             window["question"].update(value="No Questions Available")
 
-        window["dropdown"].update(values = list(questions.keys()), value=1)
+        window["dropdown"].update(values=list(questions.keys()), value=1)
         i = 1
         question_object = questions.get(i)
         if not question_object:
@@ -197,11 +227,11 @@ while True:
         window["answer"].update(value="******")
         window["show/hide"].update(text="Show")
 
-    if event== "show/hide":
+    if event == "show/hide":
         if window["show/hide"].get_text() == "Show":
             try:
                 window["show/hide"].update(text="Hide")
-                window["answer"].update(value=decode(answer), font = ("Arial", 16))
+                window["answer"].update(value=decode(answer), font=("Arial", 16))
             except:
                 continue
 
@@ -215,14 +245,13 @@ while True:
             except:
                 continue
 
-
     if event == "dropdown":
         i = values["dropdown"]
         window["answer"].update(value="******")
         window["show/hide"].update(text="Show")
         question_object = questions.get(i)
         if not question_object:
-            i-=1
+            i -= 1
             continue
         question = question_object.get("_question")
         answer = question_object.get("answer")
@@ -230,13 +259,13 @@ while True:
         window["%_correct"].update(value=question_object["percent"])
         window["question_number"].update(value=question_object["question_num"])
 
-    if event=="next":
-        i+=1
+    if event == "next":
+        i += 1
         window["answer"].update(value="******")
         window["show/hide"].update(text="Show")
         question_object = questions.get(i)
         if not question_object:
-            i-=1
+            i -= 1
             continue
         question = question_object.get("_question")
         answer = question_object.get("answer")
@@ -246,12 +275,12 @@ while True:
         window["question_number"].update(value=question_object["question_num"])
 
     if event == "previous":
-        i-=1
+        i -= 1
         window["answer"].update(value="******")
         window["show/hide"].update(text="Show")
         question_object = questions.get(i)
         if not question_object:
-            i+=1
+            i += 1
             continue
         question = question_object.get("_question")
         answer = question_object.get("answer")
