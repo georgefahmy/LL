@@ -201,6 +201,7 @@ while True:
     if event == "retrieve":
         if int(values["min_%"]) > int(values["max_%"]):
             values["max_%"] = str(int(values["min_%"]) + 5)
+            window["max_%"].update(value=values["max_%"])
 
         if int(values["season"]) < 60:
             values["season"] = "60"
