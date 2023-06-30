@@ -13,7 +13,7 @@ BASE_URL = "https://www.learnedleague.com"
 def get_all_questions(season_number):
     all_questions_dict = {}
     url = BASE_URL + "/match.php?" + str(season_number)
-    for i in range(1,26):
+    for i in range(1, 26):
         question_url = url + "&" + str(i)
         page = bs(requests.get(question_url).content, "html.parser")
 
@@ -23,29 +23,27 @@ def get_all_questions(season_number):
         ]
 
         percentages = [
-            cell.text for cell in page.find_all("tr")[-2].find_all("td",{"class":"ind-Q3"})
+            cell.text for cell in page.find_all("tr")[-2].find_all("td", {"class": "ind-Q3"})
         ][2:-1]
 
         questions = [
             "-".join(link.text.strip().split("-")[1:]).strip()
             for link in page.find_all("div", {"class": "ind-Q20 dont-break-out"})
         ]
-        answers = [
-            link.text.strip()
-            for link in page.find_all("div", {"class": "a-red"})
-        ]
+        answers = [link.text.strip() for link in page.find_all("div", {"class": "a-red"})]
 
         for j, question in enumerate(questions):
-            question_num_code = "D"+str(i)+"Q"+str(j+1)
+            question_num_code = "D" + str(i) + "Q" + str(j + 1)
             all_questions_dict[question_num_code] = {
                 "_question": question,
                 "answer": answers[j],
                 "category": categories[j],
                 "percent": percentages[j],
-                "question_num":question_num_code
+                "question_num": question_num_code,
             }
 
     return all_questions_dict
+
 
 def get_questions(all_questions_dict, min_threshold, max_threshold, category_filter):
     min_threshold = int(min_threshold)
@@ -71,123 +69,139 @@ def get_questions(all_questions_dict, min_threshold, max_threshold, category_fil
         ]
 
     filtered_questions_dict = {
-        i+1: val
-        for i, val in enumerate(
-            [all_questions_dict[key] for key in filtered_question_ids]
-        )
+        i + 1: val
+        for i, val in enumerate([all_questions_dict[key] for key in filtered_question_ids])
     }
 
     return filtered_questions_dict
 
-latest_season = bs(requests.get("https://www.learnedleague.com/allrundles.php").content, "html.parser", parse_only=ss("h1")).text.split(":")[0].split("LL")[-1]
 
-available_seasons = [str(season) for season in list(range(60, int(latest_season)+1, 1))]
+latest_season = (
+    bs(
+        requests.get("https://www.learnedleague.com/allrundles.php").content,
+        "html.parser",
+        parse_only=ss("h1"),
+    )
+    .text.split(":")[0]
+    .split("LL")[-1]
+)
+
+available_seasons = [str(season) for season in list(range(60, int(latest_season) + 1, 1))]
 
 
 layout = [
     [
         sg.Column(
-        pad=(0,0),
-        layout=[[sg.Frame(
-            "Input",
-            key="input_frame",
-            vertical_alignment="top",
-            element_justification="l",
-            size=(275,155),
+            pad=(0, 0),
             layout=[
                 [
-                    sg.Text("Season (min 60): ", font=("Arial", 16)),
-                    sg.Text(expand_x=True),
-                    sg.Combo(
-                        available_seasons,
-                        default_value="97",
-                        key="season",
-                        font=("Arial", 16),
-                        readonly=True,
-                        expand_x=True
+                    sg.Frame(
+                        "Input",
+                        key="input_frame",
+                        vertical_alignment="top",
+                        element_justification="l",
+                        size=(275, 155),
+                        layout=[
+                            [
+                                sg.Text("Season (min 60): ", font=("Arial", 16)),
+                                sg.Text(expand_x=True),
+                                sg.Combo(
+                                    available_seasons,
+                                    default_value="97",
+                                    key="season",
+                                    font=("Arial", 16),
+                                    readonly=True,
+                                    expand_x=True,
+                                ),
+                            ],
+                            [
+                                sg.Text("Min % Correct: ", font=("Arial", 16)),
+                                sg.Text(expand_x=True),
+                                sg.Input(
+                                    default_text="0",
+                                    key="min_%",
+                                    font=("Arial", 16),
+                                    size=(5, 1),
+                                    justification="right",
+                                ),
+                            ],
+                            [
+                                sg.Text("Max % Correct: ", font=("Arial", 16)),
+                                sg.Text(expand_x=True),
+                                sg.Input(
+                                    default_text="100",
+                                    key="max_%",
+                                    font=("Arial", 16),
+                                    size=(5, 1),
+                                    justification="right",
+                                ),
+                            ],
+                            [
+                                sg.Text("Category: ", font=("Arial", 16)),
+                                sg.Text(expand_x=True),
+                                sg.Combo(
+                                    [],
+                                    default_value="ALL",
+                                    key="category_selection",
+                                    font=("Arial", 16),
+                                    size=(15, 1),
+                                    readonly=True,
+                                    enable_events=True,
+                                ),
+                            ],
+                            [
+                                sg.Button("Retrieve Season", key="retrieve"),
+                                sg.Text(expand_x=True),
+                                sg.Button("Filter", key="filter", bind_return_key=True),
+                                sg.Cancel(),
+                            ],
+                        ],
                     ),
-                ],
-                [
-                    sg.Text("Min % Correct: ", font=("Arial", 16)),
-                    sg.Text(expand_x=True),
-                    sg.Input(
-                        default_text="0",
-                        key="min_%",
-                        font=("Arial", 16),
-                        size=(5, 1),
-                        justification="right",
-                    ),
-                ],
-                [
-                    sg.Text("Max % Correct: ", font=("Arial", 16)),
-                    sg.Text(expand_x=True),
-                    sg.Input(
-                        default_text="100",
-                        key="max_%",
-                        font=("Arial", 16),
-                        size=(5, 1),
-                        justification="right",
-                    ),
-                ],
-                [
-                    sg.Text("Category: ", font=("Arial", 16)),
-                    sg.Text(expand_x=True),
-                    sg.Combo(
-                        [],
-                        default_value="ALL",
-                        key="category_selection",
-                        font=("Arial", 16),
-                        size=(15, 1),
-                        readonly=True,
-                        enable_events=True
-                    ),
-                ],
-                [
-                    sg.Button("Retrieve Season", key="retrieve"),
-                    sg.Text(expand_x=True),
-                    sg.Button("Filter", key="filter", bind_return_key=True),
-                    sg.Cancel(),
-                ],
+                ]
             ],
-        ),]]),
-        sg.Column(layout=[[]],expand_x=True),
+        ),
+        sg.Column(layout=[[]], expand_x=True),
         sg.Column(
-        pad=(0,0),
-        vertical_alignment="top",
-        layout =
-        [[sg.Frame(
-            "Information",
+            pad=(0, 0),
             vertical_alignment="top",
-            size=(275,155),
-            key="info_box",
             layout=[
                 [
-                    sg.Text("Season: ", font=("Arial", 16)),
-                    sg.Text(expand_x=True),
-                    sg.Text("", key="season_title", font=("Arial", 16)),
-                ],
-                [
-                    sg.Text("Total Number of Questions: ", font=("Arial", 16)),
-                    sg.Text(expand_x=True),
-                    sg.Text("", key="num_questions", font=("Arial", 16)),
-                ],
-                [
-                    sg.Text("Question: ", font=("Arial", 16)),
-                    sg.Text(expand_x=True),
-                    sg.Text("", key="question_number", font=("Arial", 16)),
-                ],
-                [
-                    sg.Text("Category: ", font=("Arial", 16)),
-                    sg.Text(expand_x=True),
-                    sg.Text("", key="question_category", font=("Arial", 16)),
-                ],
-                [
-                    sg.Text("Correct %: ", font=("Arial", 16)),
-                    sg.Text(expand_x=True),
-                    sg.Text("", key="%_correct", font=("Arial", 16)),
-                ],
+                    sg.Frame(
+                        "Information",
+                        vertical_alignment="top",
+                        size=(275, 155),
+                        key="info_box",
+                        layout=[
+                            [
+                                sg.Text("Season: ", font=("Arial", 16)),
+                                sg.Text(expand_x=True),
+                                sg.Text("", key="season_title", font=("Arial", 16)),
+                            ],
+                            [
+                                sg.Text("Total Number of Questions: ", font=("Arial", 16)),
+                                sg.Text(expand_x=True),
+                                sg.Text("", key="num_questions", font=("Arial", 16)),
+                            ],
+                            [
+                                sg.Text("Question: ", font=("Arial", 16)),
+                                sg.Text(expand_x=True),
+                                sg.Text("", key="question_number", font=("Arial", 16)),
+                            ],
+                            [
+                                sg.Text("Category: ", font=("Arial", 16)),
+                                sg.Text(expand_x=True),
+                                sg.Text("", key="question_category", font=("Arial", 16)),
+                            ],
+                            [
+                                sg.Text("Correct %: ", font=("Arial", 16)),
+                                sg.Text(expand_x=True),
+                                sg.Text("", key="%_correct", font=("Arial", 16)),
+                            ],
+                        ],
+                    )
+                ]
             ],
-        )]])
+        ),
     ],
     [
         sg.Frame(
@@ -211,14 +225,7 @@ layout = [
                         "Answer",
                         expand_x=True,
                         layout=[
-                            [
-                                sg.Text(
-                                    key="answer",
-                                    font=("Arial", 16),
-                                    size=(10, 1),
-                                    expand_x=True
-                                )
-                            ]
+                            [sg.Text(key="answer", font=("Arial", 16), size=(10, 1), expand_x=True)]
                         ],
                     )
                 ],
@@ -235,16 +242,13 @@ layout = [
                         enable_events=True,
                     ),
                     sg.Button(
-                        "Next",
-                        key="next",
-                        disabled=True,
-                        disabled_button_color=("black","gray")
+                        "Next", key="next", disabled=True, disabled_button_color=("black", "gray")
                     ),
                     sg.Button(
                         "Previous",
                         key="previous",
                         disabled=True,
-                        disabled_button_color=("black","gray")
+                        disabled_button_color=("black", "gray"),
                     ),
                 ],
             ],
@@ -302,8 +306,9 @@ while True:
             window["min_%"].update(value=values["min_%"])
             window["max_%"].update(value=values["max_%"])
 
-
-        questions = get_questions(all_questions_dict, values["min_%"], values["max_%"], values["category_selection"])
+        questions = get_questions(
+            all_questions_dict, values["min_%"], values["max_%"], values["category_selection"]
+        )
 
         if not questions:
             window["question"].update(value="No Questions Available")
