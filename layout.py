@@ -124,7 +124,7 @@ layout = [
                     sg.Multiline(
                         key="question",
                         size=(60, 7),
-                        font=("Arial", 16),
+                        font=("Arial", 24),
                         disabled=True,
                         no_scrollbar=True,
                         expand_x=True,
