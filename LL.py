@@ -1,6 +1,7 @@
 import requests
 import re
 import PySimpleGUI as sg
+import webbrowser
 
 from bs4 import BeautifulSoup as bs, SoupStrainer as ss
 from pprint import pprint
@@ -35,12 +36,16 @@ def get_all_questions(season_number):
 
         for j, question in enumerate(questions):
             question_num_code = "D" + str(i) + "Q" + str(j + 1)
+            question_url = (
+                BASE_URL + "/question.php?" + str(season_number) + "&" + str(i) + "&" + str(j + 1)
+            )
             all_questions_dict[question_num_code] = {
                 "_question": question,
                 "answer": answers[j],
                 "category": categories[j],
                 "percent": percentages[j],
                 "question_num": question_num_code,
+                "url": question_url,
             }
 
     return all_questions_dict
@@ -161,10 +166,15 @@ while True:
         window["num_questions"].update(value=len(list(questions.keys())))
         window["%_correct"].update(value=str(question_object["percent"]) + "%")
         window["question_number"].update(value=question_object["question_num"])
+        window["question_number"].set_tooltip(question_object["url"])
+        window["question_number"].metadata = question_object["url"]
         window["question_category"].update(value=question_object["category"])
         window["answer"].update(value="******")
         window["show/hide"].update(text="Show Answer")
         window["next"].update(disabled=False)
+
+    if event == "question_number":
+        webbrowser.open(window["question_number"].metadata)
 
     if event == "show/hide":
         if window["show/hide"].get_text() == "Show Answer":
@@ -197,6 +207,10 @@ while True:
         window["question"].update(value=question)
         window["%_correct"].update(value=str(question_object["percent"]) + "%")
         window["question_number"].update(value=question_object["question_num"])
+        window["question_number"].set_tooltip(question_object["url"])
+        window["question_number"].metadata = question_object["url"]
+        window["question_category"].update(value=question_object["category"])
+
         if i == len(questions.keys()):
             window["next"].update(disabled=True)
         else:
@@ -220,6 +234,8 @@ while True:
         window["dropdown"].update(value=i)
         window["%_correct"].update(value=str(question_object["percent"]) + "%")
         window["question_number"].update(value=question_object["question_num"])
+        window["question_number"].set_tooltip(question_object["url"])
+        window["question_number"].metadata = question_object["url"]
         window["question_category"].update(value=question_object["category"])
 
         if i == len(questions.keys()):
@@ -245,6 +261,8 @@ while True:
         window["dropdown"].update(value=i)
         window["%_correct"].update(value=str(question_object["percent"]) + "%")
         window["question_number"].update(value=question_object["question_num"])
+        window["question_number"].set_tooltip(question_object["url"])
+        window["question_number"].metadata = question_object["url"]
         window["question_category"].update(value=question_object["category"])
 
         if i == len(questions.keys()):
@@ -255,6 +273,3 @@ while True:
             window["previous"].update(disabled=True)
         else:
             window["previous"].update(disabled=False)
-
-
-# question_dict = get_questions(season_number, min_threshold, max_threshold)

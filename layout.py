@@ -96,7 +96,12 @@ layout = [
                             [
                                 sg.Text("Question: ", font=("Arial", 16)),
                                 sg.Text(expand_x=True),
-                                sg.Text("", key="question_number", font=("Arial", 16)),
+                                sg.Text(
+                                    "",
+                                    key="question_number",
+                                    font=("Arial", 16),
+                                    enable_events=True,
+                                ),
                             ],
                             [
                                 sg.Text("Category: ", font=("Arial", 16)),
