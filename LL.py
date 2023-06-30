@@ -111,12 +111,6 @@ while True:
         window.close()
         break
 
-    if event == "Cancel":
-        print(window["input_frame"].get_size())
-        window["question"].update(value="")
-        window["answer"].update(value="")
-        i = 1
-
     if event == "retrieve":
         if values["season"] == window["season_title"].get():
             continue
@@ -160,8 +154,8 @@ while True:
             continue
         question = question_object.get("_question")
         answer = question_object.get("answer")
+
         window["question"].update(value=question)
-        window["info_box"].update(visible=True)
         window["season_title"].update(value=values["season"])
         window["num_questions"].update(value=len(list(questions.keys())))
         window["%_correct"].update(value=str(question_object["percent"]) + "%")
@@ -172,9 +166,6 @@ while True:
         window["answer"].update(value="******")
         window["show/hide"].update(text="Show Answer")
         window["next"].update(disabled=False)
-
-    if event == "question_number":
-        webbrowser.open(window["question_number"].metadata)
 
     if event == "show/hide":
         if window["show/hide"].get_text() == "Show Answer":
@@ -194,69 +185,32 @@ while True:
             except:
                 continue
 
-    if event == "dropdown":
-        i = values["dropdown"]
-        window["answer"].update(value="******")
-        window["show/hide"].update(text="Show Answer")
-        question_object = questions.get(i)
-        if not question_object:
-            i -= 1
-            continue
-        question = question_object.get("_question")
-        answer = question_object.get("answer")
-        window["question"].update(value=question)
-        window["%_correct"].update(value=str(question_object["percent"]) + "%")
-        window["question_number"].update(value=question_object["question_num"])
-        window["question_number"].set_tooltip(question_object["url"])
-        window["question_number"].metadata = question_object["url"]
-        window["question_category"].update(value=question_object["category"])
-
-        if i == len(questions.keys()):
-            window["next"].update(disabled=True)
-        else:
-            window["next"].update(disabled=False)
-        if i == 1:
-            window["previous"].update(disabled=True)
-        else:
-            window["previous"].update(disabled=False)
-
-    if event == "next":
-        i += 1
-        window["answer"].update(value="******")
-        window["show/hide"].update(text="Show Answer")
-        question_object = questions.get(i)
-        if not question_object:
-            i -= 1
-            continue
-        question = question_object.get("_question")
-        answer = question_object.get("answer")
-        window["question"].update(value=question)
-        window["dropdown"].update(value=i)
-        window["%_correct"].update(value=str(question_object["percent"]) + "%")
-        window["question_number"].update(value=question_object["question_num"])
-        window["question_number"].set_tooltip(question_object["url"])
-        window["question_number"].metadata = question_object["url"]
-        window["question_category"].update(value=question_object["category"])
-
-        if i == len(questions.keys()):
-            window["next"].update(disabled=True)
-        else:
-            window["next"].update(disabled=False)
-        if i == 1:
-            window["previous"].update(disabled=True)
-        else:
-            window["previous"].update(disabled=False)
-
-    if event == "previous":
-        i -= 1
-        window["answer"].update(value="******")
-        window["show/hide"].update(text="Show Answer")
-        question_object = questions.get(i)
-        if not question_object:
+    if event in ["next", "previous", "dropdown"]:
+        if event == "next":
             i += 1
+
+        elif event == "previous":
+            i -= 1
+
+        elif event == "dropdown":
+            i = values["dropdown"]
+
+        question_object = questions.get(i)
+
+        if not question_object:
+            if event == "next":
+                i -= 1
+            elif event == "previous":
+                i += 1
+            elif event == "dropdown":
+                i = values["dropdown"]
             continue
+
         question = question_object.get("_question")
         answer = question_object.get("answer")
+
+        window["answer"].update(value="******")
+        window["show/hide"].update(text="Show Answer")
         window["question"].update(value=question)
         window["dropdown"].update(value=i)
         window["%_correct"].update(value=str(question_object["percent"]) + "%")
@@ -273,3 +227,6 @@ while True:
             window["previous"].update(disabled=True)
         else:
             window["previous"].update(disabled=False)
+
+    if event == "question_number":
+        webbrowser.open(window["question_number"].metadata)

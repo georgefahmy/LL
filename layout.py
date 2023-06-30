@@ -64,7 +64,6 @@ layout = [
                                 sg.Button("Retrieve Season", key="retrieve"),
                                 sg.Text(expand_x=True),
                                 sg.Button("Filter", key="filter", bind_return_key=True),
-                                sg.Cancel(),
                             ],
                         ],
                     ),
