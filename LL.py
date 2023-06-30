@@ -107,10 +107,12 @@ i = 1
 while True:
     event, values = window.read()
 
+    # If the window is closed, break the loop and close the application
     if event in (None, "Quit", sg.WIN_CLOSED):
         window.close()
         break
 
+    # based on the selected season, retrieve all the questions available for that season
     if event == "retrieve":
         if values["season"] == window["season_title"].get():
             continue
@@ -125,6 +127,7 @@ while True:
         window.write_event_value("filter", "")
         window.set_title("LearnedLeague " + values["season"])
 
+    # if the category dropdown is changed from ALL, or the filter button is pressed, display the new questions
     if event in ["filter", "category_selection"]:
         if int(values["min_%"]) > int(values["max_%"]):
             values["max_%"] = str(int(values["min_%"]) + 1)
@@ -160,13 +163,14 @@ while True:
         window["num_questions"].update(value=len(list(questions.keys())))
         window["%_correct"].update(value=str(question_object["percent"]) + "%")
         window["question_number"].update(value=question_object["question_num"])
-        window["question_number"].set_tooltip(question_object["url"])
+        window["question_number"].set_tooltip("Click to Open: " + question_object["url"])
         window["question_number"].metadata = question_object["url"]
         window["question_category"].update(value=question_object["category"])
         window["answer"].update(value="******")
         window["show/hide"].update(text="Show Answer")
         window["next"].update(disabled=False)
 
+    # display or hide the answer for the currently displayed question
     if event == "show/hide":
         if window["show/hide"].get_text() == "Show Answer":
             try:
@@ -185,6 +189,8 @@ while True:
             except:
                 continue
 
+    # if the next or previous or a specific question is selected, display that question and its information
+    # and hide the answer.
     if event in ["next", "previous", "dropdown"]:
         if event == "next":
             i += 1
@@ -215,7 +221,7 @@ while True:
         window["dropdown"].update(value=i)
         window["%_correct"].update(value=str(question_object["percent"]) + "%")
         window["question_number"].update(value=question_object["question_num"])
-        window["question_number"].set_tooltip(question_object["url"])
+        window["question_number"].set_tooltip("Click to Open: " + question_object["url"])
         window["question_number"].metadata = question_object["url"]
         window["question_category"].update(value=question_object["category"])
 
@@ -228,5 +234,6 @@ while True:
         else:
             window["previous"].update(disabled=False)
 
+    # if the question number is clicked, open the link
     if event == "question_number":
         webbrowser.open(window["question_number"].metadata)
