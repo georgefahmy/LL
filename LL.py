@@ -4,40 +4,28 @@ import PySimpleGUI as sg
 
 from bs4 import BeautifulSoup as bs, SoupStrainer as ss
 from pprint import pprint
+from time import sleep
 
 
 BASE_URL = "https://www.learnedleague.com"
 
 
-latest_season = bs(requests.get("https://www.learnedleague.com/allrundles.php").content, "html.parser", parse_only=ss("h1")).text.split(":")[0].split("LL")[-1]
-
-available_seasons = [str(season) for season in list(range(60, int(latest_season)+1, 1))]
-
-
-def get_categories(season_number):
-    categories_dict = {}
-    url = BASE_URL + "/match.php?" + str(season_number)
-    for i in range(1,26):
-        question_url = url + "&" + str(i)
-        questions = bs(requests.get(question_url).content, "html.parser").find_all("div", {"class": "ind-Q20 dont-break-out"})
-        categories = [
-            link.text.strip().split("-")[0].split(".")[-1].strip()
-            for link in questions
-        ]
-        for j, category in enumerate(categories):
-            categories_dict["D"+str(i)+"Q"+str(j+1)] = category
-    return categories_dict
-
 def get_all_questions(season_number):
     all_questions_dict = {}
-    categories_dict = get_categories(season_number)
     url = BASE_URL + "/match.php?" + str(season_number)
     for i in range(1,26):
         question_url = url + "&" + str(i)
         page = bs(requests.get(question_url).content, "html.parser")
+
+        categories = [
+            link.text.strip().split("-")[0].split(".")[-1].strip()
+            for link in page.find_all("div", {"class": "ind-Q20 dont-break-out"})
+        ]
+
         percentages = [
             cell.text for cell in page.find_all("tr")[-2].find_all("td",{"class":"ind-Q3"})
         ][2:-1]
+
         questions = [
             "-".join(link.text.strip().split("-")[1:]).strip()
             for link in page.find_all("div", {"class": "ind-Q20 dont-break-out"})
@@ -46,31 +34,41 @@ def get_all_questions(season_number):
             link.text.strip()
             for link in page.find_all("div", {"class": "a-red"})
         ]
+
         for j, question in enumerate(questions):
             question_num_code = "D"+str(i)+"Q"+str(j+1)
             all_questions_dict[question_num_code] = {
                 "_question": question,
                 "answer": answers[j],
-                "category": categories_dict[question_num_code],
+                "category": categories[j],
                 "percent": percentages[j],
                 "question_num":question_num_code
             }
 
     return all_questions_dict
 
-def get_questions(all_questions_dict, min_threshold, max_threshold):
+def get_questions(all_questions_dict, min_threshold, max_threshold, category_filter):
     min_threshold = int(min_threshold)
     max_threshold = int(max_threshold)
 
     if max_threshold <= min_threshold:
         max_threshold = min_threshold + 5
 
-    filtered_question_ids = [
-        question_ids
-        for question_ids, question in all_questions_dict.items()
-        if int(question["percent"]) >= min_threshold
-        and int(question["percent"]) < max_threshold
-    ]
+    if category_filter == "ALL":
+        filtered_question_ids = [
+            question_ids
+            for question_ids, question in all_questions_dict.items()
+            if int(question["percent"]) >= min_threshold
+            and int(question["percent"]) < max_threshold
+        ]
+    else:
+        filtered_question_ids = [
+            question_ids
+            for question_ids, question in all_questions_dict.items()
+            if int(question["percent"]) >= min_threshold
+            and int(question["percent"]) < max_threshold
+            and question["category"].upper() == category_filter.upper()
+        ]
 
     filtered_questions_dict = {
         i+1: val
@@ -81,12 +79,21 @@ def get_questions(all_questions_dict, min_threshold, max_threshold):
 
     return filtered_questions_dict
 
+latest_season = bs(requests.get("https://www.learnedleague.com/allrundles.php").content, "html.parser", parse_only=ss("h1")).text.split(":")[0].split("LL")[-1]
+
+available_seasons = [str(season) for season in list(range(60, int(latest_season)+1, 1))]
+
 
 layout = [
     [
-        sg.Column([[sg.Frame(
+        sg.Column(
+        pad=(0,0),
+        layout=[[sg.Frame(
             "Input",
+            key="input_frame",
+            vertical_alignment="top",
             element_justification="l",
+            size=(275,155),
             layout=[
                 [
                     sg.Text("Season (min 60): ", font=("Arial", 16)),
@@ -97,6 +104,7 @@ layout = [
                         key="season",
                         font=("Arial", 16),
                         readonly=True,
+                        expand_x=True
                     ),
                 ],
                 [
@@ -106,7 +114,7 @@ layout = [
                         default_text="0",
                         key="min_%",
                         font=("Arial", 16),
-                        size=(3, 1),
+                        size=(5, 1),
                         justification="right",
                     ),
                 ],
@@ -117,42 +125,47 @@ layout = [
                         default_text="100",
                         key="max_%",
                         font=("Arial", 16),
-                        size=(3, 1),
+                        size=(5, 1),
                         justification="right",
                     ),
                 ],
                 [
+                    sg.Text("Category: ", font=("Arial", 16)),
                     sg.Text(expand_x=True),
+                    sg.Combo(
+                        [],
+                        default_value="ALL",
+                        key="category_selection",
+                        font=("Arial", 16),
+                        size=(15, 1),
+                        readonly=True,
+                        enable_events=True
+                    ),
+                ],
+                [
                     sg.Button("Retrieve Season", key="retrieve"),
+                    sg.Text(expand_x=True),
                     sg.Button("Filter", key="filter", bind_return_key=True),
                     sg.Cancel(),
                 ],
             ],
         ),]]),
+        sg.Column(layout=[[]],expand_x=True),
         sg.Column(
+        pad=(0,0),
         vertical_alignment="top",
         layout =
         [[sg.Frame(
-            "Season",
+            "Information",
             vertical_alignment="top",
-            visible=True,
-            expand_x = True,
-            key="season_info_box",
+            size=(275,155),
+            key="info_box",
             layout=[
                 [
                     sg.Text("Season: ", font=("Arial", 16)),
                     sg.Text(expand_x=True),
                     sg.Text("", key="season_title", font=("Arial", 16)),
-                ]
-            ]
-        )],
-        [sg.Frame(
-            "Information",
-            vertical_alignment="top",
-            visible=True,
-            expand_x = True,
-            key="info_box",
-            layout=[
+                ],
                 [
                     sg.Text("Total Number of Questions: ", font=("Arial", 16)),
                     sg.Text(expand_x=True),
@@ -185,7 +198,7 @@ layout = [
                 [
                     sg.Multiline(
                         key="question",
-                        size=(50, 7),
+                        size=(60, 7),
                         font=("Arial", 16),
                         disabled=True,
                         no_scrollbar=True,
@@ -243,7 +256,8 @@ window = sg.Window(
     "LearnedLeague",
     layout=layout,
     finalize=True,
-    resizable=True,
+    resizable=False,
+    element_justification="center",
 )
 i = 1
 while True:
@@ -253,19 +267,27 @@ while True:
         window.close()
         break
 
-    if event == "cancel":
+    if event == "Cancel":
+        print(window["input_frame"].get_size())
         window["question"].update(value="")
         window["answer"].update(value="")
         i = 1
 
     if event == "retrieve":
         if values["season"] == window["season_title"].get():
-            print("season already loaded")
             continue
-        all_questions_dict = get_all_questions(values["season"])
-        window["season_title"].update(value=values["season"])
+        window["season_title"].update(value="Loading...")
+        window.refresh()
 
-    if event == "filter":
+        all_questions_dict = get_all_questions(values["season"])
+        categories = ["ALL"] + list(set([q["category"] for q in all_questions_dict.values()]))
+
+        window["season_title"].update(value=values["season"])
+        window["category_selection"].update(values=categories, value="ALL")
+        window.write_event_value("filter", "")
+        window.set_title("LearnedLeague " + values["season"])
+
+    if event in ["filter", "category_selection"]:
         if int(values["min_%"]) > int(values["max_%"]):
             values["max_%"] = str(int(values["min_%"]) + 1)
             window["max_%"].update(value=values["max_%"])
@@ -281,7 +303,7 @@ while True:
             window["max_%"].update(value=values["max_%"])
 
 
-        questions = get_questions(all_questions_dict, values["min_%"], values["max_%"])
+        questions = get_questions(all_questions_dict, values["min_%"], values["max_%"], values["category_selection"])
 
         if not questions:
             window["question"].update(value="No Questions Available")
