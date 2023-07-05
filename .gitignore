@@ -1,0 +1,4 @@
+resources/*
+.eggs/*
+build/*
+dist/*
