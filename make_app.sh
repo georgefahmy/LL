@@ -1,15 +1,15 @@
 #!/bin/bash
 
-INVENV=$(/usr/local/bin/python3.11 -c 'import sys; print( True if "virtual" in sys.prefix else False)')
-VERSION=v$(/usr/local/bin/python3.11 setup.py --version)
+INVENV=$(/usr/local/bin/python3.10 -c 'import sys; print( True if "virtual" in sys.prefix else False)')
+VERSION=v$(/usr/local/bin/python3.10 setup.py --version)
 
 if [ $INVENV == "True" ]; then
     echo "Please deactivate the virtual environment and run again"
     exit 0
 else
     rm -rf build dist
-    /usr/local/bin/pip3.11 install -r requirements.txt
-    /usr/local/bin/python3.11 setup.py py2app
+    /usr/local/bin/pip3.10 install -r requirements.txt
+    /usr/local/bin/python3.10 setup.py py2app
     cd dist
     ln -s /Applications/
     echo "Creating Installation Image"
@@ -18,5 +18,5 @@ else
     rm ./Applications
     cd ..
     echo "Creating release $VERSION and uploading app to github"
-    gh release create $VERSION dist/*.dmg -t "LearnedLeague $VERSION"
+    gh release create $VERSION dist/*.dmg -t "LearnedLeague $VERSION"  -F changelog.md
 fi
