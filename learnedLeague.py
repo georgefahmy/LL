@@ -1,7 +1,9 @@
 import requests
-import re
 import PySimpleGUI as sg
 import webbrowser
+import sys
+import os
+import base64
 
 from bs4 import BeautifulSoup as bs, SoupStrainer as ss
 from pprint import pprint
@@ -94,7 +96,13 @@ latest_season = (
 
 available_seasons = [str(season) for season in list(range(60, int(latest_season) + 1, 1))]
 
+try:
+    wd = sys._MEIPASS
+except AttributeError:
+    wd = os.getcwd()
 
+icon_file = wd + "/resources/ll_app_logo.png"
+sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
 window = sg.Window(
     "LearnedLeague",
     layout=layout,
