@@ -3,7 +3,10 @@ from setuptools import setup, find_packages
 VERSION = open("VERSION", "r").read().strip()
 
 APP = ["learnedLeague.py"]
-
+DATA_FILES = [
+    "resources",
+    "resources/ll_logo.icns",
+]
 OPTIONS = {
     "iconfile": "/Users/GFahmy/Documents/projects/LL/resources/ll_logo.icns",
     "arch": "x86_64",
@@ -12,8 +15,8 @@ OPTIONS = {
 setup(
     app=APP,
     version=VERSION,
+    data_files=DATA_FILES,
     name="Learned League",
-    url="https://github.com/georgefahmy/meal-planner",
     options={"py2app": OPTIONS},
     setup_requires=[
         "py2app",

@@ -2,3 +2,4 @@ resources/*
 .eggs/*
 build/*
 dist/*
+todo_list
