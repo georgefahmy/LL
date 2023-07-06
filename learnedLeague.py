@@ -115,9 +115,7 @@ if os.path.isfile(datapath):
     with open(datapath, "r") as fp:
         all_data = json.load(fp)
 else:
-    from resources.get_all_ll_data import get_all_data
-
-    all_data = get_all_data()
+    all_data = {}
 
 missing_seasons = sorted(
     list(set(available_seasons).symmetric_difference(set(list(all_data.keys()))))

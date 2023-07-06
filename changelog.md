@@ -28,3 +28,7 @@ Updated copyright info
 ## [v1.0.3] - 2023-07-06
 
 Minor Updates
+
+## [v1.0.4] - 2023-07-06
+
+Changed path to function in main
