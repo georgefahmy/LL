@@ -16,3 +16,7 @@ Fixed a bug with paths in setup
 ## [v1.0.0] - 2023-07-06
 
 First Major Release - all available seasons questions are now included in the app and no loading is required. If a new season becomes available the app will load it automatically the next time its opened.
+
+## [v1.0.1] - 2023-07-06
+
+Fixed minor bug with question numbering
