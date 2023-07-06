@@ -26,6 +26,7 @@ setup(
     ],
     packages=find_packages(),
     license="GNU GENERAL PUBLIC LICENSE",
+    copyright="George Fahmy - 2023",
     author="George Fahmy",
     description="LearnedLeague",
     python_requires=">=3.9",

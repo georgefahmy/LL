@@ -22,6 +22,7 @@ layout = [
                                     key="season",
                                     font=("Arial", 16),
                                     readonly=True,
+                                    enable_events=True,
                                     expand_x=True,
                                 ),
                             ],
@@ -61,7 +62,6 @@ layout = [
                                 ),
                             ],
                             [
-                                sg.Button("Retrieve Season", key="retrieve"),
                                 sg.Text(expand_x=True),
                                 sg.Button("Filter", key="filter", bind_return_key=True),
                             ],

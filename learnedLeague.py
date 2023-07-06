@@ -4,6 +4,7 @@ import webbrowser
 import sys
 import os
 import base64
+import json
 
 from bs4 import BeautifulSoup as bs, SoupStrainer as ss
 from pprint import pprint
@@ -13,9 +14,17 @@ from layout import layout
 
 BASE_URL = "https://www.learnedleague.com"
 
+try:
+    WD = sys._MEIPASS
+except AttributeError:
+    WD = os.getcwd()
 
-def get_all_questions(season_number):
-    all_questions_dict = {}
+
+def get_new_data(season_number):
+    with open(WD + "/resources/all_data.json", "r") as fp:
+        all_data = json.load(fp)
+
+    season_dict = {}
     url = BASE_URL + "/match.php?" + str(season_number)
     for i in range(1, 26):
         question_url = url + "&" + str(i)
@@ -41,7 +50,7 @@ def get_all_questions(season_number):
             question_url = (
                 BASE_URL + "/question.php?" + str(season_number) + "&" + str(i) + "&" + str(j + 1)
             )
-            all_questions_dict[question_num_code] = {
+            season_dict[question_num_code] = {
                 "_question": question,
                 "answer": answers[j],
                 "category": categories[j],
@@ -49,11 +58,15 @@ def get_all_questions(season_number):
                 "question_num": question_num_code,
                 "url": question_url,
             }
+    all_data[season_number] = season_dict
 
-    return all_questions_dict
+    with open("resources/all_data.json", "w+") as fp:
+        json.dump(all_data, fp, sort_keys=True, indent=4)
+
+    return all_data
 
 
-def get_questions(all_questions_dict, min_threshold, max_threshold, category_filter):
+def filter_questions(all_questions_dict, min_threshold, max_threshold, category_filter):
     min_threshold = int(min_threshold)
     max_threshold = int(max_threshold)
 
@@ -96,12 +109,58 @@ latest_season = (
 
 available_seasons = [str(season) for season in list(range(60, int(latest_season) + 1, 1))]
 
-try:
-    wd = sys._MEIPASS
-except AttributeError:
-    wd = os.getcwd()
 
-icon_file = wd + "/resources/ll_app_logo.png"
+datapath = WD + "/resources/all_data.json"
+if os.path.isfile(datapath):
+    with open(datapath, "r") as fp:
+        all_data = json.load(fp)
+else:
+    from resources.get_all_ll_data import get_all_data
+
+    all_data = get_all_data()
+
+missing_seasons = sorted(
+    list(set(available_seasons).symmetric_difference(set(list(all_data.keys()))))
+)
+
+
+max_length = len(missing_seasons)
+loading_window = sg.Window(
+    "Loading New Seasons",
+    [
+        [sg.ProgressBar(max_length, orientation="h", expand_x=True, size=(20, 20), key="-PBAR-")],
+        [
+            sg.Text(
+                "",
+                key="-OUT-",
+                enable_events=True,
+                font=("Arial", 16),
+                justification="center",
+                expand_x=True,
+            )
+        ],
+    ],
+    disable_close=False,
+    size=(300, 100),
+)
+while True:
+    event, values = loading_window.read(timeout=10)
+
+    if event == "Cancel":
+        loading_window["-PBAR-"].update(max=max_length)
+
+    if event == sg.WIN_CLOSED or event == "Exit":
+        break
+
+    for season in missing_seasons:
+        all_data = get_new_data(season)
+        loading_window["-OUT-"].update("Loading New Season: " + str(season))
+        loading_window["-PBAR-"].update(current_count=missing_seasons.index(season))
+
+    loading_window.close()
+
+
+icon_file = WD + "/resources/ll_app_logo.png"
 sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
 window = sg.Window(
     "LearnedLeague",
@@ -111,6 +170,14 @@ window = sg.Window(
     element_justification="center",
 )
 window["season"].update(values=available_seasons, value=available_seasons[-1])
+
+all_questions_dict = all_data[available_seasons[-1]]
+categories = ["ALL"] + list(set([q["category"] for q in all_questions_dict.values()]))
+
+window["season_title"].update(value=available_seasons[-1])
+window["category_selection"].update(values=categories, value="ALL")
+window.set_title("LearnedLeague " + available_seasons[-1])
+
 i = 1
 while True:
     event, values = window.read()
@@ -120,20 +187,9 @@ while True:
         window.close()
         break
 
-    # based on the selected season, retrieve all the questions available for that season
-    if event == "retrieve":
-        if values["season"] == window["season_title"].get():
-            continue
-        window["season_title"].update(value="Loading...")
-        window.refresh()
-
-        all_questions_dict = get_all_questions(values["season"])
-        categories = ["ALL"] + list(set([q["category"] for q in all_questions_dict.values()]))
-
-        window["season_title"].update(value=values["season"])
-        window["category_selection"].update(values=categories, value="ALL")
+    if event == "season":
         window.write_event_value("filter", "")
-        window.set_title("LearnedLeague " + values["season"])
+        all_questions_dict = all_data[values["season"]]
 
     # if the category dropdown is changed from ALL, or the filter button is pressed, display the new questions
     if event in ["filter", "category_selection"]:
@@ -151,7 +207,9 @@ while True:
             window["min_%"].update(value=values["min_%"])
             window["max_%"].update(value=values["max_%"])
 
-        questions = get_questions(
+        all_questions_dict = all_data[values["season"]]
+
+        questions = filter_questions(
             all_questions_dict, values["min_%"], values["max_%"], values["category_selection"]
         )
 
