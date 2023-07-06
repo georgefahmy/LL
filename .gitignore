@@ -1,6 +1,6 @@
-resources/*
-.eggs/*
-build/*
-dist/*
+resources/
+.eggs/
+build/
+dist/
 todo_list
 utilities/
