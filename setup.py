@@ -12,10 +12,18 @@ OPTIONS = {
     "arch": "x86_64",
 }
 
+CONSOLE = [
+    {
+        "script": "learnedLeague.py",
+        "copyright": "Copyright (c) 2023 George Fahmy",
+    }
+]
+
 setup(
     app=APP,
     version=VERSION,
     data_files=DATA_FILES,
+    console=CONSOLE,
     name="Learned League",
     options={"py2app": OPTIONS},
     setup_requires=[
@@ -26,7 +34,6 @@ setup(
     ],
     packages=find_packages(),
     license="GNU GENERAL PUBLIC LICENSE",
-    copyright="George Fahmy - 2023",
     author="George Fahmy",
     description="LearnedLeague",
     python_requires=">=3.9",

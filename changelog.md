@@ -20,3 +20,7 @@ First Major Release - all available seasons questions are now included in the ap
 ## [v1.0.1] - 2023-07-06
 
 Fixed minor bug with question numbering
+
+## [v1.0.2] - 2023-07-06
+
+Updated copyright info
