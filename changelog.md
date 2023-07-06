@@ -24,3 +24,7 @@ Fixed minor bug with question numbering
 ## [v1.0.2] - 2023-07-06
 
 Updated copyright info
+
+## [v1.0.3] - 2023-07-06
+
+Minor Updates

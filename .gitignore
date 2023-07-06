@@ -3,3 +3,4 @@ resources/*
 build/*
 dist/*
 todo_list
+utilities/
