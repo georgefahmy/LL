@@ -89,7 +89,7 @@ def check_for_update():
                 update_window["progress"].update(10)
                 os.system("cd $HOME/Downloads")
                 os.system(
-                    'curl -L -o LearnedLeague.dmg "https://github.com/georgefahmy/LL/releases/latest/download/LearnedLeague.dmg"'
+                    'cd  $HOME/Downloads; curl -L -o LearnedLeague.dmg "https://github.com/georgefahmy/LL/releases/latest/download/LearnedLeague.dmg"'
                 )
                 update_window["progress"].update(30)
                 update_window["p_status"].update(value="Installing...")
@@ -105,7 +105,7 @@ def check_for_update():
                 os.system('hdiutil detach "/Volumes/LearnedLeague"')
                 update_window["progress"].update(80)
                 update_window["p_status"].update(value="Done!...Please Restart...")
-                os.remove("rm LearnedLeague.dmg")
+                os.remove("rm $HOME/Downloads/LearnedLeague.dmg")
                 update_window["progress"].update(100)
                 restart = True
                 sleep(5)
