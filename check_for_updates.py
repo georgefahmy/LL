@@ -38,7 +38,7 @@ def check_for_update():
     elif version.parse(current_version) < version.parse(new_version):
         print("New Version available")
         new_version_url = (
-            "https://github.com/georgefahmy/LL/releases/download/v" + new_version + "/" + FILENAME
+            "https://github.com/georgefahmy/LL/releases/latest/download/LearnedLeague.dmg"
         )
 
         update_window = sg.Window(
@@ -87,24 +87,25 @@ def check_for_update():
                 update_window["d_b"].update(visible=False)
                 update_window["c_b"].update(visible=False)
                 update_window["progress"].update(10)
-
-                download_new_version(new_version_url, wd + "/resources/" + FILENAME)
+                os.system("cd $HOME/Downloads")
+                os.system(
+                    'curl -L -o LearnedLeague.dmg "https://github.com/georgefahmy/LL/releases/latest/download/LearnedLeague.dmg"'
+                )
                 update_window["progress"].update(30)
                 update_window["p_status"].update(value="Installing...")
-                os.system(f"hdiutil attach " + wd.replace(" ", "\ ") + "/resources/" + FILENAME)
+                os.system("hdiutil attach LearnedLeague.dmg")
                 update_window["progress"].update(50)
                 update_window["p_status"].update(value="Removing old files...")
                 os.system(
-                    ("cp -r /Volumes/" + VOLUME_NAME + "/" + VOLUME_NAME + ".app")
-                    + (" /Volumes/" + VOLUME_NAME + "/" + "Applications/")
+                    'ditto -rsrc "/Volumes/LearnedLeague/Learned League.app" "/Applications/Learned League.app"'
                 )
                 update_window["progress"].update(65)
                 update_window["p_status"].update(value="Cleaning up download")
 
-                os.system("hdiutil detach " + ("/Volumes/" + VOLUME_NAME))
+                os.system('hdiutil detach "/Volumes/LearnedLeague"')
                 update_window["progress"].update(80)
                 update_window["p_status"].update(value="Done!...Please Restart...")
-                os.remove(wd + "/resources/" + FILENAME)
+                os.remove("rm LearnedLeague.dmg")
                 update_window["progress"].update(100)
                 restart = True
                 sleep(5)
