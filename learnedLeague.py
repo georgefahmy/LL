@@ -39,6 +39,10 @@ def get_new_data(season_number):
             cell.text for cell in page.find_all("tr")[-2].find_all("td", {"class": "ind-Q3"})
         ][2:-1]
 
+        question_defense = [
+            cell.text for cell in page.find_all("tr")[-1].find_all("td", {"class": "ind-Q3"})
+        ][2:-1]
+
         questions = [
             "-".join(link.text.strip().split("-")[1:]).strip()
             for link in page.find_all("div", {"class": "ind-Q20 dont-break-out"})
@@ -56,6 +60,7 @@ def get_new_data(season_number):
                 "category": categories[j],
                 "percent": percentages[j],
                 "question_num": question_num_code,
+                "defense": question_defense[j],
                 "url": question_url,
             }
     all_data[season_number] = season_dict
@@ -95,6 +100,43 @@ def filter_questions(all_questions_dict, min_threshold, max_threshold, category_
     }
 
     return filtered_questions_dict
+
+
+def update_question(all_questions_dict, window, values, i):
+    if not values:
+        min_per = 0
+        max_per = 100
+        category = "ALL"
+        season_title = window["season_title"].get()
+
+    else:
+        min_per = values["min_%"]
+        max_per = values["max_%"]
+        category = values["category_selection"]
+        season_title = values["season"]
+
+    questions = filter_questions(all_questions_dict, min_per, max_per, category)
+
+    question_object = questions.get(i)
+    if not question_object:
+        return
+    question = question_object.get("_question")
+
+    window["question"].update(value=question)
+    window["season_title"].update(value=season_title)
+    window["num_questions"].update(value=len(list(questions.keys())))
+    window["%_correct"].update(value=str(question_object["percent"]) + "%")
+    window["question_number"].update(value=question_object["question_num"])
+    window["question_number"].set_tooltip("Click to Open: " + question_object["url"])
+    window["question_number"].metadata = question_object["url"]
+    window["question_category"].update(value=question_object["category"])
+    window["defense"].update(value=question_object["defense"])
+    window["answer"].update(value="******")
+    window["show/hide"].update(text="Show Answer")
+    window["next"].update(disabled=False)
+    window["dropdown"].update(value=i)
+
+    return question_object
 
 
 latest_season = (
@@ -161,7 +203,7 @@ while True:
 icon_file = WD + "/resources/ll_app_logo.png"
 sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
 window = sg.Window(
-    "LearnedLeague",
+    "Learned League Practice Tool",
     layout=layout,
     finalize=True,
     resizable=False,
@@ -174,9 +216,10 @@ categories = ["ALL"] + list(set([q["category"] for q in all_questions_dict.value
 
 window["season_title"].update(value=available_seasons[-1])
 window["category_selection"].update(values=categories, value="ALL")
-window.set_title("LearnedLeague " + available_seasons[-1])
 
 i = 1
+question_object = update_question(all_questions_dict, window, values, i)
+
 while True:
     event, values = window.read()
 
@@ -216,26 +259,13 @@ while True:
 
         window["dropdown"].update(values=list(questions.keys()), value=1)
         i = 1
-        question_object = questions.get(i)
-        if not question_object:
-            continue
-        question = question_object.get("_question")
-        answer = question_object.get("answer")
 
-        window["question"].update(value=question)
-        window["season_title"].update(value=values["season"])
-        window["num_questions"].update(value=len(list(questions.keys())))
-        window["%_correct"].update(value=str(question_object["percent"]) + "%")
-        window["question_number"].update(value=question_object["question_num"])
-        window["question_number"].set_tooltip("Click to Open: " + question_object["url"])
-        window["question_number"].metadata = question_object["url"]
-        window["question_category"].update(value=question_object["category"])
-        window["answer"].update(value="******")
-        window["show/hide"].update(text="Show Answer")
-        window["next"].update(disabled=False)
+        question_object = update_question(all_questions_dict, window, values, i)
 
     # display or hide the answer for the currently displayed question
     if event == "show/hide":
+        answer = question_object.get("answer")
+
         if window["show/hide"].get_text() == "Show Answer":
             try:
                 window["show/hide"].update(text="Hide Answer")
@@ -265,7 +295,8 @@ while True:
         elif event == "dropdown":
             i = values["dropdown"]
 
-        question_object = questions.get(i)
+        question_object = update_question(all_questions_dict, window, values, i)
+        answer = question_object.get("answer")
 
         if not question_object:
             if event == "next":
@@ -275,19 +306,6 @@ while True:
             elif event == "dropdown":
                 i = values["dropdown"]
             continue
-
-        question = question_object.get("_question")
-        answer = question_object.get("answer")
-
-        window["answer"].update(value="******")
-        window["show/hide"].update(text="Show Answer")
-        window["question"].update(value=question)
-        window["dropdown"].update(value=i)
-        window["%_correct"].update(value=str(question_object["percent"]) + "%")
-        window["question_number"].update(value=question_object["question_num"])
-        window["question_number"].set_tooltip("Click to Open: " + question_object["url"])
-        window["question_number"].metadata = question_object["url"]
-        window["question_category"].update(value=question_object["category"])
 
         if i == len(questions.keys()):
             window["next"].update(disabled=True)

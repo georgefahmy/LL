@@ -70,7 +70,6 @@ layout = [
                 ]
             ],
         ),
-        sg.Column(layout=[[]], expand_x=True),
         sg.Column(
             pad=(0, 0),
             vertical_alignment="top",
@@ -80,7 +79,8 @@ layout = [
                         "Information",
                         vertical_alignment="top",
                         size=(275, 155),
-                        key="info_box",
+                        key="season_info",
+                        expand_x=True,
                         layout=[
                             [
                                 sg.Text("Season: ", font=("Arial", 16)),
@@ -92,6 +92,23 @@ layout = [
                                 sg.Text(expand_x=True),
                                 sg.Text("", key="num_questions", font=("Arial", 16)),
                             ],
+                        ],
+                    )
+                ]
+            ],
+            expand_x=True,
+        ),
+        sg.Column(
+            pad=(0, 0),
+            vertical_alignment="top",
+            layout=[
+                [
+                    sg.Frame(
+                        "Metrics",
+                        vertical_alignment="top",
+                        size=(275, 155),
+                        key="info_box",
+                        layout=[
                             [
                                 sg.Text("Question: ", font=("Arial", 16)),
                                 sg.Text(expand_x=True),
@@ -111,6 +128,11 @@ layout = [
                                 sg.Text("Correct %: ", font=("Arial", 16)),
                                 sg.Text(expand_x=True),
                                 sg.Text("", key="%_correct", font=("Arial", 16)),
+                            ],
+                            [
+                                sg.Text("Defense Value: ", font=("Arial", 16)),
+                                sg.Text(expand_x=True),
+                                sg.Text("", key="defense", font=("Arial", 16)),
                             ],
                         ],
                     )
