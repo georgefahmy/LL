@@ -9,7 +9,7 @@ The purpose of this tool is to allow a user to see questions from past seasons (
 
 ## Download
 
-To download the lastest version of the app: https://github.com/georgefahmy/LL/releases/latest/download/LearnedLeague.dmg. 
+To download the lastest version of the app: https://github.com/georgefahmy/LL/releases/latest/download/download_install_app.sh. 
 
 ## Installation
 
