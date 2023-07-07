@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup as bs, SoupStrainer as ss
 from pprint import pprint
 from time import sleep
 from layout import layout
+from check_for_updates import check_for_update
 
 
 BASE_URL = "https://www.learnedleague.com"
@@ -18,6 +19,10 @@ try:
     WD = sys._MEIPASS
 except AttributeError:
     WD = os.getcwd()
+
+restart = check_for_update()
+if restart:
+    exit()
 
 
 def get_new_data(season_number):

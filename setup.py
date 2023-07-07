@@ -5,6 +5,7 @@ VERSION = open("VERSION", "r").read().strip()
 APP = ["learnedLeague.py"]
 DATA_FILES = [
     "resources",
+    "VERSION",
     "resources/ll_logo.icns",
 ]
 OPTIONS = {
