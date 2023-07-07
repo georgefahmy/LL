@@ -4,3 +4,4 @@ build/
 dist/
 todo_list
 utilities/
+.DS_Store

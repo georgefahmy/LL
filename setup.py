@@ -15,7 +15,6 @@ OPTIONS = {
 CONSOLE = [
     {
         "script": "learnedLeague.py",
-        "copyright": "Copyright (c) 2023 George Fahmy",
     }
 ]
 
@@ -33,7 +32,6 @@ setup(
         "beautifulsoup4",
     ],
     packages=find_packages(),
-    license="GNU GENERAL PUBLIC LICENSE",
     author="George Fahmy",
     description="LearnedLeague",
     python_requires=">=3.9",
