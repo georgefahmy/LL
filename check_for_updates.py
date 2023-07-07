@@ -12,7 +12,7 @@ except AttributeError:
     wd = os.getcwd()
 
 FILENAME = "LearnedLeague.dmg"
-VOLUME_NAME = capwords(FILENAME.replace("-", "\ ").split(".")[0])
+VOLUME_NAME = FILENAME.split(".")[0]
 
 
 def download_new_version(url, file_name):
