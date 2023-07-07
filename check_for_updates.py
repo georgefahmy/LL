@@ -15,13 +15,6 @@ FILENAME = "LearnedLeague.dmg"
 VOLUME_NAME = FILENAME.split(".")[0]
 
 
-def download_new_version(url, file_name):
-    # Download the file from `url` and save it locally under `file_name`:
-    with open(file_name, "wb") as out_file:
-        content = requests.get(url, stream=True).content
-        out_file.write(content)
-
-
 # Check if outdated
 def check_for_update():
     restart = False
@@ -33,13 +26,9 @@ def check_for_update():
 
     if version.parse(current_version) >= version.parse(new_version):
         print("Version is up to date")
-        confirm = False
 
     elif version.parse(current_version) < version.parse(new_version):
         print("New Version available")
-        new_version_url = (
-            "https://github.com/georgefahmy/LL/releases/latest/download/LearnedLeague.dmg"
-        )
 
         update_window = sg.Window(
             "Learned League Practice Tool Update Available",
@@ -105,7 +94,7 @@ def check_for_update():
                 os.system('hdiutil detach "/Volumes/LearnedLeague"')
                 update_window["progress"].update(80)
                 update_window["p_status"].update(value="Done!...Please Restart...")
-                os.remove("rm $HOME/Downloads/LearnedLeague.dmg")
+                os.system("cd $HOME/Downloads; rm -rf LearnedLeague.dmg")
                 update_window["progress"].update(100)
                 restart = True
                 sleep(5)
