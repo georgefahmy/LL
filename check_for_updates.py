@@ -3,8 +3,7 @@ import PySimpleGUI as sg
 import requests
 import sys
 from packaging import version
-from string import capwords
-from time import sleep
+import base64
 
 try:
     wd = sys._MEIPASS
@@ -29,7 +28,8 @@ def check_for_update():
 
     elif version.parse(current_version) < version.parse(new_version):
         print("New Version available")
-
+        icon_file = wd + "/resources/ll_app_logo.png"
+        sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
         update_window = sg.Window(
             "Learned League Practice Tool Update Available",
             [

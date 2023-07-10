@@ -169,41 +169,47 @@ missing_seasons = sorted(
     list(set(available_seasons).symmetric_difference(set(list(all_data.keys()))))
 )
 
-
-max_length = len(missing_seasons)
-loading_window = sg.Window(
-    "Loading New Seasons",
-    [
-        [sg.ProgressBar(max_length, orientation="h", expand_x=True, size=(20, 20), key="-PBAR-")],
+if len(missing_seasons) > 0:
+    icon_file = WD + "/resources/ll_app_logo.png"
+    sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
+    max_length = len(missing_seasons)
+    loading_window = sg.Window(
+        "Loading New Seasons",
         [
-            sg.Text(
-                "",
-                key="-OUT-",
-                enable_events=True,
-                font=("Arial", 16),
-                justification="center",
-                expand_x=True,
-            )
+            [
+                sg.ProgressBar(
+                    max_length, orientation="h", expand_x=True, size=(20, 20), key="-PBAR-"
+                )
+            ],
+            [
+                sg.Text(
+                    "",
+                    key="-OUT-",
+                    enable_events=True,
+                    font=("Arial", 16),
+                    justification="center",
+                    expand_x=True,
+                )
+            ],
         ],
-    ],
-    disable_close=False,
-    size=(300, 100),
-)
-while True:
-    event, values = loading_window.read(timeout=10)
+        disable_close=False,
+        size=(300, 100),
+    )
+    while True:
+        event, values = loading_window.read(timeout=10)
 
-    if event == "Cancel":
-        loading_window["-PBAR-"].update(max=max_length)
+        if event == "Cancel":
+            loading_window["-PBAR-"].update(max=max_length)
 
-    if event == sg.WIN_CLOSED or event == "Exit":
-        break
+        if event == sg.WIN_CLOSED or event == "Exit":
+            break
 
-    for season in missing_seasons:
-        all_data = get_new_data(season)
-        loading_window["-OUT-"].update("Loading New Season: " + str(season))
-        loading_window["-PBAR-"].update(current_count=missing_seasons.index(season))
+        for season in missing_seasons:
+            all_data = get_new_data(season)
+            loading_window["-OUT-"].update("Loading New Season: " + str(season))
+            loading_window["-PBAR-"].update(current_count=missing_seasons.index(season))
 
-    loading_window.close()
+        loading_window.close()
 
 
 icon_file = WD + "/resources/ll_app_logo.png"
@@ -223,6 +229,7 @@ categories = ["ALL"] + list(set([q["category"] for q in all_questions_dict.value
 window["season_title"].update(value=available_seasons[-1])
 window["category_selection"].update(values=categories, value="ALL")
 
+values = None
 i = 1
 question_object = update_question(all_questions_dict, window, values, i)
 
