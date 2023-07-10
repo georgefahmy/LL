@@ -82,12 +82,10 @@ def check_for_update():
                 )
                 update_window["progress"].update(30)
                 update_window["p_status"].update(value="Installing...")
-                os.system("hdiutil attach LearnedLeague.dmg")
+                os.system("cd $HOME/Downloads; hdiutil attach LearnedLeague.dmg")
                 update_window["progress"].update(50)
                 update_window["p_status"].update(value="Removing old files...")
-                os.system(
-                    'ditto -rsrc "/Volumes/LearnedLeague/Learned League.app" "/Applications/Learned League.app"'
-                )
+                os.system("cd /Volumes/LearnedLeague/; \cp -rf *.app /Applications")
                 update_window["progress"].update(65)
                 update_window["p_status"].update(value="Cleaning up download")
 

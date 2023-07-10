@@ -7,7 +7,6 @@ DATA_FILES = [
     "resources",
     "VERSION",
     "resources/ll_logo.icns",
-    "utilities/download_install_app.sh",
 ]
 OPTIONS = {
     "iconfile": "/Users/GFahmy/Documents/projects/LL/resources/ll_logo.icns",

@@ -22,7 +22,8 @@ except AttributeError:
 
 restart = check_for_update()
 if restart:
-    exit()
+    restart = False
+    os.execv(sys.executable, ["python"] + sys.argv)
 
 
 def get_new_data(season_number):
