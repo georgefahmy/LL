@@ -91,11 +91,10 @@ def check_for_update():
 
                 os.system('hdiutil detach "/Volumes/LearnedLeague"')
                 update_window["progress"].update(80)
-                update_window["p_status"].update(value="Done!...Please Restart...")
+                update_window["p_status"].update(value="Done!...Restarting...")
                 os.system("cd $HOME/Downloads; rm -rf LearnedLeague.dmg")
                 update_window["progress"].update(100)
                 restart = True
-                sleep(5)
                 update_window.close()
                 break
 
