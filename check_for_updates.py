@@ -76,7 +76,6 @@ def check_for_update():
                 update_window["d_b"].update(visible=False)
                 update_window["c_b"].update(visible=False)
                 update_window["progress"].update(10)
-                os.system("cd $HOME/Downloads")
                 os.system(
                     'cd  $HOME/Downloads; curl -L -o LearnedLeague.dmg "https://github.com/georgefahmy/LL/releases/latest/download/LearnedLeague.dmg"'
                 )
@@ -85,7 +84,9 @@ def check_for_update():
                 os.system("cd $HOME/Downloads; hdiutil attach LearnedLeague.dmg")
                 update_window["progress"].update(50)
                 update_window["p_status"].update(value="Removing old files...")
-                os.system("cd /Volumes/LearnedLeague/; \cp -rf *.app /Applications")
+                os.system(
+                    "sudo installer -allowUntrusted -pkg /Volumes/LearnedLeague/LearnedLeague.pkg -target /Applications"
+                )
                 update_window["progress"].update(65)
                 update_window["p_status"].update(value="Cleaning up download")
 
