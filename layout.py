@@ -11,7 +11,7 @@ layout = [
                         key="input_frame",
                         vertical_alignment="top",
                         element_justification="l",
-                        size=(275, 155),
+                        size=(275, 185),
                         layout=[
                             [
                                 sg.Text("Season (min 60): ", font=("Arial", 16)),
@@ -76,21 +76,41 @@ layout = [
             layout=[
                 [
                     sg.Frame(
-                        "Information",
+                        "Rundle Metrics",
                         vertical_alignment="top",
-                        size=(275, 155),
+                        size=(275, 185),
                         key="season_info",
                         expand_x=True,
                         layout=[
                             [
-                                sg.Text("Season: ", font=("Arial", 16)),
+                                sg.Text("Rundle A: ", font=("Arial", 16)),
                                 sg.Text(expand_x=True),
-                                sg.Text("", key="season_title", font=("Arial", 16)),
+                                sg.Text("", key="rundle_A", font=("Arial", 16)),
                             ],
                             [
-                                sg.Text("Total Number of Questions: ", font=("Arial", 16)),
+                                sg.Text("Rundle B: ", font=("Arial", 16)),
                                 sg.Text(expand_x=True),
-                                sg.Text("", key="num_questions", font=("Arial", 16)),
+                                sg.Text("", key="rundle_B", font=("Arial", 16)),
+                            ],
+                            [
+                                sg.Text("Rundle C: ", font=("Arial", 16)),
+                                sg.Text(expand_x=True),
+                                sg.Text("", key="rundle_C", font=("Arial", 16)),
+                            ],
+                            [
+                                sg.Text("Rundle D: ", font=("Arial", 16)),
+                                sg.Text(expand_x=True),
+                                sg.Text("", key="rundle_D", font=("Arial", 16)),
+                            ],
+                            [
+                                sg.Text("Rundle E: ", font=("Arial", 16)),
+                                sg.Text(expand_x=True),
+                                sg.Text("", key="rundle_E", font=("Arial", 16)),
+                            ],
+                            [
+                                sg.Text("Rundle R: ", font=("Arial", 16)),
+                                sg.Text(expand_x=True),
+                                sg.Text("", key="rundle_R", font=("Arial", 16)),
                             ],
                         ],
                     )
@@ -104,9 +124,9 @@ layout = [
             layout=[
                 [
                     sg.Frame(
-                        "Metrics",
+                        "Question Metrics",
                         vertical_alignment="top",
-                        size=(275, 155),
+                        size=(275, 185),
                         key="info_box",
                         layout=[
                             [
@@ -179,6 +199,10 @@ layout = [
                 [
                     sg.Button("Show Answer", key="show/hide", size=(12, 1), font=("Arial", 12)),
                     sg.Text("", expand_x=True),
+                    sg.Text("Total Questions: ", font=("Arial", 16)),
+                    sg.Text("", key="num_questions", font=("Arial", 16)),
+                    sg.Text("", expand_x=True),
+                    sg.Button("Random Q", key="random_choice", size=(12, 1), font=("Arial", 12)),
                     sg.Combo(
                         values=[],
                         default_value="1",

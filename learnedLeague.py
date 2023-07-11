@@ -11,6 +11,7 @@ from pprint import pprint
 from time import sleep
 from layout import layout
 from check_for_updates import check_for_update
+from random import choice
 
 
 BASE_URL = "https://www.learnedleague.com"
@@ -32,6 +33,12 @@ def get_new_data(season_number):
             all_data = json.load(fp)
     except:
         all_data = {}
+
+    try:
+        with open(WD + "/resources/rundle_info.json", "r") as fp:
+            rundle_info = json.load(fp)
+    except:
+        rundle_info = {}
 
     url = BASE_URL + "/match.php?" + str(season_number)
     for i in range(1, 26):
@@ -57,12 +64,22 @@ def get_new_data(season_number):
         ]
         answers = [link.text.strip() for link in page.find_all("div", {"class": "a-red"})]
 
+        rundles = [row.find_all("td", {"class": "ind-Q3"}) for row in page.find_all("tr")[1:8]]
+
         for j, question in enumerate(questions):
             question_num_code = "D" + str(i).zfill(2) + "Q" + str(j + 1)
             combined_season_num_code = "S" + season_number + question_num_code
             question_url = (
                 BASE_URL + "/question.php?" + str(season_number) + "&" + str(i) + "&" + str(j + 1)
             )
+            rundle_info[combined_season_num_code] = {
+                "A":[cell.text for cell in rundles[0]][2:-1][j],
+                "B":[cell.text for cell in rundles[1]][2:-1][j],
+                "C":[cell.text for cell in rundles[2]][2:-1][j],
+                "D":[cell.text for cell in rundles[3]][2:-1][j],
+                "E":[cell.text for cell in rundles[4]][2:-1][j],
+                "R":[cell.text for cell in rundles[5]][2:-1][j],
+            }
             all_data[combined_season_num_code] = {
                 "_question": question,
                 "answer": answers[j],
@@ -76,6 +93,9 @@ def get_new_data(season_number):
 
     with open("resources/all_data.json", "w+") as fp:
         json.dump(all_data, fp, sort_keys=True, indent=4)
+
+    with open("resources/rundle_info.json", "w+") as fp:
+        json.dump(rundle_info, fp, sort_keys=True, indent=4)
 
     return all_data
 
@@ -118,13 +138,13 @@ def filter_questions(all_questions_dict, min_threshold, max_threshold, category_
     return filtered_questions_dict
 
 
-def update_question(all_questions_dict, window, values, i):
+def update_question(questions, window, values, i):
     if not values:
         min_per = 0
         max_per = 100
         category = "ALL"
         season = "ALL"
-        season_title = window["season_title"].get()
+        # season_title = window["season_title"].get()
 
     else:
         min_per = values["min_%"]
@@ -132,15 +152,13 @@ def update_question(all_questions_dict, window, values, i):
         category = values["category_selection"]
         season = values["season"]
 
-    questions = filter_questions(all_questions_dict, min_per, max_per, category, season)
-
     question_object = questions.get(i)
     if not question_object:
         return
     question = question_object.get("_question")
 
     window["question"].update(value=question)
-    window["season_title"].update(value=season)
+    # window["season_title"].update(value=season)
     window["num_questions"].update(value=len(list(questions.keys())))
     window["%_correct"].update(value=str(question_object["percent"]) + "%")
     window["season_number"].update(value=question_object["season"])
@@ -153,6 +171,16 @@ def update_question(all_questions_dict, window, values, i):
     window["show/hide"].update(text="Show Answer")
     window["next"].update(disabled=False)
     window["dropdown"].update(value=i)
+    combined_season_num_code = "S" + question_object["season"] + question_object["question_num"]
+    rundle_info = json.load(open("resources/rundle_info.json","r"))[combined_season_num_code]
+
+    window["rundle_A"].update(value=rundle_info["A"] + "%")
+    window["rundle_B"].update(value=rundle_info["B"] + "%")
+    window["rundle_C"].update(value=rundle_info["C"] + "%")
+    window["rundle_D"].update(value=rundle_info["D"] + "%")
+    window["rundle_E"].update(value=rundle_info["E"] + "%")
+    window["rundle_R"].update(value=rundle_info["R"] + "%")
+
 
     return question_object
 
@@ -220,7 +248,7 @@ if len(missing_seasons) > 0:
         for season in missing_seasons:
             all_data = get_new_data(season)
             loading_window["-OUT-"].update("Loading New Season: " + str(season))
-            loading_window["-PBAR-"].update(current_count=missing_seasons.index(season))
+            loading_window["-PBAR-"].update(current_count=missing_seasons.index(season)+1)
 
         loading_window.close()
 
@@ -240,17 +268,23 @@ all_questions_dict = all_data
 categories = ["ALL"] + list(set([q["category"] for q in all_questions_dict.values()]))
 seasons = ["ALL"] + sorted(list(set([q["season"] for q in all_questions_dict.values()])))
 
-window["season_title"].update(value=seasons[0])
+# window["season_title"].update(value=seasons[0])
 window["category_selection"].update(values=categories, value="ALL")
 window["season"].update(values=seasons, value="ALL")
 
 questions = filter_questions(all_questions_dict, 0, 100, "ALL", "ALL")
 window["dropdown"].update(values=list(questions.keys()))
 
+window.bind("<s>", "show_key")
 
 values = None
-i = 1
-question_object = update_question(all_questions_dict, window, values, i)
+i = choice(list(questions.keys()))
+question_object = update_question(questions, window, values, i)
+if i > 1:
+    window["previous"].update(disabled=False)
+
+if i < len(list(questions.keys())):
+    window["next"].update(disabled=False)
 
 while True:
     event, values = window.read()
@@ -262,7 +296,13 @@ while True:
 
     if event == "season":
         window.write_event_value("filter", "")
-        update_question(all_questions_dict, window, values, i)
+        question_object = update_question(questions, window, values, i)
+        answer = question_object.get("answer")
+
+    if event == "random_choice":
+        i = choice(list(questions.keys()))
+        question_object = update_question(questions, window, values, i)
+        answer = question_object.get("answer")
 
     # if the category dropdown is changed from ALL, or the filter button is pressed, display the new questions
     if event in ["filter", "category_selection"]:
@@ -290,10 +330,11 @@ while True:
         window["dropdown"].update(values=list(questions.keys()), value=1)
         i = 1
 
-        question_object = update_question(all_questions_dict, window, values, i)
+        question_object = update_question(questions, window, values, i)
+        window["previous"].update(disabled=True)
 
     # display or hide the answer for the currently displayed question
-    if event == "show/hide":
+    if event in ("show/hide", "show_key") :
         answer = question_object.get("answer")
 
         if window["show/hide"].get_text() == "Show Answer":
@@ -325,7 +366,7 @@ while True:
         elif event == "dropdown":
             i = values["dropdown"]
 
-        question_object = update_question(all_questions_dict, window, values, i)
+        question_object = update_question(questions, window, values, i)
         answer = question_object.get("answer")
 
         if not question_object:
