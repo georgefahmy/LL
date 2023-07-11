@@ -12,6 +12,6 @@ The first time you open the application you need to Right Click on it in the app
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [v1.2.3] - 2023-07-10
+## [v1.2.4] - 2023-07-10
 
-Updated changelog to include instructions for installation.
+Minor Update
