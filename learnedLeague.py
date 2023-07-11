@@ -27,10 +27,12 @@ if restart:
 
 
 def get_new_data(season_number):
-    with open(WD + "/resources/all_data.json", "r") as fp:
-        all_data = json.load(fp)
+    try:
+        with open(WD + "/resources/all_data.json", "r") as fp:
+            all_data = json.load(fp)
+    except:
+        all_data = {}
 
-    season_dict = {}
     url = BASE_URL + "/match.php?" + str(season_number)
     for i in range(1, 26):
         question_url = url + "&" + str(i)
@@ -56,20 +58,21 @@ def get_new_data(season_number):
         answers = [link.text.strip() for link in page.find_all("div", {"class": "a-red"})]
 
         for j, question in enumerate(questions):
-            question_num_code = "D" + str(i) + "Q" + str(j + 1)
+            question_num_code = "D" + str(i).zfill(2) + "Q" + str(j + 1)
+            combined_season_num_code = "S" + season_number + question_num_code
             question_url = (
                 BASE_URL + "/question.php?" + str(season_number) + "&" + str(i) + "&" + str(j + 1)
             )
-            season_dict[question_num_code] = {
+            all_data[combined_season_num_code] = {
                 "_question": question,
                 "answer": answers[j],
+                "season": season_number,
                 "category": categories[j],
                 "percent": percentages[j],
                 "question_num": question_num_code,
                 "defense": question_defense[j],
                 "url": question_url,
             }
-    all_data[season_number] = season_dict
 
     with open("resources/all_data.json", "w+") as fp:
         json.dump(all_data, fp, sort_keys=True, indent=4)
@@ -77,7 +80,7 @@ def get_new_data(season_number):
     return all_data
 
 
-def filter_questions(all_questions_dict, min_threshold, max_threshold, category_filter):
+def filter_questions(all_questions_dict, min_threshold, max_threshold, category_filter, season_filter):
     min_threshold = int(min_threshold)
     max_threshold = int(max_threshold)
 
@@ -100,6 +103,13 @@ def filter_questions(all_questions_dict, min_threshold, max_threshold, category_
             and question["category"].upper() == category_filter.upper()
         ]
 
+    if season_filter != "ALL":
+        filtered_question_ids = [
+            question_ids
+            for question_ids, question in all_questions_dict.items()
+            if question["season"] == season_filter
+        ]
+
     filtered_questions_dict = {
         i + 1: val
         for i, val in enumerate([all_questions_dict[key] for key in filtered_question_ids])
@@ -113,15 +123,16 @@ def update_question(all_questions_dict, window, values, i):
         min_per = 0
         max_per = 100
         category = "ALL"
+        season = "ALL"
         season_title = window["season_title"].get()
 
     else:
         min_per = values["min_%"]
         max_per = values["max_%"]
         category = values["category_selection"]
-        season_title = values["season"]
+        season = values["season"]
 
-    questions = filter_questions(all_questions_dict, min_per, max_per, category)
+    questions = filter_questions(all_questions_dict, min_per, max_per, category, season)
 
     question_object = questions.get(i)
     if not question_object:
@@ -129,9 +140,10 @@ def update_question(all_questions_dict, window, values, i):
     question = question_object.get("_question")
 
     window["question"].update(value=question)
-    window["season_title"].update(value=season_title)
+    window["season_title"].update(value=season)
     window["num_questions"].update(value=len(list(questions.keys())))
     window["%_correct"].update(value=str(question_object["percent"]) + "%")
+    window["season_number"].update(value=question_object["season"])
     window["question_number"].update(value=question_object["question_num"])
     window["question_number"].set_tooltip("Click to Open: " + question_object["url"])
     window["question_number"].metadata = question_object["url"]
@@ -165,8 +177,9 @@ if os.path.isfile(datapath):
 else:
     all_data = {}
 
+season_in_data = list(set([val.split("D")[0].strip("S") for val in list(all_data.keys())]))
 missing_seasons = sorted(
-    list(set(available_seasons).symmetric_difference(set(list(all_data.keys()))))
+    list(set(available_seasons).symmetric_difference(set(season_in_data)))
 )
 
 if len(missing_seasons) > 0:
@@ -221,13 +234,19 @@ window = sg.Window(
     resizable=False,
     element_justification="center",
 )
-window["season"].update(values=available_seasons, value=available_seasons[-1])
 
-all_questions_dict = all_data[available_seasons[-1]]
+all_questions_dict = all_data
+
 categories = ["ALL"] + list(set([q["category"] for q in all_questions_dict.values()]))
+seasons = ["ALL"] + sorted(list(set([q["season"] for q in all_questions_dict.values()])))
 
-window["season_title"].update(value=available_seasons[-1])
+window["season_title"].update(value=seasons[0])
 window["category_selection"].update(values=categories, value="ALL")
+window["season"].update(values=seasons, value="ALL")
+
+questions = filter_questions(all_questions_dict, 0, 100, "ALL", "ALL")
+window["dropdown"].update(values=list(questions.keys()))
+
 
 values = None
 i = 1
@@ -243,7 +262,7 @@ while True:
 
     if event == "season":
         window.write_event_value("filter", "")
-        all_questions_dict = all_data[values["season"]]
+        update_question(all_questions_dict, window, values, i)
 
     # if the category dropdown is changed from ALL, or the filter button is pressed, display the new questions
     if event in ["filter", "category_selection"]:
@@ -261,10 +280,8 @@ while True:
             window["min_%"].update(value=values["min_%"])
             window["max_%"].update(value=values["max_%"])
 
-        all_questions_dict = all_data[values["season"]]
-
         questions = filter_questions(
-            all_questions_dict, values["min_%"], values["max_%"], values["category_selection"]
+            all_questions_dict, values["min_%"], values["max_%"], values["category_selection"], values["season"]
         )
 
         if not questions:

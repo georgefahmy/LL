@@ -5,3 +5,4 @@ dist/
 todo_list
 utilities/
 .DS_Store
+__pycache__/
