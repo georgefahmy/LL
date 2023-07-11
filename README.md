@@ -5,11 +5,11 @@ Learned League is an invite only online trivia competition. Each season is 25 da
 
 ## Purpose
 
-The purpose of this tool is to allow a user to see questions from past seasons (back to season 60) and allows filtering of the questions based on category, and % of people who got the question correct (difficulty). The information and questions come directly from publically available information on the Learned League website. 
+The purpose of this tool is to allow a user to see questions from past seasons (back to season 60) and allows filtering of the questions based on category, and % of people who got the question correct (difficulty). The information and questions come directly from publically available information on the Learned League website.
 
 ## Download
 
-To download the lastest version of the app: https://github.com/georgefahmy/LL/releases/latest/download/LearnedLeague.dmg. 
+To download the latest version of the app: https://github.com/georgefahmy/LL/releases/latest/download/LearnedLeague.dmg. 
 
 ## Installation
 

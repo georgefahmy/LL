@@ -1,7 +1,7 @@
 # Instructions
 ## Download
 
-Download the LearnedLeague.dmg file below. 
+Download the LearnedLeague.dmg file below.
 
 ## Installation
 
@@ -12,6 +12,6 @@ The first time you open the application you need to Right Click on it in the app
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [v1.2.4] - 2023-07-10
+## [v1.3.0] - 2023-07-11
 
-Minor Update
+Changed the data structure of the question dicts in order to allow for cross-season filtering.
