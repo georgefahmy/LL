@@ -174,15 +174,12 @@ def update_question(questions, window, values, i):
     window["next"].update(disabled=False)
     window["dropdown"].update(value=i)
 
-    combined_season_num_code = "S" + question_object["season"] + question_object["question_num"]
-    rundle_info = json.load(open("resources/rundle_info.json", "r"))[combined_season_num_code]
-
-    window["rundle_A"].update(value=rundle_info["A"] + "%")
-    window["rundle_B"].update(value=rundle_info["B"] + "%")
-    window["rundle_C"].update(value=rundle_info["C"] + "%")
-    window["rundle_D"].update(value=rundle_info["D"] + "%")
-    window["rundle_E"].update(value=rundle_info["E"] + "%")
-    window["rundle_R"].update(value=rundle_info["R"] + "%")
+    window["rundle_A"].update(value=question_object["A"] + "%")
+    window["rundle_B"].update(value=question_object["B"] + "%")
+    window["rundle_C"].update(value=question_object["C"] + "%")
+    window["rundle_D"].update(value=question_object["D"] + "%")
+    window["rundle_E"].update(value=question_object["E"] + "%")
+    window["rundle_R"].update(value=question_object["R"] + "%")
 
     return question_object
 
