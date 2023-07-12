@@ -5,10 +5,8 @@ import sys
 from packaging import version
 import base64
 
-try:
-    wd = sys._MEIPASS
-except AttributeError:
-    wd = os.getcwd()
+
+WD = os.getcwd()
 
 FILENAME = "LearnedLeague.dmg"
 VOLUME_NAME = FILENAME.split(".")[0]
@@ -21,14 +19,14 @@ def check_for_update():
     version_response = requests.get("https://github.com/georgefahmy/LL/releases/latest")
     new_version = version_response.url.split("/")[-1].strip("v") if version_response.ok else None
 
-    current_version = open(wd + "/resources/VERSION", "r").read().strip()
+    current_version = open(WD + "/resources/VERSION", "r").read().strip()
 
     if version.parse(current_version) >= version.parse(new_version):
         print("Version is up to date")
 
     elif version.parse(current_version) < version.parse(new_version):
         print("New Version available")
-        icon_file = wd + "/resources/ll_app_logo.png"
+        icon_file = WD + "/resources/ll_app_logo.png"
         sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
         update_window = sg.Window(
             "Learned League Practice Tool Update Available",

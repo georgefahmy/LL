@@ -12,19 +12,29 @@ from time import sleep
 from layout import layout
 from check_for_updates import check_for_update
 from random import choice
-
+from cryptography.fernet import Fernet
 
 BASE_URL = "https://www.learnedleague.com"
 
-try:
-    WD = sys._MEIPASS
-except AttributeError:
-    WD = os.getcwd()
+WD = os.getcwd()
 
 restart = check_for_update()
 if restart:
     restart = False
     os.execv(sys.executable, ["python"] + sys.argv)
+
+
+def encrypt_answer(answer):
+    key = Fernet.generate_key()
+    return (Fernet(key).encrypt(answer.encode()).decode(), key.decode())
+
+    
+def decrypt_answer(encrypted_answer, key):
+    if type(encrypted_answer) != bytes:
+        encrypted_answer = encrypted_answer.encode()
+    if type(key) != bytes:
+        key = key.encode()
+    return Fernet(key).decrypt(encrypted_answer).decode()
 
 
 def get_new_data(season_number):
@@ -68,9 +78,12 @@ def get_new_data(season_number):
                 BASE_URL + "/question.php?" + str(season_number) + "&" + str(i) + "&" + str(j + 1)
             )
 
+            encrypted_answer, key = encrypt_answer(answers[j])
+
             all_data[combined_season_num_code] = {
                 "_question": question,
-                "answer": answers[j],
+                "answer": encrypted_answer,
+                "key": key,
                 "season": season_number,
                 "date": date,
                 "category": categories[j],
@@ -266,6 +279,7 @@ questions = filter_questions(all_questions_dict, 0, 100, "ALL", "ALL")
 window["dropdown"].update(values=list(questions.keys()))
 
 window.bind("<s>", "show_key")
+window.bind("<r>", "random_key")
 
 values = None
 i = choice(list(questions.keys()))
@@ -289,7 +303,7 @@ while True:
         question_object = update_question(questions, window, values, i)
         answer = question_object.get("answer")
 
-    if event == "random_choice":
+    if event in ("random_choice", "random_key"):
         i = choice(list(questions.keys()))
         question_object = update_question(questions, window, values, i)
         answer = question_object.get("answer")
@@ -329,11 +343,15 @@ while True:
 
     # display or hide the answer for the currently displayed question
     if event in ("show/hide", "show_key"):
-        answer = question_object.get("answer")
+        encrypted_answer = question_object.get("answer")
+        key = question_object.get("key")
+
+        answer = decrypt_answer(encrypted_answer, key)
 
         if window["show/hide"].get_text() == "Show Answer":
             try:
                 window["show/hide"].update(text="Hide Answer")
+
                 window["answer"].update(value=answer, font=("Arial", 16))
             except:
                 continue
