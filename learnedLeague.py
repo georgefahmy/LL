@@ -265,7 +265,7 @@ window = sg.Window(
 
 all_questions_dict = all_data
 
-categories = ["ALL"] + list(set([q["category"] for q in all_questions_dict.values()]))
+categories = ["ALL"] + sorted(list(set([q["category"] for q in all_questions_dict.values()])))
 seasons = ["ALL"] + sorted(list(set([q["season"] for q in all_questions_dict.values()])))
 
 # window["season_title"].update(value=seasons[0])

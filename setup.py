@@ -1,6 +1,19 @@
 from setuptools import setup, find_packages
+from markdown import markdown
+from bs4 import BeautifulSoup
+import re
 
-VERSION = open("VERSION", "r").read().strip()
+VERSION = re.compile("[^0-9\.]").sub(
+    "",
+    (
+        BeautifulSoup(markdown(open("changelog.md", "r").read()))
+        .find_all(string=re.compile("[v]"))[0]
+        .split()[0]
+    ),
+)
+with open("VERSION", "w") as f:
+    f.write(VERSION)
+
 
 APP = ["learnedLeague.py"]
 DATA_FILES = [
