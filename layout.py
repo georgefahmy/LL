@@ -130,13 +130,19 @@ layout = [
                         key="info_box",
                         layout=[
                             [
+                                sg.Text(
+                                    "",
+                                    key="date",
+                                    font=("Arial", 16),
+                                ),
+                            ],
+                            [
                                 sg.Text("Season: ", font=("Arial", 16)),
                                 sg.Text(expand_x=True),
                                 sg.Text(
                                     "",
                                     key="season_number",
                                     font=("Arial", 16),
-                                    enable_events=True,
                                 ),
                             ],
                             [
@@ -146,7 +152,6 @@ layout = [
                                     "",
                                     key="question_number",
                                     font=("Arial", 16),
-                                    enable_events=True,
                                 ),
                             ],
                             [

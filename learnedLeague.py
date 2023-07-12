@@ -34,12 +34,6 @@ def get_new_data(season_number):
     except:
         all_data = {}
 
-    try:
-        with open(WD + "/resources/rundle_info.json", "r") as fp:
-            rundle_info = json.load(fp)
-    except:
-        rundle_info = {}
-
     url = BASE_URL + "/match.php?" + str(season_number)
     for i in range(1, 26):
         question_url = url + "&" + str(i)
@@ -63,6 +57,7 @@ def get_new_data(season_number):
             for link in page.find_all("div", {"class": "ind-Q20 dont-break-out"})
         ]
         answers = [link.text.strip() for link in page.find_all("div", {"class": "a-red"})]
+        date = page.find_all("h1", {"class": "matchday"})[0].text.strip().split(":")[0]
 
         rundles = [row.find_all("td", {"class": "ind-Q3"}) for row in page.find_all("tr")[1:8]]
 
@@ -72,7 +67,17 @@ def get_new_data(season_number):
             question_url = (
                 BASE_URL + "/question.php?" + str(season_number) + "&" + str(i) + "&" + str(j + 1)
             )
-            rundle_info[combined_season_num_code] = {
+
+            all_data[combined_season_num_code] = {
+                "_question": question,
+                "answer": answers[j],
+                "season": season_number,
+                "date": date,
+                "category": categories[j],
+                "percent": percentages[j],
+                "question_num": question_num_code,
+                "defense": question_defense[j],
+                "url": question_url,
                 "A": [cell.text for cell in rundles[0]][2:-1][j],
                 "B": [cell.text for cell in rundles[1]][2:-1][j],
                 "C": [cell.text for cell in rundles[2]][2:-1][j],
@@ -80,22 +85,9 @@ def get_new_data(season_number):
                 "E": [cell.text for cell in rundles[4]][2:-1][j],
                 "R": [cell.text for cell in rundles[5]][2:-1][j],
             }
-            all_data[combined_season_num_code] = {
-                "_question": question,
-                "answer": answers[j],
-                "season": season_number,
-                "category": categories[j],
-                "percent": percentages[j],
-                "question_num": question_num_code,
-                "defense": question_defense[j],
-                "url": question_url,
-            }
 
     with open("resources/all_data.json", "w+") as fp:
         json.dump(all_data, fp, sort_keys=True, indent=4)
-
-    with open("resources/rundle_info.json", "w+") as fp:
-        json.dump(rundle_info, fp, sort_keys=True, indent=4)
 
     return all_data
 
@@ -173,6 +165,7 @@ def update_question(questions, window, values, i):
     window["show/hide"].update(text="Show Answer")
     window["next"].update(disabled=False)
     window["dropdown"].update(value=i)
+    window["date"].update(value=question_object["date"])
 
     window["rundle_A"].update(value=question_object["A"] + "%")
     window["rundle_B"].update(value=question_object["B"] + "%")
@@ -234,7 +227,7 @@ if len(missing_seasons) > 0:
         size=(300, 100),
     )
     while True:
-        event, values = loading_window.read(timeout=10)
+        event, values = loading_window.read(timeout=1)
 
         if event == "Cancel":
             loading_window["-PBAR-"].update(max=max_length)
@@ -243,8 +236,8 @@ if len(missing_seasons) > 0:
             break
 
         for season in missing_seasons:
-            all_data = get_new_data(season)
             loading_window["-OUT-"].update("Loading New Season: " + str(season))
+            all_data = get_new_data(season)
             loading_window["-PBAR-"].update(current_count=missing_seasons.index(season) + 1)
 
         loading_window.close()

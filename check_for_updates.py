@@ -21,7 +21,7 @@ def check_for_update():
     version_response = requests.get("https://github.com/georgefahmy/LL/releases/latest")
     new_version = version_response.url.split("/")[-1].strip("v") if version_response.ok else None
 
-    current_version = open(wd + "/VERSION", "r").read().strip()
+    current_version = open(wd + "/resources/VERSION", "r").read().strip()
 
     if version.parse(current_version) >= version.parse(new_version):
         print("Version is up to date")
