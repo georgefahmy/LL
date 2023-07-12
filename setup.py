@@ -6,19 +6,19 @@ import re
 VERSION = re.compile("[^0-9\.]").sub(
     "",
     (
-        BeautifulSoup(markdown(open("changelog.md", "r").read()))
+        BeautifulSoup(markdown(open("changelog.md", "r").read()), "html.parser")
         .find_all(string=re.compile("[v]"))[0]
         .split()[0]
     ),
 )
-with open("VERSION", "w") as f:
+with open("resources/VERSION", "w") as f:
     f.write(VERSION)
 
 
 APP = ["learnedLeague.py"]
 DATA_FILES = [
     "resources",
-    "VERSION",
+    "resources/VERSION",
     "resources/ll_logo.icns",
 ]
 OPTIONS = {
@@ -44,6 +44,7 @@ setup(
         "PySimpleGUI",
         "requests",
         "beautifulsoup4",
+        "markdown",
     ],
     packages=find_packages(),
     author="George Fahmy",
