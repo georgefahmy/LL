@@ -155,14 +155,38 @@ layout = [
                                 sg.Text("", key="question_category", font=("Arial", 16)),
                             ],
                             [
-                                sg.Text("Correct %: ", font=("Arial", 16), tooltip="Percentage of people who got the answer correct"),
-                                sg.Text(expand_x=True, tooltip="Percentage of people who got the answer correct"),
-                                sg.Text("", key="%_correct", font=("Arial", 16), tooltip="Percentage of people who got the answer correct"),
+                                sg.Text(
+                                    "Correct %: ",
+                                    font=("Arial", 16),
+                                    tooltip="Percentage of people who got the answer correct",
+                                ),
+                                sg.Text(
+                                    expand_x=True,
+                                    tooltip="Percentage of people who got the answer correct",
+                                ),
+                                sg.Text(
+                                    "",
+                                    key="%_correct",
+                                    font=("Arial", 16),
+                                    tooltip="Percentage of people who got the answer correct",
+                                ),
                             ],
                             [
-                                sg.Text("Defense Value: ", font=("Arial", 16), tooltip="Values 0 - 3 with 3 being considered hardest and 0 considered easiest"),
-                                sg.Text(expand_x=True, tooltip="Values 0 - 3 with 3 being considered hardest and 0 considered easiest"),
-                                sg.Text("", key="defense", font=("Arial", 16), tooltip="Values 0 - 3 with 3 being considered hardest and 0 considered easiest"),
+                                sg.Text(
+                                    "Defense Value: ",
+                                    font=("Arial", 16),
+                                    tooltip="Values 0 - 3 with 3 being considered hardest and 0 considered easiest",
+                                ),
+                                sg.Text(
+                                    expand_x=True,
+                                    tooltip="Values 0 - 3 with 3 being considered hardest and 0 considered easiest",
+                                ),
+                                sg.Text(
+                                    "",
+                                    key="defense",
+                                    font=("Arial", 16),
+                                    tooltip="Values 0 - 3 with 3 being considered hardest and 0 considered easiest",
+                                ),
                             ],
                         ],
                     )

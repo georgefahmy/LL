@@ -73,12 +73,12 @@ def get_new_data(season_number):
                 BASE_URL + "/question.php?" + str(season_number) + "&" + str(i) + "&" + str(j + 1)
             )
             rundle_info[combined_season_num_code] = {
-                "A":[cell.text for cell in rundles[0]][2:-1][j],
-                "B":[cell.text for cell in rundles[1]][2:-1][j],
-                "C":[cell.text for cell in rundles[2]][2:-1][j],
-                "D":[cell.text for cell in rundles[3]][2:-1][j],
-                "E":[cell.text for cell in rundles[4]][2:-1][j],
-                "R":[cell.text for cell in rundles[5]][2:-1][j],
+                "A": [cell.text for cell in rundles[0]][2:-1][j],
+                "B": [cell.text for cell in rundles[1]][2:-1][j],
+                "C": [cell.text for cell in rundles[2]][2:-1][j],
+                "D": [cell.text for cell in rundles[3]][2:-1][j],
+                "E": [cell.text for cell in rundles[4]][2:-1][j],
+                "R": [cell.text for cell in rundles[5]][2:-1][j],
             }
             all_data[combined_season_num_code] = {
                 "_question": question,
@@ -100,7 +100,9 @@ def get_new_data(season_number):
     return all_data
 
 
-def filter_questions(all_questions_dict, min_threshold, max_threshold, category_filter, season_filter):
+def filter_questions(
+    all_questions_dict, min_threshold, max_threshold, category_filter, season_filter
+):
     min_threshold = int(min_threshold)
     max_threshold = int(max_threshold)
 
@@ -171,8 +173,9 @@ def update_question(questions, window, values, i):
     window["show/hide"].update(text="Show Answer")
     window["next"].update(disabled=False)
     window["dropdown"].update(value=i)
+
     combined_season_num_code = "S" + question_object["season"] + question_object["question_num"]
-    rundle_info = json.load(open("resources/rundle_info.json","r"))[combined_season_num_code]
+    rundle_info = json.load(open("resources/rundle_info.json", "r"))[combined_season_num_code]
 
     window["rundle_A"].update(value=rundle_info["A"] + "%")
     window["rundle_B"].update(value=rundle_info["B"] + "%")
@@ -180,7 +183,6 @@ def update_question(questions, window, values, i):
     window["rundle_D"].update(value=rundle_info["D"] + "%")
     window["rundle_E"].update(value=rundle_info["E"] + "%")
     window["rundle_R"].update(value=rundle_info["R"] + "%")
-
 
     return question_object
 
@@ -206,9 +208,7 @@ else:
     all_data = {}
 
 season_in_data = list(set([val.split("D")[0].strip("S") for val in list(all_data.keys())]))
-missing_seasons = sorted(
-    list(set(available_seasons).symmetric_difference(set(season_in_data)))
-)
+missing_seasons = sorted(list(set(available_seasons).symmetric_difference(set(season_in_data))))
 
 if len(missing_seasons) > 0:
     icon_file = WD + "/resources/ll_app_logo.png"
@@ -248,7 +248,7 @@ if len(missing_seasons) > 0:
         for season in missing_seasons:
             all_data = get_new_data(season)
             loading_window["-OUT-"].update("Loading New Season: " + str(season))
-            loading_window["-PBAR-"].update(current_count=missing_seasons.index(season)+1)
+            loading_window["-PBAR-"].update(current_count=missing_seasons.index(season) + 1)
 
         loading_window.close()
 
@@ -321,7 +321,11 @@ while True:
             window["max_%"].update(value=values["max_%"])
 
         questions = filter_questions(
-            all_questions_dict, values["min_%"], values["max_%"], values["category_selection"], values["season"]
+            all_questions_dict,
+            values["min_%"],
+            values["max_%"],
+            values["category_selection"],
+            values["season"],
         )
 
         if not questions:
@@ -334,7 +338,7 @@ while True:
         window["previous"].update(disabled=True)
 
     # display or hide the answer for the currently displayed question
-    if event in ("show/hide", "show_key") :
+    if event in ("show/hide", "show_key"):
         answer = question_object.get("answer")
 
         if window["show/hide"].get_text() == "Show Answer":
