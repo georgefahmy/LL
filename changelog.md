@@ -12,6 +12,6 @@ The first time you open the application you need to Right Click on it in the app
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v1.3.5] - 2023-07-11
+### [v1.3.6] - 2023-07-12
 
-combined data into single dict rather than two.
+Added date information to question details to provide context when questions are based on current events.
