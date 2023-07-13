@@ -12,6 +12,6 @@ The first time you open the application you need to Right Click on it in the app
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v1.4.2] - 2023-07-12
+### [v1.4.3] - 2023-07-12
 
-Updated README.md with correct installation instructions
+Added wikipedia search capabilities for the question text box. - highlight text and select Lookup in order to do a wikipedia search of the selection.

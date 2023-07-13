@@ -100,7 +100,7 @@ def get_new_data(season_number):
                 "R": [cell.text for cell in rundles[5]][2:-1][j],
             }
 
-    with open("resources/all_data.json", "w+") as fp:
+    with open(WD + "resources/all_data.json", "w+") as fp:
         json.dump(all_data, fp, sort_keys=True, indent=4)
 
     return all_data
@@ -281,7 +281,7 @@ window["dropdown"].update(values=list(questions.keys()))
 
 window.bind("<s>", "show_key")
 window.bind("<r>", "random_key")
-window['question'].bind("<ButtonPress-2>", "press")
+window["question"].bind("<ButtonPress-2>", "press")
 
 values = None
 i = choice(list(questions.keys()))
@@ -299,15 +299,15 @@ while True:
         question_widget = window["question"].Widget
         selection_ranges = question_widget.tag_ranges(sg.tk.SEL)
         if selection_ranges:
-            window["question"].set_right_click_menu(["&Right",["Lookup Selection"]])
+            window["question"].set_right_click_menu(["&Right", ["Lookup Selection"]])
             selected_text = question_widget.get(*selection_ranges)
         else:
-            window["question"].set_right_click_menu(["&Right",["!Lookup Selection"]])
+            window["question"].set_right_click_menu(["&Right", ["!Lookup Selection"]])
             continue
 
-    if event =="Lookup Selection":
+    if event == "Lookup Selection":
         result = wikipedia.summary(selected_text, sentences=2, auto_suggest=True, redirect=True)
-        sg.popup_ok(result, title="Wiki Summary", font=("Arial",16))
+        sg.popup_ok(result, title="Wiki Summary", font=("Arial", 16))
 
     # If the window is closed, break the loop and close the application
     if event in (None, "Quit", sg.WIN_CLOSED):
