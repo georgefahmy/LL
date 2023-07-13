@@ -12,6 +12,6 @@ The first time you open the application you need to Right Click on it in the app
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v1.4.0] - 2023-07-12
+### [v1.4.1] - 2023-07-12
 
-Added answer encryption so that data miners cannot get the answers by reading the source code
+Minor update to fix formatting

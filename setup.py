@@ -38,7 +38,8 @@ setup(
         "requests",
         "beautifulsoup4",
         "markdown",
-        "cryptography"
+        "cryptography",
+        "pillow",
     ],
     packages=find_packages(),
     author="George Fahmy",

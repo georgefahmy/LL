@@ -226,11 +226,27 @@ layout = [
                     )
                 ],
                 [
-                    sg.Button("Show Answer", key="show/hide", size=(12, 1), font=("Arial", 12), tooltip="Reveal the Answer - (s)"),
+                    sg.Button(
+                        "Show Answer",
+                        key="show/hide",
+                        size=(12, 1),
+                        font=("Arial", 12),
+                        tooltip="Reveal the Answer - (s)",
+                    ),
                     sg.Text("", expand_x=True),
-                    sg.Text("Total Questions: ", font=("Arial", 16), tooltip="Total number of questions available with the current filters."),
+                    sg.Text(
+                        "Total Questions: ",
+                        font=("Arial", 16),
+                        tooltip="Total number of questions available with the current filters.",
+                    ),
                     sg.Text("", key="num_questions", font=("Arial", 16), expand_x=True),
-                    sg.Button("Random Q", key="random_choice", size=(9, 1), font=("Arial", 12), tooltip="Pick a random question - (r)"),
+                    sg.Button(
+                        "Random Q",
+                        key="random_choice",
+                        size=(9, 1),
+                        font=("Arial", 12),
+                        tooltip="Pick a random question - (r)",
+                    ),
                     sg.Combo(
                         values=[],
                         default_value="1",

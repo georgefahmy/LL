@@ -28,7 +28,7 @@ def encrypt_answer(answer):
     key = Fernet.generate_key()
     return (Fernet(key).encrypt(answer.encode()).decode(), key.decode())
 
-    
+
 def decrypt_answer(encrypted_answer, key):
     if type(encrypted_answer) != bytes:
         encrypted_answer = encrypted_answer.encode()
