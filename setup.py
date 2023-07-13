@@ -22,6 +22,9 @@ DATA_FILES = [
     "resources/ll_logo.icns",
 ]
 OPTIONS = {
+    "excludes": ["numpy", "pandas", "matplotlib"],
+    "includes": ["PySimpleGUI", "requests", "beautifulsoup4", "cryptography"],
+    "optimize": "2",
     "iconfile": "/Users/GFahmy/Documents/projects/LL/resources/ll_logo.icns",
     "arch": "x86_64",
 }
@@ -32,15 +35,6 @@ setup(
     data_files=DATA_FILES,
     name="Learned League",
     options={"py2app": OPTIONS},
-    setup_requires=[
-        "py2app",
-        "PySimpleGUI",
-        "requests",
-        "beautifulsoup4",
-        "markdown",
-        "cryptography",
-        "pillow",
-    ],
     packages=find_packages(),
     author="George Fahmy",
     description="LearnedLeague",

@@ -13,7 +13,7 @@ To download the latest version of the app: https://github.com/georgefahmy/LL/rel
 
 ## Installation
 
-Double Click the newly downloaded dmg file to open it and then drag the Learned League application to the Applications folder. This will install it to your computer.
+Double Click the newly downloaded dmg file to open it and double click the installer.pkg to install the application to your computer. (You may need to right click the installer and click open in order to install it.)
 
 The first time you open the application you need to Right Click on it, and select Open. After that you can open it normally.
 

@@ -130,6 +130,8 @@ layout = [
                         key="info_box",
                         layout=[
                             [
+                                sg.Text("Date: ", font=("Arial", 16)),
+                                sg.Text(expand_x=True),
                                 sg.Text(
                                     "",
                                     key="date",
