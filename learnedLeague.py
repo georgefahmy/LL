@@ -5,6 +5,7 @@ import sys
 import os
 import base64
 import json
+import wikipedia
 
 from bs4 import BeautifulSoup as bs, SoupStrainer as ss
 from pprint import pprint
@@ -280,6 +281,7 @@ window["dropdown"].update(values=list(questions.keys()))
 
 window.bind("<s>", "show_key")
 window.bind("<r>", "random_key")
+window['question'].bind("<ButtonPress-2>", "press")
 
 values = None
 i = choice(list(questions.keys()))
@@ -292,6 +294,20 @@ if i < len(list(questions.keys())):
 
 while True:
     event, values = window.read()
+
+    if event == "questionpress":
+        question_widget = window["question"].Widget
+        selection_ranges = question_widget.tag_ranges(sg.tk.SEL)
+        if selection_ranges:
+            window["question"].set_right_click_menu(["&Right",["Lookup Selection"]])
+            selected_text = question_widget.get(*selection_ranges)
+        else:
+            window["question"].set_right_click_menu(["&Right",["!Lookup Selection"]])
+            continue
+
+    if event =="Lookup Selection":
+        result = wikipedia.summary(selected_text, sentences=2, auto_suggest=True, redirect=True)
+        sg.popup_ok(result, title="Wiki Summary", font=("Arial",16))
 
     # If the window is closed, break the loop and close the application
     if event in (None, "Quit", sg.WIN_CLOSED):

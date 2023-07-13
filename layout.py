@@ -216,6 +216,7 @@ layout = [
                         no_scrollbar=True,
                         expand_x=True,
                         expand_y=True,
+                        right_click_menu=["&Right",["!Lookup Selection"]]
                     )
                 ],
                 [
