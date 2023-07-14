@@ -1,15 +1,49 @@
 import os
 import PySimpleGUI as sg
 import requests
-import sys
 from packaging import version
 import base64
+import subprocess
 
 
 WD = os.getcwd()
 
 FILENAME = "LearnedLeague.dmg"
 VOLUME_NAME = FILENAME.split(".")[0]
+
+
+def get_sudo_password():
+    attempts = 0
+    layout = [
+        [sg.Text("Enter your sudo password:")],
+        [sg.Input(password_char="*", key="password")],
+        [sg.Button("OK"), sg.Button("Cancel")],
+    ]
+    window = sg.Window("Sudo Password", layout=layout, finalize=True)
+    while True:
+        event, values = window.read()
+        if event in (None, "Cancel") or attempts >= 3:
+            break
+        if event == "OK":
+            sudo_password = values["password"]
+            command = ["ls", "."]
+            p = subprocess.run(
+                ["sudo", "-Sk"] + command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                input=f"{sudo_password}\n",
+                text=True,
+                encoding="utf-8",
+                # cwd="/Volumes/LearnedLeague/",
+            )
+            if "incorrect password attempts" in p.stderr or p.returncode != 0:
+                sg.popup("Password incorrect")
+                attempts += 1
+            else:
+                sg.popup("Password accepted")
+                break
+    window.close()
+    return sudo_password
 
 
 # Check if outdated
@@ -83,7 +117,17 @@ def check_for_update():
                 os.system("cd $HOME/Downloads; hdiutil attach LearnedLeague.dmg")
                 update_window["progress"].update(50)
                 update_window["p_status"].update(value="Removing old files...")
-                os.system("cd /Volumes/LearnedLeague/; \cp -rf *.app /Applications")
+                command = ["cp", "-rf", "Learned League.app", "/Applications"]
+                sudo_password = get_sudo_password()
+                p = subprocess.run(
+                    ["sudo", "-Sk"] + command,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    input=f"{sudo_password}\n",
+                    text=True,
+                    encoding="utf-8",
+                    cwd="/Volumes/LearnedLeague/",
+                )
                 update_window["progress"].update(65)
                 update_window["p_status"].update(value="Cleaning up download")
 
