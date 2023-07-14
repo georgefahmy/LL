@@ -12,6 +12,6 @@ The first time you open the application you need to Right Click on it in the app
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v1.4.4] - 2023-07-13
+### [v1.4.5] - 2023-07-13
 
-Improved the updater logic to prompt user for password on installation
+Formatting updates
