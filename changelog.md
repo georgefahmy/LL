@@ -12,6 +12,6 @@ The first time you open the application you need to Right Click on it in the app
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v1.6.0] - 2023-07-15
+### [v1.6.1] - 2023-07-15
 
-Added clickable links from questions. Clicking the question will open the related content in a webbrowser.
+Fixed minor bug with clickable link tooltip remaining when question doesnt have a clickable link.
