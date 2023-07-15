@@ -12,6 +12,6 @@ The first time you open the application you need to Right Click on it in the app
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v1.5.0] - 2023-07-14
+### [v1.5.1] - 2023-07-15
 
-Added search functionality. Search through questions for key words.
+Fixed a bug with wikipedia searches returning a failed search, also moved the password input during updates so its more obvious.

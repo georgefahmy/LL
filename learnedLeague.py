@@ -334,7 +334,11 @@ while True:
             continue
 
     if event == "Lookup Selection":
-        result = wikipedia.summary(selected_text, sentences=2, auto_suggest=True, redirect=True)
+        try:
+            result = wikipedia.summary(selected_text, sentences=2, auto_suggest=True, redirect=True)
+        except:
+            result = "No results available - Try another search."
+
         sg.popup_ok(result, title="Wiki Summary", font=("Arial", 16))
 
     if event == "season":

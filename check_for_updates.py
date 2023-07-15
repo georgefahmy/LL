@@ -21,6 +21,10 @@ def get_sudo_password():
     ]
 
     window = sg.Window("System Password", layout=layout, finalize=True)
+    screen_width, screen_height = window.get_screen_dimensions()
+    win_width, win_height = window.size
+    x, y = (screen_width - win_width) // 2, (screen_height - win_height) // 3
+    window.move(x, y)
 
     while True:
         event, values = window.read()
