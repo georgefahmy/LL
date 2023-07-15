@@ -107,7 +107,12 @@ def get_new_data(season_number):
 
 
 def filter_questions(
-    all_questions_dict, min_threshold, max_threshold, category_filter, season_filter, search_criteria=None
+    all_questions_dict,
+    min_threshold,
+    max_threshold,
+    category_filter,
+    season_filter,
+    search_criteria=None,
 ):
     min_threshold = int(min_threshold)
     max_threshold = int(max_threshold)
@@ -147,7 +152,9 @@ def filter_questions(
 
     final_filtered_questions_dict = {
         i + 1: val
-        for i, val in enumerate([filtered_questions_dict[key] for key in filtered_questions_dict.keys()])
+        for i, val in enumerate(
+            [filtered_questions_dict[key] for key in filtered_questions_dict.keys()]
+        )
     }
 
     return final_filtered_questions_dict
@@ -272,7 +279,7 @@ window = sg.Window(
     finalize=True,
     resizable=False,
     element_justification="center",
-    return_keyboard_events=True
+    return_keyboard_events=True,
 )
 
 all_questions_dict = all_data
@@ -358,7 +365,10 @@ while True:
             window["min_%"].update(value=values["min_%"])
             window["max_%"].update(value=values["max_%"])
 
-        if window["current_search"].get() and window.find_element_with_focus().Key != "search_criteria":
+        if (
+            window["current_search"].get()
+            and window.find_element_with_focus().Key != "search_criteria"
+        ):
             values["search_criteria"] = window["current_search"].get()
 
         questions = filter_questions(
@@ -373,7 +383,6 @@ while True:
         if not questions:
             window["question"].update(value="No Questions Available")
 
-
         window["dropdown"].update(values=list(questions.keys()), value=1)
         i = 1
 
@@ -386,7 +395,6 @@ while True:
         if len(questions.keys()) == 1:
             window["next"].update(disabled=True)
             window["previous"].update(disabled=True)
-
 
     # display or hide the answer for the currently displayed question
     if event in ("show/hide", "show_key"):

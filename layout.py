@@ -73,9 +73,8 @@ layout = [
                             ],
                             [
                                 sg.Button("Filter", key="filter", bind_return_key=True),
-                                sg.Text("Search Criteria:",font=("Arial", 14)),
-                                sg.Text("",font=("Arial", 14), key="current_search"),
-
+                                sg.Text("Search Criteria:", font=("Arial", 14)),
+                                sg.Text("", font=("Arial", 14), key="current_search"),
                             ],
                         ],
                     ),
@@ -229,7 +228,7 @@ layout = [
                         no_scrollbar=True,
                         expand_x=True,
                         expand_y=True,
-                        right_click_menu=["&Right",["!Lookup Selection"]]
+                        right_click_menu=["&Right", ["!Lookup Selection"]],
                     )
                 ],
                 [
