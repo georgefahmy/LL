@@ -62,8 +62,20 @@ layout = [
                                 ),
                             ],
                             [
-                                sg.Text(expand_x=True),
+                                sg.Text("Search: ", font=("Arial", 16)),
+                                sg.Input(
+                                    "",
+                                    key="search_criteria",
+                                    font=("Arial", 16),
+                                    expand_x=True,
+                                    enable_events=True,
+                                ),
+                            ],
+                            [
                                 sg.Button("Filter", key="filter", bind_return_key=True),
+                                sg.Text("Search Criteria:",font=("Arial", 14)),
+                                sg.Text("",font=("Arial", 14), key="current_search"),
+
                             ],
                         ],
                     ),
@@ -154,6 +166,7 @@ layout = [
                                     "",
                                     key="question_number",
                                     font=("Arial", 16),
+                                    enable_events=True,
                                 ),
                             ],
                             [

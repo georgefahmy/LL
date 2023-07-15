@@ -107,7 +107,7 @@ def get_new_data(season_number):
 
 
 def filter_questions(
-    all_questions_dict, min_threshold, max_threshold, category_filter, season_filter
+    all_questions_dict, min_threshold, max_threshold, category_filter, season_filter, search_criteria=None
 ):
     min_threshold = int(min_threshold)
     max_threshold = int(max_threshold)
@@ -116,34 +116,41 @@ def filter_questions(
         max_threshold = min_threshold + 5
 
     if category_filter == "ALL":
-        filtered_question_ids = [
-            question_ids
+        filtered_questions_dict = {
+            question_ids: question
             for question_ids, question in all_questions_dict.items()
             if int(question["percent"]) >= min_threshold
             and int(question["percent"]) < max_threshold
-        ]
+        }
     else:
-        filtered_question_ids = [
-            question_ids
+        filtered_questions_dict = {
+            question_ids: question
             for question_ids, question in all_questions_dict.items()
             if int(question["percent"]) >= min_threshold
             and int(question["percent"]) < max_threshold
             and question["category"].upper() == category_filter.upper()
-        ]
+        }
 
     if season_filter != "ALL":
-        filtered_question_ids = [
-            question_ids
-            for question_ids, question in all_questions_dict.items()
+        filtered_questions_dict = {
+            question_ids: question
+            for question_ids, question in filtered_questions_dict.items()
             if question["season"] == season_filter
-        ]
+        }
 
-    filtered_questions_dict = {
+    if search_criteria:
+        filtered_questions_dict = {
+            question_ids: question
+            for question_ids, question in filtered_questions_dict.items()
+            if search_criteria.lower() in question["_question"].lower()
+        }
+
+    final_filtered_questions_dict = {
         i + 1: val
-        for i, val in enumerate([all_questions_dict[key] for key in filtered_question_ids])
+        for i, val in enumerate([filtered_questions_dict[key] for key in filtered_questions_dict.keys()])
     }
 
-    return filtered_questions_dict
+    return final_filtered_questions_dict
 
 
 def update_question(questions, window, values, i):
@@ -265,6 +272,7 @@ window = sg.Window(
     finalize=True,
     resizable=False,
     element_justification="center",
+    return_keyboard_events=True
 )
 
 all_questions_dict = all_data
@@ -281,6 +289,8 @@ window["dropdown"].update(values=list(questions.keys()))
 
 window.bind("<s>", "show_key")
 window.bind("<r>", "random_key")
+window.bind("<n>", "next_key")
+window.bind("<p>", "previous_key")
 window["question"].bind("<ButtonPress-2>", "press")
 
 values = None
@@ -294,6 +304,17 @@ if i < len(list(questions.keys())):
 
 while True:
     event, values = window.read()
+
+    # If the window is closed, break the loop and close the application
+    if event in (None, "Quit", sg.WIN_CLOSED):
+        window.close()
+        break
+
+    if "Escape" in event:
+        if window.find_element_with_focus().Key == "search_criteria":
+            window["search_criteria"].update(value="")
+            window["current_search"].update(value="")
+            window["filter"].set_focus()
 
     if event == "questionpress":
         question_widget = window["question"].Widget
@@ -309,17 +330,14 @@ while True:
         result = wikipedia.summary(selected_text, sentences=2, auto_suggest=True, redirect=True)
         sg.popup_ok(result, title="Wiki Summary", font=("Arial", 16))
 
-    # If the window is closed, break the loop and close the application
-    if event in (None, "Quit", sg.WIN_CLOSED):
-        window.close()
-        break
-
     if event == "season":
         window.write_event_value("filter", "")
         question_object = update_question(questions, window, values, i)
         answer = question_object.get("answer")
 
     if event in ("random_choice", "random_key"):
+        if window.find_element_with_focus().Key == "search_criteria":
+            continue
         i = choice(list(questions.keys()))
         question_object = update_question(questions, window, values, i)
         answer = question_object.get("answer")
@@ -340,25 +358,41 @@ while True:
             window["min_%"].update(value=values["min_%"])
             window["max_%"].update(value=values["max_%"])
 
+        if window["current_search"].get() and window.find_element_with_focus().Key != "search_criteria":
+            values["search_criteria"] = window["current_search"].get()
+
         questions = filter_questions(
             all_questions_dict,
             values["min_%"],
             values["max_%"],
             values["category_selection"],
             values["season"],
+            values["search_criteria"],
         )
 
         if not questions:
             window["question"].update(value="No Questions Available")
+
 
         window["dropdown"].update(values=list(questions.keys()), value=1)
         i = 1
 
         question_object = update_question(questions, window, values, i)
         window["previous"].update(disabled=True)
+        window["current_search"].update(value=values["search_criteria"])
+        window["search_criteria"].update(value="")
+        window["filter"].set_focus()
+
+        if len(questions.keys()) == 1:
+            window["next"].update(disabled=True)
+            window["previous"].update(disabled=True)
+
 
     # display or hide the answer for the currently displayed question
     if event in ("show/hide", "show_key"):
+        if window.find_element_with_focus().Key == "search_criteria":
+            continue
+
         encrypted_answer = question_object.get("answer")
         key = question_object.get("key")
 
@@ -384,11 +418,18 @@ while True:
 
     # if the next or previous or a specific question is selected, display that question and its information
     # and hide the answer.
-    if event in ["next", "previous", "dropdown"]:
-        if event == "next":
+    if event in ["next", "previous", "dropdown", "next_key", "previous_key"]:
+        if window.find_element_with_focus().Key == "search_criteria":
+            continue
+
+        if event in ("next", "next_key"):
+            if event == "next_key" and i == len(questions.keys()):
+                continue
             i += 1
 
-        elif event == "previous":
+        elif event in ("previous", "previous_key"):
+            if event == "previous_key" and i == 1:
+                continue
             i -= 1
 
         elif event == "dropdown":
@@ -398,9 +439,9 @@ while True:
         answer = question_object.get("answer")
 
         if not question_object:
-            if event == "next":
+            if event in ("next", "next_key"):
                 i -= 1
-            elif event == "previous":
+            elif event in ("previous", "previous_key"):
                 i += 1
             elif event == "dropdown":
                 i = values["dropdown"]
