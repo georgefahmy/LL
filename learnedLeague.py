@@ -160,27 +160,16 @@ def filter_questions(
     return final_filtered_questions_dict
 
 
-def update_question(questions, window, values, i):
-    if not values:
-        min_per = 0
-        max_per = 100
-        category = "ALL"
-        season = "ALL"
-        # season_title = window["season_title"].get()
-
-    else:
-        min_per = values["min_%"]
-        max_per = values["max_%"]
-        category = values["category_selection"]
-        season = values["season"]
-
+def update_question(questions, window, i):
     question_object = questions.get(i)
     if not question_object:
         return
     question = question_object.get("_question")
 
     window["question"].update(value=question)
-    # window["season_title"].update(value=season)
+    window["question"].metadata = question_object.get("clickable_link")
+    if question_object.get("clickable_link"):
+        window["question"].set_tooltip("Click to Open: " + question_object.get("clickable_link"))
     window["num_questions"].update(value=len(list(questions.keys())))
     window["%_correct"].update(value=str(question_object["percent"]) + "%")
     window["season_number"].update(value=question_object["season"])
@@ -201,6 +190,7 @@ def update_question(questions, window, values, i):
     window["rundle_D"].update(value=question_object["D"] + "%")
     window["rundle_E"].update(value=question_object["E"] + "%")
     window["rundle_R"].update(value=question_object["R"] + "%")
+    window.refresh()
 
     return question_object
 
@@ -299,10 +289,11 @@ window.bind("<r>", "random_key")
 window.bind("<n>", "next_key")
 window.bind("<p>", "previous_key")
 window["question"].bind("<ButtonPress-2>", "press")
+window["question"].bind("<ButtonPress-1>", "click_here")
 
 values = None
 i = choice(list(questions.keys()))
-question_object = update_question(questions, window, values, i)
+question_object = update_question(questions, window, i)
 if i > 1:
     window["previous"].update(disabled=False)
 
@@ -343,14 +334,14 @@ while True:
 
     if event == "season":
         window.write_event_value("filter", "")
-        question_object = update_question(questions, window, values, i)
+        question_object = update_question(questions, window, i)
         answer = question_object.get("answer")
 
     if event in ("random_choice", "random_key"):
         if window.find_element_with_focus().Key == "search_criteria":
             continue
         i = choice(list(questions.keys()))
-        question_object = update_question(questions, window, values, i)
+        question_object = update_question(questions, window, i)
         answer = question_object.get("answer")
 
     # if the category dropdown is changed from ALL, or the filter button is pressed, display the new questions
@@ -390,7 +381,7 @@ while True:
         window["dropdown"].update(values=list(questions.keys()), value=1)
         i = 1
 
-        question_object = update_question(questions, window, values, i)
+        question_object = update_question(questions, window, i)
         window["previous"].update(disabled=True)
         window["current_search"].update(value=values["search_criteria"])
         window["search_criteria"].update(value="")
@@ -447,7 +438,7 @@ while True:
         elif event == "dropdown":
             i = values["dropdown"]
 
-        question_object = update_question(questions, window, values, i)
+        question_object = update_question(questions, window, i)
         answer = question_object.get("answer")
 
         if not question_object:
@@ -471,3 +462,6 @@ while True:
     # if the question number is clicked, open the link
     if event == "question_number":
         webbrowser.open(window["question_number"].metadata)
+
+    if "click_here" in event:
+        webbrowser.open(window["question"].metadata)
