@@ -170,8 +170,10 @@ def update_question(questions, window, i):
     window["question"].metadata = question_object.get("clickable_link")
     if question_object.get("clickable_link"):
         window["question"].set_tooltip("Click to Open: " + question_object.get("clickable_link"))
+        window["question"].TooltipObject.timeout = 10
     else:
-        window["question"].set_tooltip(None)
+        window["question"].set_tooltip("")
+        window["question"].TooltipObject.timeout = 10000
     window["num_questions"].update(value=len(list(questions.keys())))
     window["%_correct"].update(value=str(question_object["percent"]) + "%")
     window["season_number"].update(value=question_object["season"])
