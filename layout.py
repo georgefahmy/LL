@@ -72,7 +72,7 @@ layout = [
                                 ),
                             ],
                             [
-                                sg.Button("Filter", key="filter", bind_return_key=True),
+                                sg.Button("Filter", key="filter"),
                                 sg.Text("Search Criteria:", font=("Arial", 14)),
                                 sg.Text("", font=("Arial", 14), key="current_search"),
                             ],
@@ -281,6 +281,23 @@ layout = [
                         disabled=True,
                         disabled_button_color=("black", "gray"),
                     ),
+                ],
+            ],
+        )
+    ],
+    [
+        sg.Frame(
+            "Answer Box",
+            expand_x=True,
+            layout=[
+                [
+                    sg.Text("Answer: ", font=("Arial", 16)),
+                    sg.Input("", key="answer_submission", font=("Arial", 16), expand_x=True),
+                    sg.Button("Submit Answer", key="submit_answer_button"),
+                ],
+                [
+                    sg.Button("Past Answers", key="past_answers_button"),
+                    sg.Text("", font=("Arial", 16), key="past_answer_text"),
                 ],
             ],
         )

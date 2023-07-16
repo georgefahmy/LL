@@ -12,6 +12,6 @@ The first time you open the application you need to Right Click on it in the app
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v1.6.2] - 2023-07-15
+### [v1.7.0] - 2023-07-15
 
-addressed additional tooltip bug
+Added an answer box and file for tracking past answers. Datetimes are recorded for when guesses are submitted.

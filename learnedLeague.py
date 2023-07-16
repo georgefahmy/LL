@@ -6,6 +6,7 @@ import os
 import base64
 import json
 import wikipedia
+import datetime
 
 from bs4 import BeautifulSoup as bs, SoupStrainer as ss
 from pprint import pprint
@@ -183,6 +184,7 @@ def update_question(questions, window, i):
     window["question_category"].update(value=question_object["category"])
     window["defense"].update(value=question_object["defense"])
     window["answer"].update(value="******")
+    window["past_answer_text"].update(value="")
     window["show/hide"].update(text="Show Answer")
     window["next"].update(disabled=False)
     window["dropdown"].update(value=i)
@@ -294,6 +296,7 @@ window.bind("<n>", "next_key")
 window.bind("<p>", "previous_key")
 window["question"].bind("<ButtonPress-2>", "press")
 window["question"].bind("<ButtonPress-1>", "click_here")
+window["answer_submission"].bind("<Return>", "answer_sub_enter_button")
 
 values = None
 i = choice(list(questions.keys()))
@@ -342,7 +345,7 @@ while True:
         answer = question_object.get("answer")
 
     if event in ("random_choice", "random_key"):
-        if window.find_element_with_focus().Key == "search_criteria":
+        if window.find_element_with_focus().Key in ("search_criteria", "answer_submission"):
             continue
         i = choice(list(questions.keys()))
         question_object = update_question(questions, window, i)
@@ -397,13 +400,10 @@ while True:
 
     # display or hide the answer for the currently displayed question
     if event in ("show/hide", "show_key"):
-        if window.find_element_with_focus().Key == "search_criteria":
+        if window.find_element_with_focus().Key in ("search_criteria", "answer_submission"):
             continue
 
-        encrypted_answer = question_object.get("answer")
-        key = question_object.get("key")
-
-        answer = decrypt_answer(encrypted_answer, key)
+        answer = decrypt_answer(question_object.get("answer"), question_object.get("key"))
 
         if window["show/hide"].get_text() == "Show Answer":
             try:
@@ -426,7 +426,7 @@ while True:
     # if the next or previous or a specific question is selected, display that question and its information
     # and hide the answer.
     if event in ["next", "previous", "dropdown", "next_key", "previous_key"]:
-        if window.find_element_with_focus().Key == "search_criteria":
+        if window.find_element_with_focus().Key in ("search_criteria", "answer_submission"):
             continue
 
         if event in ("next", "next_key"):
@@ -462,6 +462,62 @@ while True:
             window["previous"].update(disabled=True)
         else:
             window["previous"].update(disabled=False)
+
+    if event in ("submit_answer_button", "answer_submissionanswer_sub_enter_button"):
+        if os.path.isfile(WD + "/resources/answers.json"):
+            full_answers_dict = json.load(open(WD + "/resources/answers.json", "r"))
+        else:
+            full_answers_dict = {}
+
+        combined_season_question_id = (
+            "S" + question_object.get("season") + question_object.get("question_num")
+        )
+        if not full_answers_dict.get(combined_season_question_id):
+            full_answers_dict[combined_season_question_id] = {
+                "question": question_object.get("_question"),
+                "correct_answer": decrypt_answer(
+                    question_object.get("answer"), question_object.get("key")
+                ),
+                "answers": [],
+            }
+
+        answer_dict = {
+            "submitted_answer": values["answer_submission"],
+            "submission_date": datetime.datetime.now().isoformat(),
+        }
+        full_answers_dict[combined_season_question_id]["answers"].append(answer_dict)
+
+        with open("resources/answers.json", "w") as fp:
+            json.dump(full_answers_dict, fp, indent=4)
+
+        window["answer_submission"].update(value="")
+        window.write_event_value("show_key", "")
+        window["filter"].set_focus()
+
+    if event == "past_answers_button":
+        if os.path.isfile(WD + "/resources/answers.json"):
+            full_answers_dict = json.load(open(WD + "/resources/answers.json", "r"))
+            combined_season_question_id = (
+                "S" + question_object.get("season") + question_object.get("question_num")
+            )
+            if full_answers_dict.get(combined_season_question_id):
+                answers = full_answers_dict.get(combined_season_question_id).get("answers")
+            else:
+                answers = []
+        else:
+            answers = []
+
+        combined_answers = "Past Answers: " + ", ".join(
+            [answer.get("submitted_answer") for answer in answers]
+        )
+
+        if window["past_answer_text"].get():
+            window["past_answer_text"].update(value="")
+        else:
+            if len(answers) > 0:
+                window["past_answer_text"].update(value=combined_answers)
+            else:
+                window["past_answer_text"].update(value="")
 
     # if the question number is clicked, open the link
     if event == "question_number":
