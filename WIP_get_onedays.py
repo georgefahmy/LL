@@ -104,8 +104,11 @@ def get_oneday_data(oneday):
             i
             for i, e in enumerate([val.replace(".", "").strip() for val in blurb.split()])
             if e in ratings
-        ][0]
-        modkos_rating = blurb.split()[ind].replace(".", "").strip()
+        ]
+        if ind:
+            modkos_rating = blurb.split()[ind[0]].replace(".", "").strip()
+        else:
+            modkos_rating = "None"
     else:
         modkos_rating = "None"
 
@@ -115,7 +118,7 @@ def get_oneday_data(oneday):
     oneday_data = {}
     for j, question in enumerate(questions):
         encrypted_answer, key = encrypt_answer(answers[j])
-        oneday_data[str(j + 1)] = {
+        oneday_data[j + 1] = {
             "_question": question,
             "answer": encrypted_answer,
             "key": key,
@@ -132,7 +135,7 @@ layout = [
     [
         sg.Frame(
             "OneDay Selection",
-            size=(300, 100),
+            size=(300, 110),
             layout=[
                 [
                     sg.Text("Search:", font=font),
@@ -149,11 +152,12 @@ layout = [
                         enable_events=True,
                     ),
                 ],
+                [sg.Button("Hide Blurb", key="show_hide_blurb")],
             ],
         ),
         sg.Frame(
             "OneDay Info",
-            size=(300, 100),
+            size=(300, 110),
             layout=[
                 [sg.Text("", key="oneday_title", font=font)],
                 [sg.Text("Difficulty: ", font=font), sg.Text("", key="difficulty", font=font)],
@@ -163,12 +167,13 @@ layout = [
                 ],
             ],
         ),
-        sg.Frame("Question Metrics", size=(300, 100), layout=[[]]),
+        sg.Frame("Question Metrics", size=(300, 110), layout=[[]]),
     ],
     [
         sg.Frame(
             "Blurb",
             expand_x=True,
+            key="blurb_frame",
             size=(300, 150),
             layout=[
                 [
@@ -254,14 +259,17 @@ oneday = get_oneday_data(get_specific_oneday(data, choice(filtered_results)))
 while not oneday:
     oneday = get_oneday_data(get_specific_oneday(data, choice(filtered_results)))
 
+data = oneday["data"]
+i = 1
+question_object = data[i]
 window["oneday_title"].update(value=oneday["title"])
 window["difficulty"].update(value=oneday["difficulty_rating"])
 window["percent_correct"].update(value=str(oneday["overall_average"]) + "%")
 window["blurb_text"].update(value=oneday["blurb"])
 window["oneday_selection"].update(value=oneday["title"])
-window["question"].update(value=oneday["data"]["1"]["_question"])
+window["question"].update(value=question_object["_question"])
 window["answer"].update(value="*******")
-window["dropdown"].update(value=1, values=[x for x in oneday["data"].keys()])
+window["dropdown"].update(value=1, values=[x for x in data.keys()])
 
 while True:
     event, values = window.read()
@@ -270,8 +278,17 @@ while True:
         window.close()
         break
 
-    if event:
-        print(event, values)
+    # if event:
+    #     print(event, values)
+
+    if event == "show_hide_blurb":
+        size = window["blurb_frame"].get_size()
+        if size[1] == 150:
+            window["blurb_frame"].set_size((300, 1))
+            window["show_hide_blurb"].update(text="Show Blurb")
+        else:
+            window["blurb_frame"].set_size((size[0], 150))
+            window["show_hide_blurb"].update(text="Hide Blurb")
 
     if event == "oneday_filter_search":
         filtered_results = search_onedays(data, search_word=values["oneday_search"])
@@ -280,10 +297,81 @@ while True:
 
     if event == "oneday_selection":
         oneday = get_oneday_data(get_specific_oneday(data, values["oneday_selection"]))
+        data = oneday["data"]
+        i = 1
+        question_object = data[i]
         window["oneday_title"].update(value=oneday["title"])
         window["difficulty"].update(value=oneday["difficulty_rating"])
         window["percent_correct"].update(value=str(oneday["overall_average"]) + "%")
         window["blurb_text"].update(value=oneday["blurb"])
-        window["question"].update(value=oneday["data"]["1"]["_question"])
+        window["question"].update(value=question_object["_question"])
         window["answer"].update(value="*******")
-        window["dropdown"].update(value=1, values=[x for x in oneday["data"].keys()])
+        window["dropdown"].update(value=1, values=[x for x in data.keys()])
+        window["next"].update(disabled=False)
+
+    if event in ("show/hide", "show_key"):
+        if window.find_element_with_focus().Key in ("oneday_search", "answer_submission"):
+            continue
+
+        answer = decrypt_answer(question_object)
+
+        if window["show/hide"].get_text() == "Show Answer":
+            try:
+                window["show/hide"].update(text="Hide Answer")
+
+                window["answer"].update(value=answer, font=("Arial", 16))
+            except:
+                continue
+
+        elif window["show/hide"].get_text() == "Hide Answer":
+            window["show/hide"].update(text="Show Answer")
+            try:
+                if answer:
+                    window["answer"].update(value="*******")
+                else:
+                    window["answer"].update(value="")
+            except:
+                continue
+
+    if event in ["next", "previous", "dropdown", "next_key", "previous_key"]:
+        if window.find_element_with_focus().Key in ("oneday_search", "answer_submission"):
+            continue
+
+        if event in ("next", "next_key"):
+            if event == "next_key" and i == len(data.keys()):
+                continue
+            i += 1
+
+        elif event in ("previous", "previous_key"):
+            if event == "previous_key" and i == 1:
+                continue
+            i -= 1
+
+        elif event == "dropdown":
+            i = values["dropdown"]
+
+        question_object = data[i]
+        answer = question_object.get("answer")
+
+        window["question"].update(value=question_object["_question"])
+        window["answer"].update(value="*******")
+        window["dropdown"].update(value=i)
+        window["show/hide"].update(text="Show Answer")
+
+        if not question_object:
+            if event in ("next", "next_key"):
+                i -= 1
+            elif event in ("previous", "previous_key"):
+                i += 1
+            elif event == "dropdown":
+                i = values["dropdown"]
+            continue
+
+        if i == len(data.keys()):
+            window["next"].update(disabled=True)
+        else:
+            window["next"].update(disabled=False)
+        if i == 1:
+            window["previous"].update(disabled=True)
+        else:
+            window["previous"].update(disabled=False)
