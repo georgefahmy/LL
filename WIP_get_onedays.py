@@ -95,7 +95,7 @@ def get_oneday_data(oneday):
 
     check_blurb = page.find("div", {"id": "blurb_close"})
     if check_blurb:
-        blurb = "".join(check_blurb.text.split("blurb")[1:]).strip().replace("\\n", "\n")
+        blurb = re.sub("[\r\n]+", "\n", "".join(check_blurb.text.split("blurb")[1:]).strip())
     else:
         blurb = ""
     if "ModKos" in blurb.split():
