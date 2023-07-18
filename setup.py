@@ -23,7 +23,14 @@ DATA_FILES = [
 ]
 OPTIONS = {
     "excludes": ["numpy", "pandas", "matplotlib"],
-    "includes": ["PySimpleGUI", "requests", "beautifulsoup4", "cryptography", "wikipedia"],
+    "includes": [
+        "PySimpleGUI",
+        "requests",
+        "beautifulsoup4",
+        "cryptography",
+        "wikipedia",
+        "jellyfish",
+    ],
     "iconfile": "/Users/GFahmy/Documents/projects/LL/resources/ll_logo.icns",
     "arch": "x86_64",
 }

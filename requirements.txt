@@ -14,3 +14,4 @@ Markdown==3.4.3
 wikipedia==1.4.0
 packaging==23.1
 py2app==0.28.6
+jellyfish==1.0.0

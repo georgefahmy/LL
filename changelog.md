@@ -12,6 +12,6 @@ The first time you open the application you need to Right Click on it in the app
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v1.7.0] - 2023-07-15
+### [v2.0.0] - 2023-07-17
 
-Added an answer box and file for tracking past answers. Datetimes are recorded for when guesses are submitted.
+First Major Update! Added the ability to play OneDays! Select the OneDays button in the top left. It will open a new interface with OneDay Selections. Nearly 3000 OneDays available to play. Future OneDays will become available as they wrap up. There is also the ability to submit your answers and calculate a score. Compare your score against other players using the 90th, 50th and 10th percentile stats displayed. Read the OneDay description for extra context.

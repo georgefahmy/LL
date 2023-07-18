@@ -6,11 +6,8 @@ import os
 import base64
 import json
 import wikipedia
-import datetime
 
 from bs4 import BeautifulSoup as bs, SoupStrainer as ss
-from pprint import pprint
-from time import sleep
 from layout import layout
 from check_for_updates import check_for_update
 from random import choice
