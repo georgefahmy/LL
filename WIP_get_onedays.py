@@ -2,16 +2,17 @@ import requests
 from bs4 import BeautifulSoup as bs
 import json
 import base64
-import sys
 import os
 from cryptography.fernet import Fernet
 import PySimpleGUI as sg
 from random import choice
 import re
 from pprint import pprint
-import jellyfish
 import datetime
+import webbrowser
+import wikipedia
 from answer_correctness import combined_correctness
+from oneday_layout import layout
 
 BASE_URL = "https://www.learnedleague.com"
 WD = os.getcwd()
@@ -138,168 +139,18 @@ def get_oneday_data(oneday):
 
 list_of_onedays = get_full_list_of_onedays()  # one time use? store this data in a json file?
 font = "Arial", 16
-layout = [
-    [
-        sg.Frame(
-            "OneDay Selection",
-            size=(325, 110),
-            layout=[
-                [
-                    sg.Text("Search:", font=font),
-                    sg.Input("", key="oneday_search", font=font, size=(14, 1), expand_x=True),
-                    sg.Button("Search", font=font, key="oneday_filter_search"),
-                ],
-                [
-                    sg.Text("Load OneDay:", font=font),
-                    sg.Text("", expand_x=True),
-                    sg.Combo(
-                        values=search_onedays(list_of_onedays),
-                        key="oneday_selection",
-                        font=font,
-                        enable_events=True,
-                    ),
-                ],
-                [
-                    sg.Button("Show Description", key="show_hide_blurb"), sg.Text(expand_x=True),sg.Button("Random", key="random_oneday")
-                ],
-            ],
-        ),
-        sg.Frame(
-            "OneDay Info",
-            size=(325, 110),
-            layout=[
-                [sg.Text("", key="oneday_title", font=font)],
-                [
-                    sg.Text("Difficulty: ", font=font),
-                    sg.Text("", key="difficulty", font=font, expand_x=True),
-                    sg.Text("Date:", font=font),
-                    sg.Text("", font=font, key="oneday_date"),
-                ],
-                [
-                    sg.Text("Overall Correct Answers: ", font=font),
-                    sg.Text("", key="percent_correct", font=font),
-                ],
-            ],
-        ),
-        sg.Frame(
-            "Question Metrics",
-            size=(325, 110),
-            layout=[
-                [sg.Text("Current Score:", font=font), sg.Text("", key="score",font=font)],
-                [
-                    sg.Text("% Correct:", font=font, tooltip="Submit answer to see this stat"),
-                    sg.Text("Submit answer to see", key="question_percent_correct",font=("Arial_italic",10)),
-                ]
-            ]
-        ),
-    ],
-    [
-        sg.Frame(
-            "Blurb",
-            expand_x=True,
-            key="blurb_frame",
-            size=(300, 1),
-            layout=[
-                [
-                    sg.Multiline(
-                        "",
-                        expand_x=True,
-                        expand_y=True,
-                        disabled=True,
-                        no_scrollbar=True,
-                        key="blurb_text",
-                        font=("Arial", 14),
-                    )
-                ],
-            ],
-        )
-    ],
-    [
-        sg.Frame(
-            "Question",
-            size=(300, 300),
-            expand_x=True,
-            layout=[
-                [
-                    sg.Multiline(
-                        key="question",
-                        font=("Arial", 24),
-                        disabled=True,
-                        no_scrollbar=True,
-                        expand_x=True,
-                        expand_y=True,
-                        # enable_events=True,
-                        # right_click_menu=["&Right", ["!Lookup Selection"]], # Future expansion for looking up selections
-                    )
-                ],
-                [
-                    sg.Frame(
-                        "Answer",
-                        expand_x=True,
-                        layout=[
-                            [sg.Text(key="answer", font=("Arial", 16), size=(10, 1), expand_x=True)]
-                        ],
-                    )
-                ],
-                [
-                    sg.Checkbox(
-                        "Money Question",
-                        key="money_check",
-                        font=font,
-                        tooltip="Select to mark this as a money question\n% of people who got the question wrong = # of points (plus 15)",
-                    ),
-                    sg.Button(
-                        "Show Answer",
-                        key="show/hide",
-                        size=(12, 1),
-                        font=("Arial", 12),
-                        tooltip="Reveal the Answer - (s)",
-                    ),
-                    sg.Text("", expand_x=True),
-                    sg.Combo(
-                        values=[],
-                        default_value="1",
-                        key="dropdown",
-                        size=(3, 1),
-                        font=("Arial", 16),
-                        readonly=True,
-                        enable_events=True,
-                    ),
-                    sg.Button(
-                        "Next", key="next", disabled=True, disabled_button_color=("black", "gray")
-                    ),
-                    sg.Button(
-                        "Previous",
-                        key="previous",
-                        disabled=True,
-                        disabled_button_color=("black", "gray"),
-                    ),
-                ],
-            ],
-        )
-    ],
-    [
-        sg.Frame(
-            "Submission",
-            expand_x=True,
-            layout=[
-                [
-                    sg.Text("Answer: ", font=("Arial", 16)),
-                    sg.Input("", key="answer_submission", font=("Arial", 16), expand_x=True),
-                    sg.Button("Submit Answer", key="submit_answer_button", disabled_button_color=("black", "gray")),
-                ],
-            ]
-        )
-    ],
-]
+
 icon_file = WD + "/resources/ll_app_logo.png"
 sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
-window = sg.Window("OneDay Trivia", layout=layout, finalize=True)
+window = sg.Window("OneDay Trivia", layout=layout, finalize=True, return_keyboard_events=True)
+
+window["oneday_selection"].update(values=search_onedays(list_of_onedays))
 window.bind("<s>", "show_key")
 window.bind("<n>", "next_key")
 window.bind("<p>", "previous_key")
-# window["question"].bind("<ButtonPress-2>", "press")
-# window["question"].bind("<ButtonPress-1>", "click_here")
+window.bind("<m>", "money_key")
+window["question"].bind("<ButtonPress-2>", "press")
+window["question"].bind("<ButtonPress-1>", "click_here")
 window["answer_submission"].bind("<Return>", "answer_sub_enter_button")
 
 filtered_results = search_onedays(list_of_onedays)
@@ -310,6 +161,7 @@ while not oneday:
 data = oneday["data"]
 i = 1
 score = 0
+num_of_money_questions_left = 5
 question_object = data[i]
 window["oneday_title"].update(value=oneday["title"])
 window["difficulty"].update(value=oneday["difficulty_rating"])
@@ -322,7 +174,8 @@ window["previous"].update(disabled=True)
 window["question"].update(value=question_object["_question"])
 window["answer"].update(value="*******")
 window["dropdown"].update(value=1, values=[x for x in data.keys()])
-window["score"].update(value = score)
+window["score"].update(value=score)
+window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
 submitted_answers = {}
 
 while True:
@@ -334,6 +187,35 @@ while True:
 
     # if event:
     #     print(event, values)
+
+    if "Escape" in event:
+        window["question"].set_focus()
+
+    if event == "questionpress":
+        question_widget = window["question"].Widget
+        selection_ranges = question_widget.tag_ranges(sg.tk.SEL)
+        if selection_ranges:
+            window["question"].set_right_click_menu(["&Right", ["Lookup Selection"]])
+            selected_text = question_widget.get(*selection_ranges)
+        else:
+            window["question"].set_right_click_menu(["&Right", ["!Lookup Selection"]])
+            continue
+
+    if event == "Lookup Selection":
+        try:
+            result = wikipedia.summary(selected_text, sentences=2, auto_suggest=True, redirect=True)
+        except:
+            result = "No results available - Try another search."
+
+        sg.popup_ok(result, title="Wiki Summary", font=("Arial", 16))
+
+    if "money_key" in event:
+        if window.find_element_with_focus().Key in ("oneday_search", "answer_submission"):
+            continue
+        if window["money_check"].get():
+            window["money_check"].update(value=False)
+        else:
+            window["money_check"].update(value=True)
 
     if event == "show_hide_blurb":
         size = window["blurb_frame"].get_size()
@@ -361,13 +243,33 @@ while True:
         window["question"].update(value=question_object["_question"])
         window["answer"].update(value="*******")
         window["dropdown"].update(value=1, values=[x for x in data.keys()])
-        window["score"].update(value = score)
+        window["score"].update(value=score)
+        window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
+        window["money_check"].update(value=False)
         submitted_answers = {}
 
     if event == "oneday_filter_search":
         filtered_results = search_onedays(list_of_onedays, search_word=values["oneday_search"])
-        window["oneday_selection"].update(values=filtered_results)
+        window["oneday_selection"].update(value=filtered_results[0], values=filtered_results)
         window["oneday_search"].update(value="")
+        oneday = get_oneday_data(get_specific_oneday(list_of_onedays, filtered_results[0]))
+        data = oneday["data"]
+        i = 1
+        score = 0
+        question_object = data[i]
+        window["oneday_title"].update(value=oneday["title"])
+        window["difficulty"].update(value=oneday["difficulty_rating"])
+        window["percent_correct"].update(value=str(oneday["overall_average"]) + "%")
+        window["blurb_text"].update(value=oneday["blurb"])
+        window["question"].update(value=question_object["_question"])
+        window["answer"].update(value="*******")
+        window["dropdown"].update(value=1, values=[x for x in data.keys()])
+        window["next"].update(disabled=False)
+        window["previous"].update(disabled=True)
+        window["score"].update(value=score)
+        window["question_percent_correct"].update(value="")
+        window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
+        submitted_answers = {}
 
     if event == "oneday_selection":
         oneday = get_oneday_data(get_specific_oneday(list_of_onedays, values["oneday_selection"]))
@@ -384,8 +286,9 @@ while True:
         window["dropdown"].update(value=1, values=[x for x in data.keys()])
         window["next"].update(disabled=False)
         window["previous"].update(disabled=True)
-        window["score"].update(value = score)
+        window["score"].update(value=score)
         window["question_percent_correct"].update(value="")
+        window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
         submitted_answers = {}
 
     if event in ("show/hide", "show_key"):
@@ -396,21 +299,17 @@ while True:
 
         if not values["answer_submission"]:
             confirm, _ = sg.Window(
-                'Confirm',
+                "Confirm",
                 element_justification="c",
                 layout=[
-                    [
-                        sg.T('You have not submitted an answer.', font=("Arial", 14))
-                    ],
-                    [
-                        sg.T('Do you want to continue? (and forfeit your guess)', font=("Arial", 14))
-                    ],
+                    [sg.T("You have not submitted an answer.", font=("Arial", 14))],
+                    [sg.T("Do you want to continue? (and forfeit your guess)", font=("Arial", 14))],
                     [
                         sg.Yes(s=12),
                         sg.No(s=12),
-                    ]
+                    ],
                 ],
-                disable_close=False
+                disable_close=False,
             ).read(close=True)
 
         if confirm == "Yes":
@@ -455,25 +354,17 @@ while True:
             i = values["dropdown"]
 
         question_object = data[i]
-        answer = question_object.get("answer")
 
         window["question"].update(value=question_object["_question"])
         window["answer"].update(value="*******")
         window["dropdown"].update(value=i)
         window["show/hide"].update(text="Show Answer")
         window["answer_submission"].update(value="")
-        window["money_check"].update(disabled=False, value=False)
-        window["question_percent_correct"].update(value="Submit answer to see", font=("Arial", 10))
+        window["question_percent_correct"].update(
+            value="Submit answer to see", font=("Arial Italic", 10)
+        )
         window["answer_submission"].update(disabled=False)
         window["submit_answer_button"].update(disabled=False)
-
-        if submitted_answers.get(str(i)):
-            window["answer"].update(value=submitted_answers.get(str(i)).get("correct_answer"))
-            window["answer_submission"].update(disabled=True)
-            window["submit_answer_button"].update(disabled=True)
-            window["money_check"].update(value=submitted_answers.get(str(i)).get("money_question"))
-            window["question_percent_correct"].update(value=question_object["percent"], font=font)
-            window["show/hide"].update(text="Hide Answer")
 
         if not question_object:
             if event in ("next", "next_key"):
@@ -493,7 +384,23 @@ while True:
         else:
             window["previous"].update(disabled=False)
 
-    if event == "submit_answer_button":
+        if submitted_answers.get(str(i)):
+            prev_answer = submitted_answers.get(str(i))
+            window["answer"].update(value=prev_answer.get("correct_answer"))
+            window["answer_submission"].update(disabled=True)
+            window["submit_answer_button"].update(disabled=True)
+            window["money_check"].update(disabled=True, value=prev_answer.get("money_question"))
+            window["question_percent_correct"].update(value=question_object["percent"], font=font)
+            window["show/hide"].update(text="Hide Answer", disabled=True)
+        else:
+            if int(window["num_of_money_questions_left"].get()) == 0:
+                window["money_check"].update(disabled=True, value=False)
+            else:
+                window["money_check"].update(disabled=False, value=False)
+
+    if event in ("submit_answer_button", "answer_submissionanswer_sub_enter_button"):
+        if not values["answer_submission"]:
+            continue
         submitted_answer = values["answer_submission"].lower()
         answer = decrypt_answer(question_object)
         window["answer"].update(value=answer, font=("Arial", 16))
@@ -507,19 +414,30 @@ while True:
             correct = [combined_correctness(submitted_answer, answer)]
 
         if any(correct):
-            score+=15
+            score += 15
+
+            if values["money_check"]:
+                wrong_percent = 100 - question_object["percent"]
+                score += wrong_percent
 
         if values["money_check"]:
-            wrong_percent = 100 - question_object["percent"]
-            score += wrong_percent
+            num_of_money_questions_left -= 1
+            window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
+
+        if values["money_check"] == 0:
+            window["money_check"].update(disabled=True, value=False)
 
         window["money_check"].update(disabled=True, value=False)
-        window["score"].update(value = score)
+        window["score"].update(value=score)
         window["submit_answer_button"].update(disabled=True)
         submitted_answers[question_object["question_num"]] = {
             "correct_answer": answer,
             "submitted_answer": submitted_answer,
             "money_question": values["money_check"],
-            "correct": any(correct)
+            "correct": any(correct),
         }
         pprint(submitted_answers)
+        window["question"].set_focus()
+
+    if event == "difficulty_tooltip":
+        webbrowser.open(window["difficulty_tooltip"].metadata)
