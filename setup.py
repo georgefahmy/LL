@@ -20,19 +20,20 @@ DATA_FILES = [
     "resources",
     "resources/VERSION",
     "resources/ll_logo.icns",
+    "onedays.py",
 ]
 OPTIONS = {
-    "excludes": ["numpy", "pandas", "matplotlib"],
+    "excludes": ["numpy", "matplotlib"],
     "includes": [
         "PySimpleGUI",
         "requests",
         "beautifulsoup4",
-        "cryptography",
         "wikipedia",
         "jellyfish",
     ],
     "iconfile": "/Users/GFahmy/Documents/projects/LL/resources/ll_logo.icns",
     "arch": "x86_64",
+    # "arch": "universal2",
 }
 
 setup(
@@ -41,10 +42,9 @@ setup(
     data_files=DATA_FILES,
     name="Learned League",
     options={"py2app": OPTIONS},
-    packages=find_packages(),
     author="George Fahmy",
     description="LearnedLeague",
-    python_requires=">=3.9",
+    python_requires=">=3.10",
     long_description="""The Learned League app allows access to the learned league seasons from the past and allows users
         to experience difficult trivia. Some stats are provided about the difficulty of each question based on the % of
         people that got that question correct.""",

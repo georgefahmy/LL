@@ -9,29 +9,12 @@ import PySimpleGUI as sg
 import re
 
 from bs4 import BeautifulSoup as bs
-from cryptography.fernet import Fernet
 from random import choice
 from pprint import pprint
 from answer_correctness import combined_correctness
 
 BASE_URL = "https://www.learnedleague.com"
 WD = os.getcwd()
-
-
-def encrypt_answer(answer):
-    key = Fernet.generate_key()
-    return (Fernet(key).encrypt(answer.encode()).decode(), key.decode())
-
-
-def decrypt_answer(question):
-    encrypted_answer = question.get("answer")
-    key = question.get("key")
-
-    if type(encrypted_answer) != bytes:
-        encrypted_answer = encrypted_answer.encode()
-    if type(key) != bytes:
-        key = key.encode()
-    return Fernet(key).decrypt(encrypted_answer).decode()
 
 
 def get_full_list_of_onedays():
@@ -148,11 +131,9 @@ def get_oneday_data(oneday):
     oneday["10th_percentile"] = percentile_info[2]
     oneday_data = {}
     for j, question in enumerate(questions):
-        encrypted_answer, key = encrypt_answer(answers[j])
         oneday_data[j + 1] = {
             "_question": question,
-            "answer": encrypted_answer,
-            "key": key,
+            "answer": answers[j],
             "percent": question_metrics[j],
             "question_num": str(j + 1),
         }
@@ -565,7 +546,7 @@ def oneday_main():
             if window.find_element_with_focus().Key in ("oneday_search", "answer_submission"):
                 continue
 
-            answer = decrypt_answer(question_object)
+            answer = question_object["answer"]
 
             if not values["answer_submission"]:
                 confirm, _ = sg.Window(
@@ -679,7 +660,7 @@ def oneday_main():
             if not values["answer_submission"]:
                 continue
             submitted_answer = values["answer_submission"].lower()
-            answer = decrypt_answer(question_object)
+            answer = question_object["answer"]
             window["answer"].update(value=answer, font=("Arial", 16))
             window["show/hide"].update(text="Hide Answer")
             window["question_percent_correct"].update(value=question_object["percent"], font=font)

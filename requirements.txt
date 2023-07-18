@@ -3,7 +3,6 @@ certifi==2023.5.7
 cffi==1.15.1
 chardet==5.1.0
 charset-normalizer==3.1.0
-cryptography==41.0.2
 idna==3.4
 pycparser==2.21
 PySimpleGUI==4.60.4
@@ -15,3 +14,4 @@ wikipedia==1.4.0
 packaging==23.1
 py2app==0.28.6
 jellyfish==1.0.0
+lxml==4.9.3

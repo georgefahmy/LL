@@ -11,8 +11,8 @@ from bs4 import BeautifulSoup as bs, SoupStrainer as ss
 from layout import layout
 from check_for_updates import check_for_update
 from random import choice
-from cryptography.fernet import Fernet
 from onedays import oneday_main
+
 
 BASE_URL = "https://www.learnedleague.com"
 
@@ -22,19 +22,6 @@ restart = check_for_update()
 if restart:
     restart = False
     os.execv(sys.executable, ["python"] + sys.argv)
-
-
-def encrypt_answer(answer):
-    key = Fernet.generate_key()
-    return (Fernet(key).encrypt(answer.encode()).decode(), key.decode())
-
-
-def decrypt_answer(encrypted_answer, key):
-    if type(encrypted_answer) != bytes:
-        encrypted_answer = encrypted_answer.encode()
-    if type(key) != bytes:
-        key = key.encode()
-    return Fernet(key).decrypt(encrypted_answer).decode()
 
 
 def get_new_data(season_number):
@@ -78,12 +65,11 @@ def get_new_data(season_number):
                 BASE_URL + "/question.php?" + str(season_number) + "&" + str(i) + "&" + str(j + 1)
             )
 
-            encrypted_answer, key = encrypt_answer(answers[j])
+            answer = answers[j]
 
             all_data[combined_season_num_code] = {
                 "_question": question,
-                "answer": encrypted_answer,
-                "key": key,
+                "answer": answer,
                 "season": season_number,
                 "date": date,
                 "category": categories[j],
@@ -391,7 +377,7 @@ while True:
         if window.find_element_with_focus().Key in ("search_criteria", "answer_submission"):
             continue
 
-        answer = decrypt_answer(question_object.get("answer"), question_object.get("key"))
+        answer = question_object["answer"]
 
         if window["show/hide"].get_text() == "Show Answer":
             try:
