@@ -19,7 +19,7 @@ WD = os.getcwd()
 
 def get_full_list_of_onedays():
     if os.path.isfile("resources/oneday_data.json"):
-        with open("resources/oneday_data.json", "r") as fp:
+        with open(WD + "/resources/oneday_data.json", "r") as fp:
             data = json.load(fp)
     else:
         data = {}
@@ -36,7 +36,7 @@ def get_full_list_of_onedays():
     for key in list(data.keys()):
         if datetime.datetime.strptime(data[key]["date"], "%b %d, %Y") >= datetime.datetime.now():
             del data[key]
-    with open("resources/oneday_data.json", "w") as fp:
+    with open(WD + "/resources/oneday_data.json", "w") as fp:
         json.dump(data, fp, sort_keys=True, indent=4)
     return data
 

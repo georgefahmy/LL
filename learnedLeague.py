@@ -85,7 +85,7 @@ def get_new_data(season_number):
                 "R": [cell.text for cell in rundles[5]][2:-1][j],
             }
 
-    with open(WD + "resources/all_data.json", "w+") as fp:
+    with open(WD + "/resources/all_data.json", "w+") as fp:
         json.dump(all_data, fp, sort_keys=True, indent=4)
 
     return all_data
