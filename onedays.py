@@ -71,6 +71,7 @@ def get_specific_oneday(data, onedaykey):
 
 def get_oneday_data(oneday):
     page = bs(requests.get(oneday["url"]).content, "lxml")
+
     try:
         metrics_page = bs(
             requests.get(BASE_URL + page.find("ul", {"id": "profilestabs"}).a.get("href")).content,
@@ -78,6 +79,7 @@ def get_oneday_data(oneday):
         )
     except:
         metrics_page = None
+
     try:
         questions = [
             ". ".join(q.text.split(".")[1:]).strip()
@@ -85,12 +87,14 @@ def get_oneday_data(oneday):
         ]
     except:
         return None
+
     answers = [
         a.text.strip().split("\n")[-1]
         for a in page.find("div", {"id": "qs_close", "class": "qdivshow_wide"}).find_all(
             "div", {"class": "answer3"}
         )
     ]
+
     if metrics_page:
         question_metrics = [
             int(m.text.strip().split()[1])
@@ -98,8 +102,24 @@ def get_oneday_data(oneday):
             .find("table", {"class": "tbl_q"})
             .find_all("tr")[1:]
         ]
+
+        percentile_info = [
+            metrics_page.find("div", {"class": "pctile_container"})
+            .find_all("td", {"class": None})[i]
+            .text
+            for i, m in enumerate(
+                metrics_page.find("div", {"class": "pctile_container"}).find_all(
+                    "td", {"class": "pr"}
+                )
+            )
+            if m.text in ("10", "50", "90")
+        ]
+
     else:
         question_metrics = [0] * len(questions)
+
+    if len(percentile_info) != 3:
+        percentile_info += [""] * (3 - len(percentile_info))
 
     check_blurb = page.find("div", {"id": "blurb_close"})
     if check_blurb:
@@ -123,6 +143,9 @@ def get_oneday_data(oneday):
     oneday["blurb"] = blurb
     oneday["difficulty_rating"] = modkos_rating.replace(",", "")
     oneday["overall_average"] = round(sum(question_metrics) / len(question_metrics), 2)
+    oneday["90th_percentile"] = percentile_info[0]
+    oneday["50th_percentile"] = percentile_info[1]
+    oneday["10th_percentile"] = percentile_info[2]
     oneday_data = {}
     for j, question in enumerate(questions):
         encrypted_answer, key = encrypt_answer(answers[j])
@@ -143,12 +166,12 @@ def oneday_main():
         [
             sg.Frame(
                 "OneDay Selection",
-                size=(325, 110),
+                size=(325, 105),
                 layout=[
                     [
                         sg.Text("Search:", font=font),
                         sg.Input("", key="oneday_search", font=font, size=(14, 1), expand_x=True),
-                        sg.Button("Search", font=font, key="oneday_filter_search"),
+                        sg.Button("Search", key="oneday_filter_search"),
                     ],
                     [
                         sg.Text("OneDay:", font=font, tooltip="Choose a OneDay to load"),
@@ -172,7 +195,7 @@ def oneday_main():
             ),
             sg.Frame(
                 "OneDay Info",
-                size=(325, 110),
+                size=(325, 105),
                 layout=[
                     [sg.Text("", key="oneday_title", font=font)],
                     [
@@ -196,7 +219,7 @@ def oneday_main():
             ),
             sg.Frame(
                 "Question Metrics",
-                size=(325, 110),
+                size=(325, 105),
                 layout=[
                     [
                         sg.Text("Your Current Score:", font=font),
@@ -215,6 +238,15 @@ def oneday_main():
                             font=("Arial Italic", 10),
                             tooltip="Correct Answer Percentage (all players)",
                         ),
+                    ],
+                    [
+                        sg.Text("Points percentile:", font=("Arial Bold", 14), pad=0),
+                        sg.Text("90th:", font=("Arial Italic", 14), pad=0),
+                        sg.Text("", key="90th_percent", font=("Arial Italic", 14), pad=0),
+                        sg.Text("50th:", font=("Arial Italic", 14), pad=0),
+                        sg.Text("", key="50th_percent", font=("Arial Italic", 14), pad=0),
+                        sg.Text("10th:", font=("Arial Italic", 14), pad=0),
+                        sg.Text("", key="10th_percent", font=("Arial Italic", 14), pad=0),
                     ],
                 ],
             ),
@@ -289,8 +321,8 @@ def oneday_main():
                             "Show Answer",
                             key="show/hide",
                             size=(12, 1),
-                            font=("Arial", 12),
                             tooltip="Reveal the Answer - (s)",
+                            mouseover_colors=("black", "white"),
                             disabled_button_color=("black", "gray"),
                         ),
                         sg.Text("", expand_x=True),
@@ -307,12 +339,14 @@ def oneday_main():
                             "Previous",
                             key="previous",
                             disabled=True,
+                            mouseover_colors=("black", "white"),
                             disabled_button_color=("black", "gray"),
                         ),
                         sg.Button(
                             "Next",
                             key="next",
                             disabled=True,
+                            mouseover_colors=("black", "white"),
                             disabled_button_color=("black", "gray"),
                         ),
                     ],
@@ -374,6 +408,9 @@ def oneday_main():
     window["next"].update(disabled=False)
     window["previous"].update(disabled=True)
     window["question"].update(value=question_object["_question"])
+    window["90th_percent"].update(value=oneday["90th_percentile"])
+    window["50th_percent"].update(value=oneday["50th_percentile"])
+    window["10th_percent"].update(value=oneday["10th_percentile"])
     window["answer"].update(value="*******")
     window["dropdown"].update(value=1, values=[x for x in data.keys()])
     window["score"].update(value=score)
@@ -445,11 +482,20 @@ def oneday_main():
             window["next"].update(disabled=False)
             window["previous"].update(disabled=True)
             window["question"].update(value=question_object["_question"])
+            window["90th_percent"].update(value=oneday["90th_percentile"])
+            window["50th_percent"].update(value=oneday["50th_percentile"])
+            window["10th_percent"].update(value=oneday["10th_percentile"])
             window["answer"].update(value="*******")
             window["dropdown"].update(value=1, values=[x for x in data.keys()])
             window["score"].update(value=score)
+            window["money_check"].update(disabled=False, value=False)
+            window["show/hide"].update(text="Show Answer", disabled=False)
+            window["answer_submission"].update(value="", disabled=False)
+            window["question_percent_correct"].update(
+                value="Submit answer to see", font=("Arial Italic", 10)
+            )
+            window["submit_answer_button"].update(disabled=False)
             window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
-            window["money_check"].update(value=False)
             submitted_answers = {}
 
         if event == "oneday_filter_search":
@@ -466,12 +512,21 @@ def oneday_main():
             window["percent_correct"].update(value=str(oneday["overall_average"]) + "%")
             window["blurb_text"].update(value=oneday["blurb"])
             window["question"].update(value=question_object["_question"])
+            window["90th_percent"].update(value=oneday["90th_percentile"])
+            window["50th_percent"].update(value=oneday["50th_percentile"])
+            window["10th_percent"].update(value=oneday["10th_percentile"])
             window["answer"].update(value="*******")
             window["dropdown"].update(value=1, values=[x for x in data.keys()])
             window["next"].update(disabled=False)
             window["previous"].update(disabled=True)
             window["score"].update(value=score)
-            window["question_percent_correct"].update(value="")
+            window["money_check"].update(disabled=False, value=False)
+            window["show/hide"].update(text="Show Answer", disabled=False)
+            window["answer_submission"].update(value="", disabled=False)
+            window["question_percent_correct"].update(
+                value="Submit answer to see", font=("Arial Italic", 10)
+            )
+            window["submit_answer_button"].update(disabled=False)
             window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
             submitted_answers = {}
 
@@ -488,12 +543,21 @@ def oneday_main():
             window["percent_correct"].update(value=str(oneday["overall_average"]) + "%")
             window["blurb_text"].update(value=oneday["blurb"])
             window["question"].update(value=question_object["_question"])
+            window["90th_percent"].update(value=oneday["90th_percentile"])
+            window["50th_percent"].update(value=oneday["50th_percentile"])
+            window["10th_percent"].update(value=oneday["10th_percentile"])
             window["answer"].update(value="*******")
             window["dropdown"].update(value=1, values=[x for x in data.keys()])
             window["next"].update(disabled=False)
             window["previous"].update(disabled=True)
             window["score"].update(value=score)
-            window["question_percent_correct"].update(value="")
+            window["money_check"].update(disabled=False, value=False)
+            window["show/hide"].update(text="Show Answer", disabled=False)
+            window["answer_submission"].update(value="", disabled=False)
+            window["question_percent_correct"].update(
+                value="Submit answer to see", font=("Arial Italic", 10)
+            )
+            window["submit_answer_button"].update(disabled=False)
             window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
             submitted_answers = {}
 
@@ -655,3 +719,7 @@ def oneday_main():
         if event == "difficulty_tooltip":
             webbrowser.open(window["difficulty_tooltip"].metadata)
     return True
+
+
+if __name__ == "__main__":
+    oneday_main()

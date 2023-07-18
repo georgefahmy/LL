@@ -14,6 +14,25 @@ layout = [
                         size=(275, 185),
                         layout=[
                             [
+                                sg.Button(
+                                    "OneDays",
+                                    key="onedays_button",
+                                    tooltip="OneDay trivia (opens new window)",
+                                ),
+                                sg.Text(expand_x=True),
+                                sg.Button("Filter", key="filter"),
+                            ],
+                            [
+                                sg.Text("Search: ", font=("Arial", 16)),
+                                sg.Input(
+                                    "",
+                                    key="search_criteria",
+                                    font=("Arial", 16),
+                                    expand_x=True,
+                                    enable_events=True,
+                                ),
+                            ],
+                            [
                                 sg.Text("Season (min 60): ", font=("Arial", 16)),
                                 sg.Text(expand_x=True),
                                 sg.Combo(
@@ -60,21 +79,6 @@ layout = [
                                     readonly=True,
                                     enable_events=True,
                                 ),
-                            ],
-                            [
-                                sg.Text("Search: ", font=("Arial", 16)),
-                                sg.Input(
-                                    "",
-                                    key="search_criteria",
-                                    font=("Arial", 16),
-                                    expand_x=True,
-                                    enable_events=True,
-                                ),
-                            ],
-                            [
-                                sg.Button("Filter", key="filter"),
-                                sg.Text("Search Criteria:", font=("Arial", 14)),
-                                sg.Text("", font=("Arial", 14), key="current_search"),
                             ],
                         ],
                     ),
@@ -273,31 +277,17 @@ layout = [
                         enable_events=True,
                     ),
                     sg.Button(
-                        "Next", key="next", disabled=True, disabled_button_color=("black", "gray")
-                    ),
-                    sg.Button(
                         "Previous",
                         key="previous",
                         disabled=True,
                         disabled_button_color=("black", "gray"),
                     ),
-                ],
-            ],
-        )
-    ],
-    [
-        sg.Frame(
-            "Answer Box",
-            expand_x=True,
-            layout=[
-                [
-                    sg.Text("Answer: ", font=("Arial", 16)),
-                    sg.Input("", key="answer_submission", font=("Arial", 16), expand_x=True),
-                    sg.Button("Submit Answer", key="submit_answer_button"),
-                ],
-                [
-                    sg.Button("Past Answers", key="past_answers_button"),
-                    sg.Text("", font=("Arial", 16), key="past_answer_text"),
+                    sg.Button(
+                        "Next",
+                        key="next",
+                        disabled=True,
+                        disabled_button_color=("black", "gray"),
+                    ),
                 ],
             ],
         )
