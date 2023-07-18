@@ -667,9 +667,9 @@ def oneday_main():
 
             answers = re.findall("([^\/,()]+)", answer)
             if len(answers) > 1:
-                correct = [combined_correctness(submitted_answer, answer) for answer in answers]
+                correct = [combined_correctness(submitted_answer, answer.strip(), True) for answer in answers]
             else:
-                correct = [combined_correctness(submitted_answer, answer)]
+                correct = [combined_correctness(submitted_answer, answer.strip())]
 
             if any(correct):
                 score += 15
