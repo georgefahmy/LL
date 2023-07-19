@@ -26,10 +26,13 @@ OPTIONS = {
     "excludes": ["numpy", "pandas", "matplotlib"],
     "includes": [
         "PySimpleGUI",
-        "requests",
         "beautifulsoup4",
+        "levenshtein",
+    ],
+    "packages": [
         "wikipedia",
-        "thefuzz",
+        "requests",
+        "rapidfuzz",
     ],
     "iconfile": "/Users/GFahmy/Documents/projects/LL/resources/ll_logo.icns",
     "arch": "x86_64",
