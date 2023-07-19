@@ -344,6 +344,7 @@ def oneday_main():
 
     [window[f"question_{i}"].bind("<ButtonPress-2>", "press") for i in range(1, 13)]
     [window[f"question_{i}"].bind("<ButtonPress-1>", "click_here") for i in range(1, 13)]
+    [window[f"answer_submission_{i}"].bind("<Return>", f"_submit_answer_button_{i}") for i in range(1,13)]
 
     filtered_results = search_onedays(list_of_onedays)
     oneday = get_oneday_data(get_specific_oneday(list_of_onedays, choice(filtered_results)))
@@ -577,6 +578,7 @@ def oneday_main():
                     continue
 
         if "submit_answer_button" in event:
+
             i = int(event.split("_")[-1])
             question_object = data[i]
 
@@ -614,6 +616,7 @@ def oneday_main():
             window["score"].update(value=score)
             window[f"answer_submission_{i}"].update(disabled=True)
             window[f"submit_answer_button_{i}"].update(disabled=True)
+            window[f"answer_submission_{i}"].unbind("<Return>")
             submitted_answers[question_object["question_num"]] = {
                 "correct_answer": answer,
                 "submitted_answer": submitted_answer,
