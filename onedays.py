@@ -552,7 +552,7 @@ def oneday_main():
                 window[f"answer_submission_{i}"].update(disabled=True)
                 window[f"submit_answer_button_{i}"].update(disabled=True)
                 window[f"money_check_{i}"].update(disabled=True)
-                window[f"show/hide_{i}"].update(disabled=True)
+                window[f"show/hide_{i}"].update(visible=False)
                 window[f"question_percent_correct_{i}"].update(
                     value=question_object["percent"], font=font
                 )
@@ -587,7 +587,7 @@ def oneday_main():
             submitted_answer = values[f"answer_submission_{i}"].lower()
             answer = question_object["answer"]
             window[f"answer_{i}"].update(value=answer, font=("Arial", 16))
-            window[f"show/hide_{i}"].update(text="Hide Answer")
+            window[f"show/hide_{i}"].update(visible=False)
             window[f"question_percent_correct_{i}"].update(value=question_object["percent"], font=font)
 
             answers = re.findall("([^\/,()]+)", answer)
