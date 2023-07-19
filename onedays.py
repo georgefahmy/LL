@@ -2,7 +2,7 @@ import requests
 import datetime
 import webbrowser
 import wikipedia
-import json
+import unicodedata
 import base64
 import os
 import PySimpleGUI as sg
@@ -80,23 +80,32 @@ def get_oneday_data(oneday):
             .find_all("tr")[1:]
         ]
 
-        percentile_info = [
-            metrics_page.find("div", {"class": "pctile_container"})
-            .find_all("td", {"class": None})[i]
-            .text
-            for i, m in enumerate(
+        percentile_info = {
+            int(
+                metrics_page.find("div", {"class": "pctile_container"})
+                .find_all("td", {"class": "pr"})[i]
+                .text
+            ): int(
+                metrics_page.find("div", {"class": "pctile_container"})
+                .find_all("td", {"class": None})[i]
+                .text
+            )
+            for i, _ in enumerate(
                 metrics_page.find("div", {"class": "pctile_container"}).find_all(
                     "td", {"class": "pr"}
                 )
             )
-            if m.text in ("10", "50", "90")
-        ]
+            if unicodedata.normalize(
+                "NFKD",
+                metrics_page.find("div", {"class": "pctile_container"})
+                .find_all("td", {"class": None})[i]
+                .text,
+            )
+            != " "
+        }
 
     else:
         question_metrics = [0] * len(questions)
-
-    if len(percentile_info) != 3:
-        percentile_info += [""] * (3 - len(percentile_info))
 
     check_blurb = page.find("div", {"id": "blurb_close"})
     if check_blurb:
@@ -120,9 +129,10 @@ def get_oneday_data(oneday):
     oneday["blurb"] = blurb
     oneday["difficulty_rating"] = modkos_rating.replace(",", "")
     oneday["overall_average"] = round(sum(question_metrics) / len(question_metrics), 2)
-    oneday["90th_percentile"] = percentile_info[0]
-    oneday["50th_percentile"] = percentile_info[1]
-    oneday["10th_percentile"] = percentile_info[2]
+    oneday["90th_percentile"] = percentile_info.get(90) or ""
+    oneday["50th_percentile"] = percentile_info.get(50) or ""
+    oneday["10th_percentile"] = percentile_info.get(10) or ""
+    oneday["all_percentile"] = percentile_info
     oneday_data = {}
     for j, question in enumerate(questions):
         oneday_data[j + 1] = {
@@ -350,6 +360,7 @@ def oneday_main():
 
     list_of_onedays = get_full_list_of_onedays()  # one time use? store this data in a json file?
     font = "Arial", 16
+    close_popup = False
 
     icon_file = WD + "/resources/ll_app_logo.png"
     sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
@@ -693,6 +704,20 @@ def oneday_main():
             }
             pprint(submitted_answers)
             window["question"].set_focus()
+
+        if len(submitted_answers) == 12:
+            percentile_info = oneday["all_percentile"]
+            final_percentile = list(percentile_info.keys())[
+                list(percentile_info.values()).index(
+                    min(list(percentile_info.values()), key=lambda x: abs(int(x) - score))
+                )
+            ]
+            if not close_popup:
+                close_popup = sg.popup_ok(
+                    f"Final Score: {score} pts\nFinal percentile: {final_percentile}%",
+                    title="Final Score",
+                    font=font,
+                )
 
         if event == "difficulty_tooltip":
             webbrowser.open(window["difficulty_tooltip"].metadata)

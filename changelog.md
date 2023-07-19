@@ -12,6 +12,6 @@ The first time you open the application you need to Right Click on it in the app
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v2.0.2] - 2023-07-18
+### [v2.0.3] - 2023-07-18
 
-Added Missing dependency
+Improved answer checking and percentile information when completing a oneday
