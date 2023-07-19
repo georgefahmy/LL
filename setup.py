@@ -23,17 +23,16 @@ DATA_FILES = [
     "onedays.py",
 ]
 OPTIONS = {
-    "excludes": ["numpy", "matplotlib"],
+    "excludes": ["numpy", "pandas", "matplotlib"],
     "includes": [
         "PySimpleGUI",
         "requests",
         "beautifulsoup4",
         "wikipedia",
-        "jellyfish",
+        "thefuzz",
     ],
     "iconfile": "/Users/GFahmy/Documents/projects/LL/resources/ll_logo.icns",
     "arch": "x86_64",
-    # "arch": "universal2",
 }
 
 setup(
