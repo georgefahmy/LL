@@ -31,6 +31,11 @@ def get_full_list_of_onedays():
     for key in list(data.keys()):
         if datetime.datetime.strptime(data[key]["date"], "%b %d, %Y") >= datetime.datetime.now():
             del data[key]
+
+    for key in list(data.keys()):
+        if any([val in key for val in ["Just Audio", "Just Images", "Just Memes", "Just GIFs", "Just Fuzzy Images"]]):
+            del data[key]
+
     return data
 
 
@@ -248,7 +253,7 @@ def oneday_main():
                     [
                         sg.Frame(
                             f"Question {i}",
-                            size=(975,300),
+                            size=(970,300),
                             expand_x=True,
                             expand_y=True,
                             layout=[
@@ -266,26 +271,6 @@ def oneday_main():
                                     )
                                 ],
                                 [
-                                    sg.Text(
-                                        "Answer: ",
-                                        font=("Arial", 16),
-                                        size=(10, 1),
-                                    ),
-                                    sg.Text(
-                                        key=f"answer_{i}",
-                                        font=("Arial", 16),
-                                        size=(10, 1),
-                                        expand_x=True,
-                                    )
-                                ],
-                                [
-                                    sg.Checkbox(
-                                        "Money Question",
-                                        key=f"money_check_{i}",
-                                        font=font,
-                                        tooltip="If correct - get points equal to % of people who got the question wrong",
-                                        pad=((5, 0), (5, 5)),
-                                    ),
                                     sg.Button(
                                         "Show Answer",
                                         key=f"show/hide_{i}",
@@ -294,10 +279,30 @@ def oneday_main():
                                         mouseover_colors=("black", "white"),
                                         disabled_button_color=("black", "gray"),
                                     ),
+                                    sg.Text(
+                                        key=f"answer_{i}",
+                                        font=("Arial", 16),
+                                        size=(10, 1),
+                                    )
+                                ],
+                                [
+                                    sg.Checkbox(
+                                        "Money Question",
+                                        key=f"money_check_{i}",
+                                        font=font,
+                                        tooltip="If correct - get points equal to % of people who got the question wrong",
+                                    ),
                                 ],
                                 [
                                     sg.Text("Answer: ", font=("Arial", 16)),
-                                    sg.Input("", key=f"answer_submission_{i}", font=("Arial", 16), expand_x=True),
+                                    sg.Input(
+                                        "",
+                                        key=f"answer_submission_{i}",
+                                        font=("Arial", 16),
+                                        expand_x=True,
+                                        disabled_readonly_background_color="light gray",
+                                        disabled_readonly_text_color="black"
+                                    ),
                                     sg.Button(
                                         "Submit Answer",
                                         key=f"submit_answer_button_{i}",
@@ -384,7 +389,7 @@ def oneday_main():
         #     print(event, values)
 
         if "Escape" in event:
-            window["question"].set_focus()
+            window["question_1"].set_focus()
 
         if "press" in event:
             i = int(event.split("_")[-1].split("press")[0])
@@ -407,14 +412,6 @@ def oneday_main():
                 result = "No results available - Try another search."
 
             sg.popup_ok(result, title="Wiki Summary", font=("Arial", 16))
-
-        if "money_key" in event:
-            if window.find_element_with_focus().Key in ("oneday_search", "answer_submission"):
-                continue
-            if window["money_check"].get():
-                window["money_check"].update(value=False)
-            else:
-                window["money_check"].update(value=True)
 
         if event == "show_hide_blurb":
             size = window["blurb_frame"].get_size()
@@ -614,6 +611,7 @@ def oneday_main():
 
             window[f"money_check_{i}"].update(disabled=True)
             window["score"].update(value=score)
+            window[f"answer_submission_{i}"].update(disabled=True)
             window[f"submit_answer_button_{i}"].update(disabled=True)
             submitted_answers[question_object["question_num"]] = {
                 "correct_answer": answer,
@@ -634,6 +632,7 @@ def oneday_main():
                     min(list(percentile_info.values()), key=lambda x: abs(int(x) - score))
                 )
             ]
+            close_popup = True
             if not close_popup:
                 close_popup = sg.popup_ok(
                     f"Final Score: {score} pts\nFinal percentile: {final_percentile}%",
