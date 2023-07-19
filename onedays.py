@@ -283,6 +283,7 @@ def oneday_main():
                                         key=f"answer_{i}",
                                         font=("Arial", 16),
                                         size=(10, 1),
+                                        expand_x=True,
                                     )
                                 ],
                                 [
