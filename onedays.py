@@ -625,6 +625,7 @@ def oneday_main():
                 value="Submit answer to see", font=("Arial Italic", 10)
             )
             window["answer_submission"].update(disabled=False)
+            window["answer_submission"].bind("<Return>", "answer_sub_enter_button")
             window["submit_answer_button"].update(disabled=False)
 
             if not question_object:
@@ -696,6 +697,7 @@ def oneday_main():
             window["money_check"].update(disabled=True, value=False)
             window["score"].update(value=score)
             window["submit_answer_button"].update(disabled=True)
+            window["answer_submission"].unbind("<Return>")
             submitted_answers[question_object["question_num"]] = {
                 "correct_answer": answer,
                 "submitted_answer": submitted_answer,
