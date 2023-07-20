@@ -499,9 +499,20 @@ def oneday_main():
                 )
 
         if event == "oneday_filter_search":
-            filtered_results = search_onedays(list_of_onedays, search_word=values["oneday_search"])
-            window["oneday_selection"].update(value=filtered_results[0], values=filtered_results)
+            filtered_results = search_onedays(
+                list_of_onedays, search_word=values["oneday_search"]
+            ) or [""]
             window["oneday_search"].update(value="")
+            if not filtered_results[0]:
+                filtered_results = search_onedays(list_of_onedays)
+                sg.popup_error(
+                    "WARNING - No Results",
+                    font=("Arial", 16),
+                    auto_close=True,
+                    auto_close_duration=5,
+                )
+                continue
+            window["oneday_selection"].update(value=filtered_results[0], values=filtered_results)
             oneday = get_oneday_data(get_specific_oneday(list_of_onedays, filtered_results[0]))
             data = oneday["data"]
             i = 1
