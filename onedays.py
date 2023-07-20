@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup as bs
 from random import choice
 from pprint import pprint
 from answer_correctness import combined_correctness
+from PyDictionary import PyDictionary
 
 BASE_URL = "https://www.learnedleague.com"
 WD = os.getcwd()
@@ -406,6 +407,17 @@ def oneday_main():
                 continue
 
         if event == "Lookup Selection":
+            if len(selected_text.split()):
+                # selected text is a single word, so just do a lookup
+                try:
+                    definition = PyDictionary().meaning(selected_text)
+
+                    result = "\n".join([key + ": " + ", ".join(value) for key, value in definition.items()])
+                    print(result)
+                    sg.popup_ok(result, title="Dictionary Result", font=("Arial", 16))
+                    continue
+                except:
+                    result = "No results available - Try another search."
             try:
                 result = wikipedia.summary(
                     selected_text, sentences=2, auto_suggest=True, redirect=True
@@ -599,7 +611,7 @@ def oneday_main():
             else:
                 correct = [combined_correctness(submitted_answer, answer.strip())]
 
-            if any(correct):
+            if all(correct):
                 score += 15
 
                 if values[f"money_check_{i}"]:
