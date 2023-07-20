@@ -2,7 +2,7 @@ from rapidfuzz import fuzz
 import spacy
 
 
-nlp = spacy.load("en_core_web_sm")
+nlp = spacy.load("en_core_web_md")
 
 
 def spacy_similarity(str1, str2):
@@ -25,7 +25,7 @@ def jaro_winkler_similarity(str1, str2):
 
 
 def combined_correctness(
-    sa, ca, debug=False, threshold_levenshtein=0.7, threshold_jaro=0.7, spacy_threshold=0.75
+    sa, ca, debug=False, threshold_levenshtein=0.6, threshold_jaro=0.6, spacy_threshold=0.6
 ):
     levenshtein_sim = levenshtein_similarity(sa, ca)
     jaro_winkler_sim = jaro_winkler_similarity(sa, ca)
@@ -39,5 +39,5 @@ def combined_correctness(
     return (
         levenshtein_sim > threshold_levenshtein
         or jaro_winkler_sim > threshold_jaro
-        or spacy_sim > spacy_threshold
+        and spacy_sim > spacy_threshold
     )

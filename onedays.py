@@ -660,6 +660,7 @@ def oneday_main():
                     score += wrong_percent
             else:
                 window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light gray")
+                window[f"correct_override_{i}"].update(disabled=False)
 
             if values[f"money_check_{i}"]:
                 num_of_money_questions_left -= 1
@@ -670,7 +671,6 @@ def oneday_main():
             window[f"answer_submission_{i}"].update(disabled=True)
             window[f"submit_answer_button_{i}"].update(disabled=True)
             window[f"money_check_{i}"].update(disabled=True)
-            window[f"correct_override_{i}"].update(disabled=False)
 
             submitted_answers[question_object["question_num"]] = {
                 "correct_answer": answer,
