@@ -5,13 +5,13 @@ Download the LearnedLeague.dmg file below.
 
 ## Installation
 
-Double Click the newly downloaded dmg file to open it and then drag the Learned League application to the Applications folder. This will install it to your computer.
+Double Click the newly downloaded dmg file to open it, **Right click** the Installation Package and select Open (LearnedLeague.pkg). This will install it to your computer.
 
 The first time you open the application you need to Right Click on it in the applications folder, and select Open. After that you can open it normally.
 
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v2.1.5] - 2023-07-20
+### [v2.1.6] - 2023-07-20
 
-Fixed a bug when searching for oneday trivia and there are no results
+updated changelog for better installation instructions
