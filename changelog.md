@@ -12,6 +12,6 @@ The first time you open the application you need to Right Click on it in the app
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v2.0.3] - 2023-07-18
+### [v2.1.0] - 2023-07-18
 
-Improved answer checking and percentile information when completing a oneday
+Changed formatting of onedays to display all questions at the same time, so users can view and jump around.

@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup as bs
 from random import choice
 from pprint import pprint
 from answer_correctness import combined_correctness
+from PyDictionary import PyDictionary
 
 BASE_URL = "https://www.learnedleague.com"
 WD = os.getcwd()
@@ -32,6 +33,21 @@ def get_full_list_of_onedays():
         if datetime.datetime.strptime(data[key]["date"], "%b %d, %Y") >= datetime.datetime.now():
             del data[key]
 
+    for key in list(data.keys()):
+        if any(
+            [
+                val in key
+                for val in [
+                    "Just Audio",
+                    "Just Images",
+                    "Just Memes",
+                    "Just GIFs",
+                    "Just Fuzzy Images",
+                ]
+            ]
+        ):
+            del data[key]
+
     return data
 
 
@@ -48,7 +64,6 @@ def get_specific_oneday(data, onedaykey):
 
 def get_oneday_data(oneday):
     page = bs(requests.get(oneday["url"]).content, "lxml")
-
     try:
         metrics_page = bs(
             requests.get(BASE_URL + page.find("ul", {"id": "profilestabs"}).a.get("href")).content,
@@ -56,7 +71,6 @@ def get_oneday_data(oneday):
         )
     except:
         metrics_page = None
-
     try:
         questions = [
             ". ".join(q.text.split(".")[1:]).strip()
@@ -64,14 +78,12 @@ def get_oneday_data(oneday):
         ]
     except:
         return None
-
     answers = [
         a.text.strip().split("\n")[-1]
         for a in page.find("div", {"id": "qs_close", "class": "qdivshow_wide"}).find_all(
             "div", {"class": "answer3"}
         )
     ]
-
     if metrics_page:
         question_metrics = [
             int(m.text.strip().split()[1])
@@ -79,7 +91,6 @@ def get_oneday_data(oneday):
             .find("table", {"class": "tbl_q"})
             .find_all("tr")[1:]
         ]
-
         percentile_info = {
             int(
                 metrics_page.find("div", {"class": "pctile_container"})
@@ -103,10 +114,6 @@ def get_oneday_data(oneday):
             )
             != " "
         }
-
-    else:
-        question_metrics = [0] * len(questions)
-
     check_blurb = page.find("div", {"id": "blurb_close"})
     if check_blurb:
         blurb = re.sub("[\r\n]+", "\n", "".join(check_blurb.text.split("blurb")[1:]).strip())
@@ -125,7 +132,6 @@ def get_oneday_data(oneday):
             modkos_rating = "None"
     else:
         modkos_rating = "None"
-
     oneday["blurb"] = blurb
     oneday["difficulty_rating"] = modkos_rating.replace(",", "")
     oneday["overall_average"] = round(sum(question_metrics) / len(question_metrics), 2)
@@ -212,26 +218,17 @@ def oneday_main():
                     ],
                     [sg.HorizontalSeparator()],
                     [
-                        sg.Text(
-                            "CA%:",
-                            font=font,
-                            tooltip="Correct Answer Percentage (all players)",
-                        ),
-                        sg.Text(
-                            "Submit answer to see",
-                            key="question_percent_correct",
-                            font=("Arial Italic", 10),
-                            tooltip="Correct Answer Percentage (all players)",
-                        ),
+                        sg.Text("Pts Percentile:", font=("Arial Bold", 14)),
+                        sg.Text("90th:", font=("Arial", 14), pad=0),
+                        sg.Text("", key="90th_percent", font=("Arial Italic", 14), pad=0),
+                        sg.Text("50th:", font=("Arial", 14), pad=0),
+                        sg.Text("", key="50th_percent", font=("Arial Italic", 14), pad=0),
+                        sg.Text("10th:", font=("Arial", 14), pad=0),
+                        sg.Text("", key="10th_percent", font=("Arial Italic", 14), pad=0),
                     ],
                     [
-                        sg.Text("Points percentile:", font=("Arial Bold", 14), pad=0),
-                        sg.Text("90th:", font=("Arial Italic", 14), pad=0),
-                        sg.Text("", key="90th_percent", font=("Arial Italic", 14), pad=0),
-                        sg.Text("50th:", font=("Arial Italic", 14), pad=0),
-                        sg.Text("", key="50th_percent", font=("Arial Italic", 14), pad=0),
-                        sg.Text("10th:", font=("Arial Italic", 14), pad=0),
-                        sg.Text("", key="10th_percent", font=("Arial Italic", 14), pad=0),
+                        sg.Text("Money Questions Remaining: ", font=font),
+                        sg.Text(f"({5})", font=font, key="num_of_money_questions_left"),
                     ],
                 ],
             ),
@@ -258,101 +255,95 @@ def oneday_main():
             )
         ],
         [
-            sg.Frame(
-                "Question",
-                size=(300, 300),
+            sg.Column(
                 expand_x=True,
+                expand_y=True,
+                scrollable=True,
+                size=(975, 600),
+                vertical_scroll_only=True,
                 layout=[
                     [
-                        sg.Multiline(
-                            key="question",
-                            font=("Arial", 24),
-                            disabled=True,
-                            no_scrollbar=True,
+                        sg.Frame(
+                            f"Question {i}",
+                            size=(970, 300),
                             expand_x=True,
                             expand_y=True,
-                            enable_events=True,
-                            right_click_menu=["&Right", ["!Lookup Selection"]],
-                        )
-                    ],
-                    [
-                        sg.Frame(
-                            "Answer",
-                            expand_x=True,
                             layout=[
                                 [
+                                    sg.Multiline(
+                                        key=f"question_{i}",
+                                        font=("Arial", 20),
+                                        disabled=True,
+                                        no_scrollbar=True,
+                                        expand_x=True,
+                                        expand_y=True,
+                                        enable_events=True,
+                                        auto_size_text=True,
+                                        right_click_menu=["&Right", ["!Lookup Selection"]],
+                                    )
+                                ],
+                                [
+                                    sg.Button(
+                                        "Show Answer",
+                                        key=f"show/hide_{i}",
+                                        size=(12, 1),
+                                        tooltip="Reveal the Answer - (s)",
+                                        mouseover_colors=("black", "white"),
+                                        disabled_button_color=("black", "gray"),
+                                    ),
                                     sg.Text(
-                                        key="answer",
+                                        key=f"answer_{i}",
                                         font=("Arial", 16),
                                         size=(10, 1),
                                         expand_x=True,
-                                    )
-                                ]
+                                    ),
+                                ],
+                                [
+                                    sg.Checkbox(
+                                        "Money Question",
+                                        key=f"money_check_{i}",
+                                        font=font,
+                                        tooltip="If correct - get points equal to % of people who got the question wrong",
+                                    ),
+                                ],
+                                [
+                                    sg.Text("Answer: ", font=("Arial", 16)),
+                                    sg.Input(
+                                        "",
+                                        key=f"answer_submission_{i}",
+                                        font=("Arial", 16),
+                                        expand_x=True,
+                                        use_readonly_for_disable=True,
+                                    ),
+                                    sg.Button(
+                                        "Submit Answer",
+                                        key=f"submit_answer_button_{i}",
+                                        disabled_button_color=("black", "gray"),
+                                        bind_return_key=True,
+                                    ),
+                                    sg.Text(expand_x=True),
+                                    sg.Checkbox(
+                                        "Ans Override",
+                                        key=f"correct_override_{i}",
+                                        disabled=True,
+                                        enable_events=True,
+                                    ),
+                                    sg.Text(
+                                        "CA%:",
+                                        font=font,
+                                        tooltip="Correct Answer Percentage (all players)",
+                                    ),
+                                    sg.Text(
+                                        "Submit answer to see",
+                                        key=f"question_percent_correct_{i}",
+                                        font=("Arial Italic", 10),
+                                        tooltip="Correct Answer Percentage (all players)",
+                                    ),
+                                ],
                             ],
                         )
-                    ],
-                    [
-                        sg.Checkbox(
-                            "Money Question",
-                            key="money_check",
-                            font=font,
-                            tooltip="If correct - get points equal to % of people who got the question wrong",
-                            pad=((5, 0), (5, 5)),
-                        ),
-                        sg.Text("(", font=font, pad=0),
-                        sg.Text(str(5), font=font, key="num_of_money_questions_left", pad=0),
-                        sg.Text(")", font=font, pad=0),
-                        sg.Button(
-                            "Show Answer",
-                            key="show/hide",
-                            size=(12, 1),
-                            tooltip="Reveal the Answer - (s)",
-                            mouseover_colors=("black", "white"),
-                            disabled_button_color=("black", "gray"),
-                        ),
-                        sg.Text("", expand_x=True),
-                        sg.Combo(
-                            values=[],
-                            default_value="1",
-                            key="dropdown",
-                            size=(3, 1),
-                            font=("Arial", 16),
-                            readonly=True,
-                            enable_events=True,
-                        ),
-                        sg.Button(
-                            "Previous",
-                            key="previous",
-                            disabled=True,
-                            mouseover_colors=("black", "white"),
-                            disabled_button_color=("black", "gray"),
-                        ),
-                        sg.Button(
-                            "Next",
-                            key="next",
-                            disabled=True,
-                            mouseover_colors=("black", "white"),
-                            disabled_button_color=("black", "gray"),
-                        ),
-                    ],
-                ],
-            )
-        ],
-        [
-            sg.Frame(
-                "Submission",
-                expand_x=True,
-                layout=[
-                    [
-                        sg.Text("Answer: ", font=("Arial", 16)),
-                        sg.Input("", key="answer_submission", font=("Arial", 16), expand_x=True),
-                        sg.Button(
-                            "Submit Answer",
-                            key="submit_answer_button",
-                            disabled_button_color=("black", "gray"),
-                            bind_return_key=True,
-                        ),
-                    ],
+                    ]
+                    for i in range(1, 13)
                 ],
             )
         ],
@@ -367,13 +358,13 @@ def oneday_main():
     window = sg.Window("OneDay Trivia", layout=layout, finalize=True, return_keyboard_events=True)
 
     window["oneday_selection"].update(values=search_onedays(list_of_onedays))
-    window.bind("<s>", "show_key")
-    window.bind("<n>", "next_key")
-    window.bind("<p>", "previous_key")
-    window.bind("<m>", "money_key")
-    window["question"].bind("<ButtonPress-2>", "press")
-    window["question"].bind("<ButtonPress-1>", "click_here")
-    window["answer_submission"].bind("<Return>", "answer_sub_enter_button")
+
+    [window[f"question_{i}"].bind("<ButtonPress-2>", "press") for i in range(1, 13)]
+    [window[f"question_{i}"].bind("<ButtonPress-1>", "click_here") for i in range(1, 13)]
+    [
+        window[f"answer_submission_{i}"].bind("<Return>", f"_submit_answer_button_{i}")
+        for i in range(1, 13)
+    ]
 
     filtered_results = search_onedays(list_of_onedays)
     oneday = get_oneday_data(get_specific_oneday(list_of_onedays, choice(filtered_results)))
@@ -384,24 +375,30 @@ def oneday_main():
     i = 1
     score = 0
     num_of_money_questions_left = 5
-    question_object = data[i]
-    window["oneday_title"].update(value=oneday["title"])
-    window["difficulty"].update(value=oneday["difficulty_rating"])
-    window["percent_correct"].update(value=str(oneday["overall_average"]) + "%")
-    window["blurb_text"].update(value=oneday["blurb"])
-    window["oneday_date"].update(value=oneday["date"])
-    window["oneday_selection"].update(value=oneday["title"])
-    window["next"].update(disabled=False)
-    window["previous"].update(disabled=True)
-    window["question"].update(value=question_object["_question"])
-    window["90th_percent"].update(value=oneday["90th_percentile"])
-    window["50th_percent"].update(value=oneday["50th_percentile"])
-    window["10th_percent"].update(value=oneday["10th_percentile"])
-    window["answer"].update(value="*******")
-    window["dropdown"].update(value=1, values=[x for x in data.keys()])
-    window["score"].update(value=score)
-    window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
     submitted_answers = {}
+    for i in data.keys():
+        question_object = data[i]
+        window["oneday_title"].update(value=oneday["title"])
+        window["difficulty"].update(value=oneday["difficulty_rating"])
+        window["percent_correct"].update(value=str(oneday["overall_average"]) + "%")
+        window["blurb_text"].update(value=oneday["blurb"])
+        window["oneday_date"].update(value=oneday["date"])
+        window["oneday_selection"].update(value=oneday["title"])
+        window["90th_percent"].update(value=oneday["90th_percentile"])
+        window["50th_percent"].update(value=oneday["50th_percentile"])
+        window["10th_percent"].update(value=oneday["10th_percentile"])
+        window["score"].update(value=score)
+        window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
+
+        window[f"question_{i}"].update(value=question_object["_question"])
+        window[f"answer_{i}"].update(value="*******")
+        window[f"money_check_{i}"].update(disabled=False, value=False)
+        window[f"show/hide_{i}"].update(text="Show Answer", disabled=False)
+        window[f"answer_submission_{i}"].update(value="", disabled=False, background_color="white")
+        window[f"submit_answer_button_{i}"].update(disabled=False)
+        window[f"question_percent_correct_{i}"].update(
+            value="Submit answer to see", font=("Arial Italic", 10)
+        )
 
     while True:
         event, values = window.read()
@@ -414,19 +411,34 @@ def oneday_main():
         #     print(event, values)
 
         if "Escape" in event:
-            window["question"].set_focus()
+            window["question_1"].set_focus()
 
-        if event == "questionpress":
-            question_widget = window["question"].Widget
+        if "press" in event:
+            i = int(event.split("_")[-1].split("press")[0])
+
+            question_widget = window[f"question_{i}"].Widget
             selection_ranges = question_widget.tag_ranges(sg.tk.SEL)
             if selection_ranges:
-                window["question"].set_right_click_menu(["&Right", ["Lookup Selection"]])
+                window[f"question_{i}"].set_right_click_menu(["&Right", ["Lookup Selection"]])
                 selected_text = question_widget.get(*selection_ranges)
             else:
-                window["question"].set_right_click_menu(["&Right", ["!Lookup Selection"]])
+                window[f"question_{i}"].set_right_click_menu(["&Right", ["!Lookup Selection"]])
                 continue
 
         if event == "Lookup Selection":
+            if len(selected_text.split()):
+                # selected text is a single word, so just do a lookup
+                try:
+                    definition = PyDictionary().meaning(selected_text)
+
+                    result = "\n".join(
+                        [key + ": " + ", ".join(value) for key, value in definition.items()]
+                    )
+                    print(result)
+                    sg.popup_ok(result, title="Dictionary Result", font=("Arial", 16))
+                    continue
+                except:
+                    result = "No results available - Try another search."
             try:
                 result = wikipedia.summary(
                     selected_text, sentences=2, auto_suggest=True, redirect=True
@@ -435,14 +447,6 @@ def oneday_main():
                 result = "No results available - Try another search."
 
             sg.popup_ok(result, title="Wiki Summary", font=("Arial", 16))
-
-        if "money_key" in event:
-            if window.find_element_with_focus().Key in ("oneday_search", "answer_submission"):
-                continue
-            if window["money_check"].get():
-                window["money_check"].update(value=False)
-            else:
-                window["money_check"].update(value=True)
 
         if event == "show_hide_blurb":
             size = window["blurb_frame"].get_size()
@@ -456,33 +460,33 @@ def oneday_main():
         if event == "random_oneday":
             oneday = get_oneday_data(get_specific_oneday(list_of_onedays, choice(filtered_results)))
             data = oneday["data"]
-            i = 1
             score = 0
-            question_object = data[i]
-            window["oneday_title"].update(value=oneday["title"])
-            window["difficulty"].update(value=oneday["difficulty_rating"])
-            window["percent_correct"].update(value=str(oneday["overall_average"]) + "%")
-            window["blurb_text"].update(value=oneday["blurb"])
-            window["oneday_date"].update(value=oneday["date"])
-            window["oneday_selection"].update(value=oneday["title"])
-            window["next"].update(disabled=False)
-            window["previous"].update(disabled=True)
-            window["question"].update(value=question_object["_question"])
-            window["90th_percent"].update(value=oneday["90th_percentile"])
-            window["50th_percent"].update(value=oneday["50th_percentile"])
-            window["10th_percent"].update(value=oneday["10th_percentile"])
-            window["answer"].update(value="*******")
-            window["dropdown"].update(value=1, values=[x for x in data.keys()])
-            window["score"].update(value=score)
-            window["money_check"].update(disabled=False, value=False)
-            window["show/hide"].update(text="Show Answer", disabled=False)
-            window["answer_submission"].update(value="", disabled=False)
-            window["question_percent_correct"].update(
-                value="Submit answer to see", font=("Arial Italic", 10)
-            )
-            window["submit_answer_button"].update(disabled=False)
-            window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
             submitted_answers = {}
+            for i in data.keys():
+                question_object = data[i]
+                window["oneday_title"].update(value=oneday["title"])
+                window["difficulty"].update(value=oneday["difficulty_rating"])
+                window["percent_correct"].update(value=str(oneday["overall_average"]) + "%")
+                window["blurb_text"].update(value=oneday["blurb"])
+                window["oneday_date"].update(value=oneday["date"])
+                window["oneday_selection"].update(value=oneday["title"])
+                window["90th_percent"].update(value=oneday["90th_percentile"])
+                window["50th_percent"].update(value=oneday["50th_percentile"])
+                window["10th_percent"].update(value=oneday["10th_percentile"])
+                window["score"].update(value=score)
+                window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
+
+                window[f"question_{i}"].update(value=question_object["_question"])
+                window[f"answer_{i}"].update(value="*******")
+                window[f"money_check_{i}"].update(disabled=False, value=False)
+                window[f"show/hide_{i}"].update(text="Show Answer", disabled=False)
+                window[f"answer_submission_{i}"].update(
+                    value="", disabled=False, background_color="white"
+                )
+                window[f"submit_answer_button_{i}"].update(disabled=False)
+                window[f"question_percent_correct_{i}"].update(
+                    value="Submit answer to see", font=("Arial Italic", 10)
+                )
 
         if event == "oneday_filter_search":
             filtered_results = search_onedays(list_of_onedays, search_word=values["oneday_search"])
@@ -492,29 +496,32 @@ def oneday_main():
             data = oneday["data"]
             i = 1
             score = 0
-            question_object = data[i]
-            window["oneday_title"].update(value=oneday["title"])
-            window["difficulty"].update(value=oneday["difficulty_rating"])
-            window["percent_correct"].update(value=str(oneday["overall_average"]) + "%")
-            window["blurb_text"].update(value=oneday["blurb"])
-            window["question"].update(value=question_object["_question"])
-            window["90th_percent"].update(value=oneday["90th_percentile"])
-            window["50th_percent"].update(value=oneday["50th_percentile"])
-            window["10th_percent"].update(value=oneday["10th_percentile"])
-            window["answer"].update(value="*******")
-            window["dropdown"].update(value=1, values=[x for x in data.keys()])
-            window["next"].update(disabled=False)
-            window["previous"].update(disabled=True)
-            window["score"].update(value=score)
-            window["money_check"].update(disabled=False, value=False)
-            window["show/hide"].update(text="Show Answer", disabled=False)
-            window["answer_submission"].update(value="", disabled=False)
-            window["question_percent_correct"].update(
-                value="Submit answer to see", font=("Arial Italic", 10)
-            )
-            window["submit_answer_button"].update(disabled=False)
-            window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
             submitted_answers = {}
+            for i in data.keys():
+                question_object = data[i]
+                window["oneday_title"].update(value=oneday["title"])
+                window["difficulty"].update(value=oneday["difficulty_rating"])
+                window["percent_correct"].update(value=str(oneday["overall_average"]) + "%")
+                window["blurb_text"].update(value=oneday["blurb"])
+                window["oneday_date"].update(value=oneday["date"])
+                window["oneday_selection"].update(value=oneday["title"])
+                window["90th_percent"].update(value=oneday["90th_percentile"])
+                window["50th_percent"].update(value=oneday["50th_percentile"])
+                window["10th_percent"].update(value=oneday["10th_percentile"])
+                window["score"].update(value=score)
+                window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
+
+                window[f"question_{i}"].update(value=question_object["_question"])
+                window[f"answer_{i}"].update(value="*******")
+                window[f"money_check_{i}"].update(disabled=False, value=False)
+                window[f"show/hide_{i}"].update(text="Show Answer", disabled=False)
+                window[f"answer_submission_{i}"].update(
+                    value="", disabled=False, background_color="white"
+                )
+                window[f"submit_answer_button_{i}"].update(disabled=False)
+                window[f"question_percent_correct_{i}"].update(
+                    value="Submit answer to see", font=("Arial Italic", 10)
+                )
 
         if event == "oneday_selection":
             oneday = get_oneday_data(
@@ -523,44 +530,49 @@ def oneday_main():
             data = oneday["data"]
             i = 1
             score = 0
-            question_object = data[i]
-            window["oneday_title"].update(value=oneday["title"])
-            window["difficulty"].update(value=oneday["difficulty_rating"])
-            window["percent_correct"].update(value=str(oneday["overall_average"]) + "%")
-            window["blurb_text"].update(value=oneday["blurb"])
-            window["question"].update(value=question_object["_question"])
-            window["90th_percent"].update(value=oneday["90th_percentile"])
-            window["50th_percent"].update(value=oneday["50th_percentile"])
-            window["10th_percent"].update(value=oneday["10th_percentile"])
-            window["answer"].update(value="*******")
-            window["dropdown"].update(value=1, values=[x for x in data.keys()])
-            window["next"].update(disabled=False)
-            window["previous"].update(disabled=True)
-            window["score"].update(value=score)
-            window["money_check"].update(disabled=False, value=False)
-            window["show/hide"].update(text="Show Answer", disabled=False)
-            window["answer_submission"].update(value="", disabled=False)
-            window["question_percent_correct"].update(
-                value="Submit answer to see", font=("Arial Italic", 10)
-            )
-            window["submit_answer_button"].update(disabled=False)
-            window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
             submitted_answers = {}
+            for i in data.keys():
+                question_object = data[i]
+                window["oneday_title"].update(value=oneday["title"])
+                window["difficulty"].update(value=oneday["difficulty_rating"])
+                window["percent_correct"].update(value=str(oneday["overall_average"]) + "%")
+                window["blurb_text"].update(value=oneday["blurb"])
+                window["oneday_date"].update(value=oneday["date"])
+                window["oneday_selection"].update(value=oneday["title"])
+                window["90th_percent"].update(value=oneday["90th_percentile"])
+                window["50th_percent"].update(value=oneday["50th_percentile"])
+                window["10th_percent"].update(value=oneday["10th_percentile"])
+                window["score"].update(value=score)
+                window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
 
-        if event in ("show/hide", "show_key"):
+                window[f"question_{i}"].update(value=question_object["_question"])
+                window[f"answer_{i}"].update(value="*******")
+                window[f"money_check_{i}"].update(disabled=False, value=False)
+                window[f"show/hide_{i}"].update(text="Show Answer", disabled=False)
+                window[f"answer_submission_{i}"].update(
+                    value="", disabled=False, background_color="white"
+                )
+                window[f"submit_answer_button_{i}"].update(disabled=False)
+                window[f"question_percent_correct_{i}"].update(
+                    value="Submit answer to see", font=("Arial Italic", 10)
+                )
+
+        if "show/hide" in event:
             if window.find_element_with_focus().Key in ("oneday_search", "answer_submission"):
                 continue
 
+            i = int(event.split("_")[-1])
+            question_object = data[i]
             answer = question_object["answer"]
 
-            if not values["answer_submission"]:
+            if not values[f"answer_submission_{i}"]:
                 confirm, _ = sg.Window(
                     "Confirm",
                     element_justification="c",
                     layout=[
-                        [sg.T("You have not submitted an answer.", font=("Arial", 14))],
+                        [sg.Text("You have not submitted an answer.", font=("Arial", 14))],
                         [
-                            sg.T(
+                            sg.Text(
                                 "Do you want to continue? (and forfeit your guess)",
                                 font=("Arial", 14),
                             )
@@ -574,102 +586,61 @@ def oneday_main():
                 ).read(close=True)
 
             if confirm == "Yes":
-                window["answer_submission"].update(disabled=True)
-                window["submit_answer_button"].update(disabled=True)
-            else:
-                continue
-
-            if window["show/hide"].get_text() == "Show Answer":
-                try:
-                    window["show/hide"].update(text="Hide Answer")
-
-                    window["answer"].update(value=answer, font=("Arial", 16))
-                except:
-                    continue
-
-            elif window["show/hide"].get_text() == "Hide Answer":
-                window["show/hide"].update(text="Show Answer")
-                try:
-                    if answer:
-                        window["answer"].update(value="*******")
-                    else:
-                        window["answer"].update(value="")
-                except:
-                    continue
-
-        if event in ["next", "previous", "dropdown", "next_key", "previous_key"]:
-            if window.find_element_with_focus().Key in ("oneday_search", "answer_submission"):
-                continue
-
-            if event in ("next", "next_key"):
-                if event == "next_key" and i == len(data.keys()):
-                    continue
-                i += 1
-
-            elif event in ("previous", "previous_key"):
-                if event == "previous_key" and i == 1:
-                    continue
-                i -= 1
-
-            elif event == "dropdown":
-                i = values["dropdown"]
-
-            question_object = data[i]
-
-            window["question"].update(value=question_object["_question"])
-            window["answer"].update(value="*******")
-            window["dropdown"].update(value=i)
-            window["show/hide"].update(text="Show Answer")
-            window["answer_submission"].update(value="")
-            window["question_percent_correct"].update(
-                value="Submit answer to see", font=("Arial Italic", 10)
-            )
-            window["answer_submission"].update(disabled=False)
-            window["answer_submission"].bind("<Return>", "answer_sub_enter_button")
-            window["submit_answer_button"].update(disabled=False)
-
-            if not question_object:
-                if event in ("next", "next_key"):
-                    i -= 1
-                elif event in ("previous", "previous_key"):
-                    i += 1
-                elif event == "dropdown":
-                    i = values["dropdown"]
-                continue
-
-            if i == len(data.keys()):
-                window["next"].update(disabled=True)
-            else:
-                window["next"].update(disabled=False)
-            if i == 1:
-                window["previous"].update(disabled=True)
-            else:
-                window["previous"].update(disabled=False)
-
-            if submitted_answers.get(str(i)):
-                prev_answer = submitted_answers.get(str(i))
-                window["answer"].update(value=prev_answer.get("correct_answer"))
-                window["answer_submission"].update(disabled=True)
-                window["submit_answer_button"].update(disabled=True)
-                window["money_check"].update(disabled=True, value=prev_answer.get("money_question"))
-                window["question_percent_correct"].update(
+                window[f"answer_submission_{i}"].update(disabled=True)
+                window[f"submit_answer_button_{i}"].update(disabled=True)
+                window[f"money_check_{i}"].update(disabled=True)
+                window[f"show/hide_{i}"].update(visible=False)
+                window[f"question_percent_correct_{i}"].update(
                     value=question_object["percent"], font=font
                 )
-                window["show/hide"].update(text="Hide Answer", disabled=True)
             else:
-                if int(window["num_of_money_questions_left"].get()) == 0:
-                    window["money_check"].update(disabled=True, value=False)
-                else:
-                    window["money_check"].update(disabled=False, value=False)
-
-        if event in ("submit_answer_button", "answer_submissionanswer_sub_enter_button"):
-            if not values["answer_submission"]:
                 continue
-            submitted_answer = values["answer_submission"].lower()
+
+            if window[f"show/hide_{i}"].get_text() == "Show Answer":
+                try:
+                    window[f"show/hide_{i}"].update(text="Hide Answer")
+
+                    window[f"answer_{i}"].update(value=answer, font=("Arial", 16))
+                except:
+                    continue
+
+            elif window[f"show/hide_{i}"].get_text() == "Hide Answer":
+                window[f"show/hide_{i}"].update(text="Show Answer")
+                try:
+                    if answer:
+                        window[f"answer_{i}"].update(value="*******")
+                    else:
+                        window[f"answer_{i}"].update(value="")
+                except:
+                    continue
+
+        if "correct_override" in event:
+            i = int(event.split("_")[-1])
+
+            window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light green")
+            score += 15
+
+            if values[f"money_check_{i}"]:
+                wrong_percent = 100 - question_object["percent"]
+                score += wrong_percent
+
+            window["score"].update(value=score)
+            window[f"correct_override_{i}"].update(disabled=True)
+
+        if "submit_answer_button" in event:
+            i = int(event.split("_")[-1])
+            question_object = data[i]
+
+            if not values[f"answer_submission_{i}"]:
+                continue
+
+            submitted_answer = values[f"answer_submission_{i}"].lower()
             answer = question_object["answer"]
-            window["answer"].update(value=answer, font=("Arial", 16))
-            window["show/hide"].update(text="Hide Answer")
-            window["question_percent_correct"].update(value=question_object["percent"], font=font)
+            window[f"answer_{i}"].update(value=answer, font=("Arial", 16))
+            window[f"show/hide_{i}"].update(visible=False)
+            window[f"question_percent_correct_{i}"].update(
+                value=question_object["percent"], font=font
+            )
 
             answers = re.findall("([^\/,()]+)", answer)
             if len(answers) > 1:
@@ -681,31 +652,37 @@ def oneday_main():
                 correct = [combined_correctness(submitted_answer, answer.strip())]
 
             if any(correct):
+                window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light green")
                 score += 15
 
-                if values["money_check"]:
+                if values[f"money_check_{i}"]:
                     wrong_percent = 100 - question_object["percent"]
                     score += wrong_percent
+            else:
+                window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light gray")
+                window[f"correct_override_{i}"].update(disabled=False)
 
-            if values["money_check"]:
+            if values[f"money_check_{i}"]:
                 num_of_money_questions_left -= 1
                 window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
 
-            if values["money_check"] == 0:
-                window["money_check"].update(disabled=True, value=False)
-
-            window["money_check"].update(disabled=True, value=False)
             window["score"].update(value=score)
-            window["submit_answer_button"].update(disabled=True)
-            window["answer_submission"].unbind("<Return>")
+            window[f"answer_submission_{i}"].unbind("<Return>")
+            window[f"answer_submission_{i}"].update(disabled=True)
+            window[f"submit_answer_button_{i}"].update(disabled=True)
+            window[f"money_check_{i}"].update(disabled=True)
+
             submitted_answers[question_object["question_num"]] = {
                 "correct_answer": answer,
                 "submitted_answer": submitted_answer,
-                "money_question": values["money_check"],
+                "money_question": values[f"money_check_{i}"],
                 "correct": any(correct),
             }
             pprint(submitted_answers)
-            window["question"].set_focus()
+            window[f"question_{i}"].set_focus()
+
+            if num_of_money_questions_left == 0:
+                [window[f"money_check_{i}"].update(disabled=True) for i in range(1, 13)]
 
         if len(submitted_answers) == 12:
             percentile_info = oneday["all_percentile"]
@@ -714,6 +691,7 @@ def oneday_main():
                     min(list(percentile_info.values()), key=lambda x: abs(int(x) - score))
                 )
             ]
+            close_popup = True
             if not close_popup:
                 close_popup = sg.popup_ok(
                     f"Final Score: {score} pts\nFinal percentile: {final_percentile}%",
