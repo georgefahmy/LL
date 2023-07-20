@@ -29,6 +29,7 @@ OPTIONS = {
         "levenshtein",
         "spacy",
         "numpy",
+        "Pillow",
     ],
     "packages": [
         "wikipedia",

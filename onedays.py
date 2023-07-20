@@ -593,6 +593,12 @@ def oneday_main():
                 window[f"question_percent_correct_{i}"].update(
                     value=question_object["percent"], font=font
                 )
+                submitted_answers[question_object["question_num"]] = {
+                    "correct_answer": answer,
+                    "submitted_answer": "NONE",
+                    "money_question": False,
+                    "correct": False,
+                }
             else:
                 continue
 
@@ -616,16 +622,25 @@ def oneday_main():
 
         if "correct_override" in event:
             i = int(event.split("_")[-1])
+            question_object = data[i]
+            submitted_answer = submitted_answers[question_object["question_num"]]
+            if submitted_answer["correct"]:
+                score -= 15
+                if submitted_answer["money_question"]:
+                    wrong_percent = 100 - question_object["percent"]
+                    score -= wrong_percent
+                submitted_answers[question_object["question_num"]]["correct"] = False
+                window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light gray")
+            else:
+                window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light green")
+                score += 15
 
-            window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light green")
-            score += 15
-
-            if values[f"money_check_{i}"]:
-                wrong_percent = 100 - question_object["percent"]
-                score += wrong_percent
+                if values[f"money_check_{i}"]:
+                    wrong_percent = 100 - question_object["percent"]
+                    score += wrong_percent
+                submitted_answers[question_object["question_num"]]["correct"] = True
 
             window["score"].update(value=score)
-            window[f"correct_override_{i}"].update(disabled=True)
 
         if "submit_answer_button" in event:
             i = int(event.split("_")[-1])
@@ -660,7 +675,6 @@ def oneday_main():
                     score += wrong_percent
             else:
                 window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light gray")
-                window[f"correct_override_{i}"].update(disabled=False)
 
             if values[f"money_check_{i}"]:
                 num_of_money_questions_left -= 1
@@ -671,6 +685,7 @@ def oneday_main():
             window[f"answer_submission_{i}"].update(disabled=True)
             window[f"submit_answer_button_{i}"].update(disabled=True)
             window[f"money_check_{i}"].update(disabled=True)
+            window[f"correct_override_{i}"].update(disabled=False)
 
             submitted_answers[question_object["question_num"]] = {
                 "correct_answer": answer,
@@ -684,16 +699,15 @@ def oneday_main():
             if num_of_money_questions_left == 0:
                 [window[f"money_check_{i}"].update(disabled=True) for i in range(1, 13)]
 
-        if len(submitted_answers) == 12:
-            percentile_info = oneday["all_percentile"]
-            final_percentile = list(percentile_info.keys())[
-                list(percentile_info.values()).index(
-                    min(list(percentile_info.values()), key=lambda x: abs(int(x) - score))
-                )
-            ]
-            close_popup = True
-            if not close_popup:
-                close_popup = sg.popup_ok(
+            if len(submitted_answers) == 12:
+                percentile_info = oneday["all_percentile"]
+                final_percentile = list(percentile_info.keys())[
+                    list(percentile_info.values()).index(
+                        min(list(percentile_info.values()), key=lambda x: abs(int(x) - score))
+                    )
+                ]
+
+                sg.popup_ok(
                     f"Final Score: {score} pts\nFinal percentile: {final_percentile}%",
                     title="Final Score",
                     font=font,
