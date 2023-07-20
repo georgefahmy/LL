@@ -184,7 +184,7 @@ def update_question(questions, window, i):
     window["question_category"].update(value=question_object["category"])
     window["defense"].update(value=question_object["defense"])
     window["answer"].update(value="******")
-    window["show/hide"].update(text="Show Answer")
+    window["show/hide"].update(text="Show Answer (s)")
     window["next"].update(disabled=False)
     window["dropdown"].update(value=i)
     window["date"].update(value=question_object["date"])
@@ -391,21 +391,21 @@ while True:
 
     # display or hide the answer for the currently displayed question
     if event in ("show/hide", "show_key"):
-        if window.find_element_with_focus().Key in ("search_criteria", "answer_submission"):
+        if window.find_element_with_focus() and window.find_element_with_focus().Key in ("search_criteria", "answer_submission"):
             continue
 
         answer = question_object["answer"]
 
-        if window["show/hide"].get_text() == "Show Answer":
+        if window["show/hide"].get_text() == "Show Answer (s)":
             try:
-                window["show/hide"].update(text="Hide Answer")
+                window["show/hide"].update(text="Hide Answer (s)")
 
                 window["answer"].update(value=answer, font=("Arial", 16))
             except:
                 continue
 
-        elif window["show/hide"].get_text() == "Hide Answer":
-            window["show/hide"].update(text="Show Answer")
+        elif window["show/hide"].get_text() == "Hide Answer (s)":
+            window["show/hide"].update(text="Show Answer (s)")
             try:
                 if answer:
                     window["answer"].update(value="******")
@@ -417,7 +417,7 @@ while True:
     # if the next or previous or a specific question is selected, display that question and its information
     # and hide the answer.
     if event in ["next", "previous", "dropdown", "next_key", "previous_key"]:
-        if window.find_element_with_focus().Key in ("search_criteria", "answer_submission"):
+        if window.find_element_with_focus() and window.find_element_with_focus().Key in ("search_criteria", "answer_submission"):
             continue
 
         if event in ("next", "next_key"):

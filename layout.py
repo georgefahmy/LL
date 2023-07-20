@@ -248,9 +248,9 @@ layout = [
                 ],
                 [
                     sg.Button(
-                        "Show Answer",
+                        "Show Answer (s)",
                         key="show/hide",
-                        size=(12, 1),
+                        size=(14, 1),
                         font=("Arial", 12),
                         tooltip="Reveal the Answer - (s)",
                     ),
