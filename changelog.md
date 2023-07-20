@@ -12,6 +12,6 @@ The first time you open the application you need to Right Click on it in the app
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v2.1.3] - 2023-07-20
+### [v2.1.4] - 2023-07-20
 
-removed tooltip from dropdown box because of erroneous scrolling bug
+Updated Color Theme to be less boring

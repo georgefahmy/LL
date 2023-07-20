@@ -1,5 +1,6 @@
 import PySimpleGUI as sg
 
+sg.theme("Reddit")
 layout = [
     [
         sg.Column(

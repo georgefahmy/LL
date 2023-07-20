@@ -267,6 +267,7 @@ if len(missing_seasons) > 0:
 
 
 icon_file = WD + "/resources/ll_app_logo.png"
+sg.theme("Reddit")
 sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
 window = sg.Window(
     "Learned League Practice Tool",

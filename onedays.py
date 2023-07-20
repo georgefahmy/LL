@@ -153,6 +153,8 @@ def get_oneday_data(oneday):
 
 def oneday_main():
     font = "Arial", 16
+    sg.theme("Reddit")
+    background_color = "LightSteelBlue3"
     layout = [
         [
             sg.Frame(
@@ -267,6 +269,7 @@ def oneday_main():
                             size=(970, 300),
                             expand_x=True,
                             expand_y=True,
+                            background_color=background_color,
                             layout=[
                                 [
                                     sg.Multiline(
@@ -294,6 +297,7 @@ def oneday_main():
                                         font=("Arial", 16),
                                         size=(10, 1),
                                         expand_x=True,
+                                        background_color=background_color,
                                     ),
                                 ],
                                 [
@@ -301,11 +305,16 @@ def oneday_main():
                                         "Money Question",
                                         key=f"money_check_{i}",
                                         font=font,
+                                        background_color=background_color,
                                         tooltip="If correct - get points equal to % of people who got the question wrong",
                                     ),
                                 ],
                                 [
-                                    sg.Text("Answer: ", font=("Arial", 16)),
+                                    sg.Text(
+                                        "Answer: ",
+                                        font=("Arial", 16),
+                                        background_color=background_color,
+                                    ),
                                     sg.Input(
                                         "",
                                         key=f"answer_submission_{i}",
@@ -319,23 +328,26 @@ def oneday_main():
                                         disabled_button_color=("black", "gray"),
                                         bind_return_key=True,
                                     ),
-                                    sg.Text(expand_x=True),
+                                    sg.Text(expand_x=True, background_color=background_color),
                                     sg.Checkbox(
                                         "Ans Override",
                                         key=f"correct_override_{i}",
                                         disabled=True,
+                                        background_color=background_color,
                                         enable_events=True,
                                     ),
                                     sg.Text(
                                         "CA%:",
                                         font=font,
                                         tooltip="Correct Answer Percentage (all players)",
+                                        background_color=background_color,
                                     ),
                                     sg.Text(
                                         "Submit answer to see",
                                         key=f"question_percent_correct_{i}",
                                         font=("Arial Italic", 10),
                                         tooltip="Correct Answer Percentage (all players)",
+                                        background_color=background_color,
                                     ),
                                 ],
                             ],
