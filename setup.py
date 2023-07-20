@@ -28,6 +28,7 @@ OPTIONS = {
         "PySimpleGUI",
         "beautifulsoup4",
         "levenshtein",
+        "spacy",
     ],
     "packages": [
         "wikipedia",

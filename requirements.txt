@@ -16,4 +16,5 @@ py2app==0.28.6
 Levenshtein==0.21.1
 lxml==4.9.3
 PyDictionary==2.0.1
+spacy==3.6.0
 goslate==1.5.4

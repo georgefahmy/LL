@@ -34,7 +34,18 @@ def get_full_list_of_onedays():
             del data[key]
 
     for key in list(data.keys()):
-        if any([val in key for val in ["Just Audio", "Just Images", "Just Memes", "Just GIFs", "Just Fuzzy Images"]]):
+        if any(
+            [
+                val in key
+                for val in [
+                    "Just Audio",
+                    "Just Images",
+                    "Just Memes",
+                    "Just GIFs",
+                    "Just Fuzzy Images",
+                ]
+            ]
+        ):
             del data[key]
 
     return data
@@ -217,7 +228,7 @@ def oneday_main():
                     ],
                     [
                         sg.Text("Money Questions Remaining: ", font=font),
-                        sg.Text(f"({5})", font=font, key="num_of_money_questions_left")
+                        sg.Text(f"({5})", font=font, key="num_of_money_questions_left"),
                     ],
                 ],
             ),
@@ -247,14 +258,14 @@ def oneday_main():
             sg.Column(
                 expand_x=True,
                 expand_y=True,
-                scrollable = True,
-                size=(975,600),
-                vertical_scroll_only = True,
+                scrollable=True,
+                size=(975, 600),
+                vertical_scroll_only=True,
                 layout=[
                     [
                         sg.Frame(
                             f"Question {i}",
-                            size=(970,300),
+                            size=(970, 300),
                             expand_x=True,
                             expand_y=True,
                             layout=[
@@ -285,7 +296,7 @@ def oneday_main():
                                         font=("Arial", 16),
                                         size=(10, 1),
                                         expand_x=True,
-                                    )
+                                    ),
                                 ],
                                 [
                                     sg.Checkbox(
@@ -302,8 +313,7 @@ def oneday_main():
                                         key=f"answer_submission_{i}",
                                         font=("Arial", 16),
                                         expand_x=True,
-                                        disabled_readonly_background_color="light gray",
-                                        disabled_readonly_text_color="black"
+                                        use_readonly_for_disable=True,
                                     ),
                                     sg.Button(
                                         "Submit Answer",
@@ -312,6 +322,12 @@ def oneday_main():
                                         bind_return_key=True,
                                     ),
                                     sg.Text(expand_x=True),
+                                    sg.Checkbox(
+                                        "Ans Override",
+                                        key=f"correct_override_{i}",
+                                        disabled=True,
+                                        enable_events=True,
+                                    ),
                                     sg.Text(
                                         "CA%:",
                                         font=font,
@@ -327,8 +343,8 @@ def oneday_main():
                             ],
                         )
                     ]
-                    for i in range(1,13)
-                ]
+                    for i in range(1, 13)
+                ],
             )
         ],
     ]
@@ -345,7 +361,10 @@ def oneday_main():
 
     [window[f"question_{i}"].bind("<ButtonPress-2>", "press") for i in range(1, 13)]
     [window[f"question_{i}"].bind("<ButtonPress-1>", "click_here") for i in range(1, 13)]
-    [window[f"answer_submission_{i}"].bind("<Return>", f"_submit_answer_button_{i}") for i in range(1,13)]
+    [
+        window[f"answer_submission_{i}"].bind("<Return>", f"_submit_answer_button_{i}")
+        for i in range(1, 13)
+    ]
 
     filtered_results = search_onedays(list_of_onedays)
     oneday = get_oneday_data(get_specific_oneday(list_of_onedays, choice(filtered_results)))
@@ -375,7 +394,7 @@ def oneday_main():
         window[f"answer_{i}"].update(value="*******")
         window[f"money_check_{i}"].update(disabled=False, value=False)
         window[f"show/hide_{i}"].update(text="Show Answer", disabled=False)
-        window[f"answer_submission_{i}"].update(value="", disabled=False)
+        window[f"answer_submission_{i}"].update(value="", disabled=False, background_color="white")
         window[f"submit_answer_button_{i}"].update(disabled=False)
         window[f"question_percent_correct_{i}"].update(
             value="Submit answer to see", font=("Arial Italic", 10)
@@ -412,7 +431,9 @@ def oneday_main():
                 try:
                     definition = PyDictionary().meaning(selected_text)
 
-                    result = "\n".join([key + ": " + ", ".join(value) for key, value in definition.items()])
+                    result = "\n".join(
+                        [key + ": " + ", ".join(value) for key, value in definition.items()]
+                    )
                     print(result)
                     sg.popup_ok(result, title="Dictionary Result", font=("Arial", 16))
                     continue
@@ -459,12 +480,13 @@ def oneday_main():
                 window[f"answer_{i}"].update(value="*******")
                 window[f"money_check_{i}"].update(disabled=False, value=False)
                 window[f"show/hide_{i}"].update(text="Show Answer", disabled=False)
-                window[f"answer_submission_{i}"].update(value="", disabled=False)
+                window[f"answer_submission_{i}"].update(
+                    value="", disabled=False, background_color="white"
+                )
                 window[f"submit_answer_button_{i}"].update(disabled=False)
                 window[f"question_percent_correct_{i}"].update(
                     value="Submit answer to see", font=("Arial Italic", 10)
                 )
-
 
         if event == "oneday_filter_search":
             filtered_results = search_onedays(list_of_onedays, search_word=values["oneday_search"])
@@ -493,7 +515,9 @@ def oneday_main():
                 window[f"answer_{i}"].update(value="*******")
                 window[f"money_check_{i}"].update(disabled=False, value=False)
                 window[f"show/hide_{i}"].update(text="Show Answer", disabled=False)
-                window[f"answer_submission_{i}"].update(value="", disabled=False)
+                window[f"answer_submission_{i}"].update(
+                    value="", disabled=False, background_color="white"
+                )
                 window[f"submit_answer_button_{i}"].update(disabled=False)
                 window[f"question_percent_correct_{i}"].update(
                     value="Submit answer to see", font=("Arial Italic", 10)
@@ -525,12 +549,13 @@ def oneday_main():
                 window[f"answer_{i}"].update(value="*******")
                 window[f"money_check_{i}"].update(disabled=False, value=False)
                 window[f"show/hide_{i}"].update(text="Show Answer", disabled=False)
-                window[f"answer_submission_{i}"].update(value="", disabled=False)
+                window[f"answer_submission_{i}"].update(
+                    value="", disabled=False, background_color="white"
+                )
                 window[f"submit_answer_button_{i}"].update(disabled=False)
                 window[f"question_percent_correct_{i}"].update(
                     value="Submit answer to see", font=("Arial Italic", 10)
                 )
-
 
         if "show/hide" in event:
             if window.find_element_with_focus().Key in ("oneday_search", "answer_submission"):
@@ -589,18 +614,33 @@ def oneday_main():
                 except:
                     continue
 
-        if "submit_answer_button" in event:
+        if "correct_override" in event:
+            i = int(event.split("_")[-1])
 
+            window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light green")
+            score += 15
+
+            if values[f"money_check_{i}"]:
+                wrong_percent = 100 - question_object["percent"]
+                score += wrong_percent
+
+            window["score"].update(value=score)
+            window[f"correct_override_{i}"].update(disabled=True)
+
+        if "submit_answer_button" in event:
             i = int(event.split("_")[-1])
             question_object = data[i]
 
             if not values[f"answer_submission_{i}"]:
                 continue
+
             submitted_answer = values[f"answer_submission_{i}"].lower()
             answer = question_object["answer"]
             window[f"answer_{i}"].update(value=answer, font=("Arial", 16))
             window[f"show/hide_{i}"].update(visible=False)
-            window[f"question_percent_correct_{i}"].update(value=question_object["percent"], font=font)
+            window[f"question_percent_correct_{i}"].update(
+                value=question_object["percent"], font=font
+            )
 
             answers = re.findall("([^\/,()]+)", answer)
             if len(answers) > 1:
@@ -611,24 +651,27 @@ def oneday_main():
             else:
                 correct = [combined_correctness(submitted_answer, answer.strip())]
 
-            if all(correct):
+            if any(correct):
+                window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light green")
                 score += 15
 
                 if values[f"money_check_{i}"]:
                     wrong_percent = 100 - question_object["percent"]
                     score += wrong_percent
+            else:
+                window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light gray")
 
             if values[f"money_check_{i}"]:
                 num_of_money_questions_left -= 1
                 window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
 
-
-
-            window[f"money_check_{i}"].update(disabled=True)
             window["score"].update(value=score)
+            window[f"answer_submission_{i}"].unbind("<Return>")
             window[f"answer_submission_{i}"].update(disabled=True)
             window[f"submit_answer_button_{i}"].update(disabled=True)
-            window[f"answer_submission_{i}"].unbind("<Return>")
+            window[f"money_check_{i}"].update(disabled=True)
+            window[f"correct_override_{i}"].update(disabled=False)
+
             submitted_answers[question_object["question_num"]] = {
                 "correct_answer": answer,
                 "submitted_answer": submitted_answer,
@@ -639,7 +682,7 @@ def oneday_main():
             window[f"question_{i}"].set_focus()
 
             if num_of_money_questions_left == 0:
-                [window[f"money_check_{i}"].update(disabled=True) for i in range(1,13)]
+                [window[f"money_check_{i}"].update(disabled=True) for i in range(1, 13)]
 
         if len(submitted_answers) == 12:
             percentile_info = oneday["all_percentile"]
