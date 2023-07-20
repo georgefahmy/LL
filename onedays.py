@@ -174,7 +174,6 @@ def oneday_main():
                             expand_x=True,
                             readonly=True,
                             enable_events=True,
-                            tooltip="Choose a OneDay to load",
                         ),
                     ],
                     [
@@ -278,7 +277,6 @@ def oneday_main():
                                         expand_x=True,
                                         expand_y=True,
                                         enable_events=True,
-                                        auto_size_text=True,
                                         right_click_menu=["&Right", ["!Lookup Selection"]],
                                     )
                                 ],
