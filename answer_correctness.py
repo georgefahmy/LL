@@ -7,12 +7,10 @@ nlp = spacy.load("en_core_web_md")
 
 def spacy_similarity(str1, str2):
     # Process the input sentences with spaCy
-    doc1 = nlp(str1)
-    doc2 = nlp(str2)
-
+    doc1 = nlp(str1.lower())
+    doc2 = nlp(str2.lower())
     # Calculate the similarity between the processed sentences
     similarity_score = doc1.similarity(doc2)
-
     return similarity_score
 
 
@@ -37,7 +35,5 @@ def combined_correctness(
             + f"Jaro Winkler similarity: {jaro_winkler_sim}, threshold: {threshold_jaro}"
         )
     return (
-        levenshtein_sim > threshold_levenshtein
-        or jaro_winkler_sim > threshold_jaro
-        and spacy_sim > spacy_threshold
-    )
+        levenshtein_sim > threshold_levenshtein or jaro_winkler_sim > threshold_jaro
+    ) or spacy_sim > spacy_threshold

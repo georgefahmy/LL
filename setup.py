@@ -23,20 +23,24 @@ DATA_FILES = [
     "onedays.py",
 ]
 OPTIONS = {
-    "excludes": ["numpy", "pandas", "matplotlib"],
     "includes": [
         "PySimpleGUI",
         "beautifulsoup4",
         "levenshtein",
         "spacy",
+        "numpy",
     ],
     "packages": [
         "wikipedia",
         "requests",
         "rapidfuzz",
+        "cymem",
+        "blis",
+        "preshed",
+        "en_core_web_md",
     ],
     "iconfile": "/Users/GFahmy/Documents/projects/LL/resources/ll_logo.icns",
-    "arch": "x86_64",
+    "arch": "universal2",
 }
 
 setup(
