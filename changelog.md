@@ -12,6 +12,6 @@ The first time you open the application you need to Right Click on it in the app
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v2.1.1] - 2023-07-18
+### [v2.1.2] - 2023-07-20
 
 minor fix

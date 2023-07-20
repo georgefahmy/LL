@@ -16,10 +16,8 @@ py2app==0.28.6
 Levenshtein==0.21.1
 lxml==4.9.3
 PyDictionary==2.0.1
-spacy==3.6.0
 rapidfuzz==3.1.1
-numpy==1.25.1
-./utilities/Pillow-10.0.0-cp311-cp311-macosx_11_0_universal2.whl
-en-core-web-md @ https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.6.0/en_core_web_md-3.6.0-py3-none-any.whl#sha256=1618fc62e7aedc2b778caa3ea6e9c8280beac3b83fe7b93316cbb9e8f3abe7c5
+./universal_wheels/Pillow-10.0.0-cp311-cp311-macosx_11_0_universal2.whl
+./universal_wheels/numpy-1.25.1-cp311-cp311-macosx_11_0_universal2.whl
 goslate==1.5.4
 

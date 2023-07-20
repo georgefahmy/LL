@@ -7,3 +7,4 @@ utilities/
 .DS_Store
 __pycache__/
 VERSION
+universal_wheels/
