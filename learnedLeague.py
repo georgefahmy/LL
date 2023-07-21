@@ -7,9 +7,11 @@ import base64
 import json
 import wikipedia
 import re
+import datetime
 
 from bs4 import BeautifulSoup as bs, SoupStrainer as ss
 from layout import layout
+from PyDictionary import PyDictionary
 from check_for_updates import check_for_update
 from random import choice
 from onedays import oneday_main
@@ -110,7 +112,7 @@ def get_new_data(season_number):
 
 
 def filter_questions(
-    all_questions_dict,
+    all_data,
     min_threshold,
     max_threshold,
     category_filter,
@@ -126,14 +128,14 @@ def filter_questions(
     if category_filter == "ALL":
         filtered_questions_dict = {
             question_ids: question
-            for question_ids, question in all_questions_dict.items()
+            for question_ids, question in all_data.items()
             if int(question["percent"]) >= min_threshold
             and int(question["percent"]) < max_threshold
         }
     else:
         filtered_questions_dict = {
             question_ids: question
-            for question_ids, question in all_questions_dict.items()
+            for question_ids, question in all_data.items()
             if int(question["percent"]) >= min_threshold
             and int(question["percent"]) < max_threshold
             and question["category"].upper() == category_filter.upper()
@@ -280,16 +282,14 @@ window = sg.Window(
     return_keyboard_events=True,
 )
 
-all_questions_dict = all_data
-
-categories = ["ALL"] + sorted(list(set([q["category"] for q in all_questions_dict.values()])))
-seasons = ["ALL"] + sorted(list(set([q["season"] for q in all_questions_dict.values()])))
+categories = ["ALL"] + sorted(list(set([q["category"] for q in all_data.values()])))
+seasons = ["ALL"] + sorted(list(set([q["season"] for q in all_data.values()])))
 
 # window["season_title"].update(value=seasons[0])
 window["category_selection"].update(values=categories, value="ALL")
 window["season"].update(values=seasons, value="ALL")
 
-questions = filter_questions(all_questions_dict, 0, 100, "ALL", "ALL")
+questions = filter_questions(all_data, 0, 100, "ALL", "ALL")
 window["dropdown"].update(values=list(questions.keys()))
 
 window.bind("<Command-s>", "show_key")
@@ -336,12 +336,32 @@ while True:
             continue
 
     if event == "Lookup Selection":
-        try:
-            result = wikipedia.summary(selected_text, sentences=2, auto_suggest=True, redirect=True)
-        except:
-            result = "No results available - Try another search."
+        if len(selected_text.split()) == 1:
+            # selected text is a single word, so just do a lookup
+            try:
+                definition = PyDictionary().meaning(selected_text)
 
-        sg.popup_ok(result, title="Wiki Summary", font=("Arial", 16))
+                result = (
+                    selected_text
+                    + "\n"
+                    + "\n".join(
+                        [key + ": " + ", ".join(value) for key, value in definition.items()]
+                    )
+                )
+                print(result)
+                sg.popup_ok(result, title="Dictionary Result", font=("Arial", 16))
+                continue
+            except:
+                result = "No results available - Try another search."
+        else:
+            try:
+                result = wikipedia.summary(
+                    selected_text, sentences=2, auto_suggest=True, redirect=True
+                )
+            except:
+                result = "No results available - Try another search."
+
+            sg.popup_ok(result, title="Wiki Summary", font=("Arial", 16))
 
     if event == "season":
         window.write_event_value("filter", "")
@@ -378,7 +398,7 @@ while True:
             window["max_%"].update(value=values["max_%"])
 
         questions = filter_questions(
-            all_questions_dict,
+            all_data,
             values["min_%"],
             values["max_%"],
             values["category_selection"],
@@ -510,6 +530,20 @@ while True:
         window[f"question"].set_focus()
         window["correct_override"].update(disabled=False)
 
+        # track answers in all_data.json
+        past_answers = question_object.get("answers") or []
+        data_code = "S" + question_object["season"] + question_object["question_num"]
+        answer_dict = {
+            "answer": submitted_answer,
+            "date": datetime.datetime.now().isoformat(),
+            "correct": right_answer,
+            "override": values["correct_override"],
+        }
+        past_answers.append(answer_dict)
+        all_data[data_code]["answers"] = past_answers
+        with open(WD + "/resources/all_data.json", "w+") as fp:
+            json.dump(all_data, fp, sort_keys=True, indent=4)
+
     if "correct_override" in event:
         if right_answer:
             right_answer = False
@@ -517,6 +551,19 @@ while True:
         else:
             right_answer = True
             window[f"answer_submission"].Widget.configure(readonlybackground="light green")
+
+        answer_dict = {
+            "answer": submitted_answer,
+            "date": datetime.datetime.now().isoformat(),
+            "correct": right_answer,
+            "override": values["correct_override"],
+        }
+        past_answers = question_object.get("answers")
+        del past_answers[-1]
+        past_answers.append(answer_dict)
+        all_data[data_code]["answers"] = past_answers
+        with open(WD + "/resources/all_data.json", "w+") as fp:
+            json.dump(all_data, fp, sort_keys=True, indent=4)
 
     if event == "onedays_button":
         window.hide()
