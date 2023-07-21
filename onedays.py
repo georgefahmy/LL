@@ -420,6 +420,8 @@ def oneday_main():
         window[f"answer_submission_{i}"].bind("<Return>", f"_submit_answer_button_{i}")
         for i in range(1, 13)
     ]
+    for i in range(1, 13):
+        window[f"correct_override_{i}"].TooltipObject.timeout = 300
 
     filtered_results = search_onedays(list_of_onedays)
     oneday = get_oneday_data(get_specific_oneday(list_of_onedays, choice(filtered_results)))
@@ -546,6 +548,7 @@ def oneday_main():
                 window[f"answer_submission_{i}"].update(
                     value="", disabled=False, background_color="white"
                 )
+                window[f"answer_submission_{i}"].bind("<Return>", f"_submit_answer_button_{i}")
                 window[f"submit_answer_button_{i}"].update(disabled=False)
                 window[f"question_percent_correct_{i}"].update(
                     value="Submit answer to see", font=("Arial Italic", 10)
@@ -594,6 +597,7 @@ def oneday_main():
                 window[f"answer_submission_{i}"].update(
                     value="", disabled=False, background_color="white"
                 )
+                window[f"answer_submission_{i}"].bind("<Return>", f"_submit_answer_button_{i}")
                 window[f"submit_answer_button_{i}"].update(disabled=False)
                 window[f"question_percent_correct_{i}"].update(
                     value="Submit answer to see", font=("Arial Italic", 10)
@@ -630,6 +634,7 @@ def oneday_main():
                 window[f"answer_submission_{i}"].update(
                     value="", disabled=False, background_color="white"
                 )
+                window[f"answer_submission_{i}"].bind("<Return>", f"_submit_answer_button_{i}")
                 window[f"submit_answer_button_{i}"].update(disabled=False)
                 window[f"question_percent_correct_{i}"].update(
                     value="Submit answer to see", font=("Arial Italic", 10)
