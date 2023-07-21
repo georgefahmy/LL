@@ -247,7 +247,7 @@ layout = [
                         key="show/hide",
                         size=(12, 1),
                         font=("Arial", 12),
-                        tooltip="Reveal the Answer - (s)",
+                        tooltip="Reveal the Answer - (cmd-s)",
                     ),
                     sg.Text(
                         key="answer",
@@ -268,7 +268,7 @@ layout = [
                         key="random_choice",
                         size=(9, 1),
                         font=("Arial", 12),
-                        tooltip="Pick a random question - (r)",
+                        tooltip="Pick a random question - (cmd-r)",
                     ),
                     sg.Combo(
                         values=[],
@@ -284,12 +284,14 @@ layout = [
                         key="previous",
                         disabled=True,
                         disabled_button_color=("black", "gray"),
+                        tooltip="Go to the previous question - (cmd-p)",
                     ),
                     sg.Button(
                         "Next",
                         key="next",
                         disabled=True,
                         disabled_button_color=("black", "gray"),
+                        tooltip="Go to the next question - (cmd-n)",
                     ),
                 ],
                 [

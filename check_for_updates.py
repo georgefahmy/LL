@@ -57,7 +57,6 @@ def get_sudo_password():
                 attempts += 1
 
             else:
-                sg.popup("Password accepted")
                 break
 
     window.close()

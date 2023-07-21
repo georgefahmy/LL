@@ -292,10 +292,10 @@ window["season"].update(values=seasons, value="ALL")
 questions = filter_questions(all_questions_dict, 0, 100, "ALL", "ALL")
 window["dropdown"].update(values=list(questions.keys()))
 
-window.bind("<s>", "show_key")
-window.bind("<r>", "random_key")
-window.bind("<n>", "next_key")
-window.bind("<p>", "previous_key")
+window.bind("<Command-s>", "show_key")
+window.bind("<Command-r>", "random_key")
+window.bind("<Command-n>", "next_key")
+window.bind("<Command-p>", "previous_key")
 window["question"].bind("<ButtonPress-2>", "press")
 window["question"].bind("<ButtonPress-1>", "click_here")
 window["answer_submission"].bind("<Return>", "_submit_answer_button")
@@ -318,7 +318,10 @@ while True:
         break
 
     if "Escape" in event:
-        if window.find_element_with_focus().Key == "search_criteria":
+        if (
+            window.find_element_with_focus()
+            and window.find_element_with_focus().Key == "search_criteria"
+        ):
             window["search_criteria"].update(value="")
             window["filter"].set_focus()
 
@@ -346,7 +349,10 @@ while True:
         answer = question_object.get("answer")
 
     if event in ("random_choice", "random_key"):
-        if window.find_element_with_focus().Key in ("search_criteria", "answer_submission"):
+        if window.find_element_with_focus() and window.find_element_with_focus().Key in (
+            "search_criteria",
+            "answer_submission",
+        ):
             continue
         i = choice(list(questions.keys()))
         question_object = update_question(questions, window, i)

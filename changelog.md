@@ -12,6 +12,6 @@ The first time you open the application you need to Right Click on it in the app
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v2.2.0] - 2023-07-21
+### [v2.2.1] - 2023-07-21
 
-Added an answer submission box to the main LearnedLeague app.
+Added Command key modifier to key bindings for S (Cmd-s: show answer), R (Cmd-r: random question), N (Cmd-n: next question), and P (Cmd-p: previous question)
