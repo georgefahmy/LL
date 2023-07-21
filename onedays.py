@@ -7,6 +7,7 @@ import base64
 import os
 import PySimpleGUI as sg
 import re
+import json
 
 from bs4 import BeautifulSoup as bs
 from random import choice
@@ -29,6 +30,7 @@ def get_full_list_of_onedays():
             requests.get(BASE_URL + "/oneday/onedaysalpha.php").content, "html.parser"
         ).find_all("tr")[1:-1]
     }
+
     for key in list(data.keys()):
         if datetime.datetime.strptime(data[key]["date"], "%b %d, %Y") >= datetime.datetime.now():
             del data[key]
@@ -63,6 +65,18 @@ def get_specific_oneday(data, onedaykey):
 
 
 def get_oneday_data(oneday):
+    if os.path.isfile(
+        os.path.expanduser("~") + f"/.LearnedLeague/onedays/{re.sub(' ','_', oneday['title'])}.json"
+    ):
+        print("file exists")
+        with open(
+            os.path.expanduser("~")
+            + f"/.LearnedLeague/onedays/{re.sub(' ','_', oneday['title'])}.json",
+            "r",
+        ) as fp:
+            oneday = json.load(fp)
+            return oneday
+
     page = bs(requests.get(oneday["url"]).content, "lxml")
     try:
         metrics_page = bs(
@@ -148,7 +162,7 @@ def get_oneday_data(oneday):
     oneday["number_of_players"] = number_of_players
     oneday_data = {}
     for j, question in enumerate(questions):
-        oneday_data[j + 1] = {
+        oneday_data[str(j + 1)] = {
             "_question": question,
             "answer": answers[j],
             "percent": question_metrics[j],
@@ -237,6 +251,12 @@ def oneday_main():
                     [
                         sg.Text("Your Current Score:", font=font),
                         sg.Text("", key="score", font=font),
+                        sg.Text(expand_x=True),
+                        sg.Button(
+                            "Reset Quiz",
+                            key="full_reset",
+                            tooltip="Click this button to fully reset the quiz erasing all answers.",
+                        ),
                     ],
                     [sg.HorizontalSeparator()],
                     [
@@ -281,7 +301,7 @@ def oneday_main():
                 expand_x=True,
                 expand_y=True,
                 scrollable=True,
-                size=(975, 600),
+                size=(975, 615),
                 vertical_scroll_only=True,
                 layout=[
                     [
@@ -387,7 +407,6 @@ def oneday_main():
 
     list_of_onedays = get_full_list_of_onedays()  # one time use? store this data in a json file?
     font = "Arial", 16
-    close_popup = False
 
     icon_file = WD + "/resources/ll_app_logo.png"
     sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
@@ -463,27 +482,32 @@ def oneday_main():
                 continue
 
         if event == "Lookup Selection":
-            if len(selected_text.split()):
+            if len(selected_text.split()) == 1:
                 # selected text is a single word, so just do a lookup
                 try:
                     definition = PyDictionary().meaning(selected_text)
 
-                    result = "\n".join(
-                        [key + ": " + ", ".join(value) for key, value in definition.items()]
+                    result = (
+                        selected_text
+                        + "\n"
+                        + "\n".join(
+                            [key + ": " + ", ".join(value) for key, value in definition.items()]
+                        )
                     )
                     print(result)
                     sg.popup_ok(result, title="Dictionary Result", font=("Arial", 16))
                     continue
                 except:
                     result = "No results available - Try another search."
-            try:
-                result = wikipedia.summary(
-                    selected_text, sentences=2, auto_suggest=True, redirect=True
-                )
-            except:
-                result = "No results available - Try another search."
+            else:
+                try:
+                    result = wikipedia.summary(
+                        selected_text, sentences=2, auto_suggest=True, redirect=True
+                    )
+                except:
+                    result = "No results available - Try another search."
 
-            sg.popup_ok(result, title="Wiki Summary", font=("Arial", 16))
+                sg.popup_ok(result, title="Wiki Summary", font=("Arial", 16))
 
         if event == "show_hide_blurb":
             size = window["blurb_frame"].get_size()
@@ -498,6 +522,7 @@ def oneday_main():
             oneday = get_oneday_data(get_specific_oneday(list_of_onedays, choice(filtered_results)))
             data = oneday["data"]
             score = 0
+            num_of_money_questions_left = 5
             submitted_answers = {}
             for i in data.keys():
                 question_object = data[i]
@@ -545,6 +570,7 @@ def oneday_main():
             data = oneday["data"]
             i = 1
             score = 0
+            num_of_money_questions_left = 5
             submitted_answers = {}
             for i in data.keys():
                 question_object = data[i]
@@ -573,13 +599,14 @@ def oneday_main():
                     value="Submit answer to see", font=("Arial Italic", 10)
                 )
 
-        if event == "oneday_selection":
+        if event in ("oneday_selection", "full_reset"):
             oneday = get_oneday_data(
                 get_specific_oneday(list_of_onedays, values["oneday_selection"])
             )
             data = oneday["data"]
             i = 1
             score = 0
+            num_of_money_questions_left = 5
             submitted_answers = {}
             for i in data.keys():
                 question_object = data[i]
@@ -651,6 +678,12 @@ def oneday_main():
                     "money_question": False,
                     "correct": False,
                 }
+                oneday["data"][question_object["question_num"]]["submitted_answer"] = {
+                    "submitted_answer": "NONE",
+                    "money_question": False,
+                    "correct": False,
+                    "override": False,
+                }
             else:
                 continue
 
@@ -673,7 +706,7 @@ def oneday_main():
                     continue
 
         if "correct_override" in event:
-            i = int(event.split("_")[-1])
+            i = event.split("_")[-1]
             question_object = data[i]
             submitted_answer = submitted_answers[question_object["question_num"]]
             if submitted_answer["correct"]:
@@ -682,6 +715,12 @@ def oneday_main():
                     wrong_percent = 100 - question_object["percent"]
                     score -= wrong_percent
                 submitted_answers[question_object["question_num"]]["correct"] = False
+                oneday["data"][question_object["question_num"]]["submitted_answer"][
+                    "correct"
+                ] = False
+                oneday["data"][question_object["question_num"]]["submitted_answer"][
+                    "override"
+                ] = values[f"correct_override_{i}"]
                 window[f"answer_submission_{i}"].Widget.configure(readonlybackground="red")
             else:
                 window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light green")
@@ -691,11 +730,33 @@ def oneday_main():
                     wrong_percent = 100 - question_object["percent"]
                     score += wrong_percent
                 submitted_answers[question_object["question_num"]]["correct"] = True
+                oneday["data"][question_object["question_num"]]["submitted_answer"][
+                    "correct"
+                ] = True
+                oneday["data"][question_object["question_num"]]["submitted_answer"][
+                    "override"
+                ] = values[f"correct_override_{i}"]
 
             window["score"].update(value=score)
+            if len(submitted_answers) == 12:
+                percentile_info = oneday["all_percentile"]
+                final_percentile = list(percentile_info.keys())[
+                    list(percentile_info.values()).index(
+                        min(list(percentile_info.values()), key=lambda x: abs(int(x) - score))
+                    )
+                ]
+                if not os.path.isdir(os.path.expanduser("~") + "/.LearnedLeague/onedays/"):
+                    os.mkdir(os.path.expanduser("~") + "/.LearnedLeague/onedays")
+
+                with open(
+                    os.path.expanduser("~")
+                    + f"/.LearnedLeague/onedays/{re.sub(' ','_', oneday['title'])}.json",
+                    "w",
+                ) as fp:
+                    json.dump(oneday, fp, sort_keys=True, indent=4)
 
         if "submit_answer_button" in event:
-            i = int(event.split("_")[-1])
+            i = event.split("_")[-1]
             question_object = data[i]
 
             if not values[f"answer_submission_{i}"]:
@@ -737,6 +798,7 @@ def oneday_main():
             window[f"submit_answer_button_{i}"].update(disabled=True)
             window[f"money_check_{i}"].update(disabled=True)
             window[f"correct_override_{i}"].update(disabled=False)
+            window[f"show/hide_{i}"].update(disabled=True)
 
             submitted_answers[question_object["question_num"]] = {
                 "correct_answer": answer,
@@ -744,7 +806,13 @@ def oneday_main():
                 "money_question": values[f"money_check_{i}"],
                 "correct": any(correct),
             }
-            pprint(submitted_answers)
+            oneday["data"][question_object["question_num"]]["submitted_answer"] = {
+                "submitted_answer": submitted_answer,
+                "money_question": values[f"money_check_{i}"],
+                "correct": any(correct),
+                "override": values[f"correct_override_{i}"],
+            }
+
             window[f"question_{i}"].set_focus()
 
             if num_of_money_questions_left == 0:
@@ -763,6 +831,17 @@ def oneday_main():
                     title="Final Score",
                     font=font,
                 )
+                oneday["submission_date"] = (datetime.datetime.now().isoformat(),)
+
+                if not os.path.isdir(os.path.expanduser("~") + "/.LearnedLeague/onedays/"):
+                    os.mkdir(os.path.expanduser("~") + "/.LearnedLeague/onedays/")
+
+                with open(
+                    os.path.expanduser("~")
+                    + f"/.LearnedLeague/onedays/{re.sub(' ','_', oneday['title'])}.json",
+                    "w",
+                ) as fp:
+                    json.dump(oneday, fp, sort_keys=True, indent=4)
 
         if event == "difficulty_tooltip":
             webbrowser.open(window["difficulty_tooltip"].metadata)
