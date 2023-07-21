@@ -335,9 +335,14 @@ def oneday_main():
                                         disabled=True,
                                         background_color=background_color,
                                         enable_events=True,
+                                        tooltip=(
+                                            "Automated answer checking may be incorrect\n"
+                                            + "Use this checkbox to override an incorrect answer assessment"
+                                            + "\n(both right and wrong answers)."
+                                        ),
                                     ),
                                     sg.Text(
-                                        "CA%:",
+                                        "%Corr:",
                                         font=font,
                                         tooltip="Correct Answer Percentage (all players)",
                                         background_color=background_color,
@@ -604,13 +609,14 @@ def oneday_main():
                         ],
                     ],
                     disable_close=False,
+                    force_toplevel=True,
                 ).read(close=True)
 
             if confirm == "Yes":
                 window[f"answer_submission_{i}"].update(disabled=True)
                 window[f"submit_answer_button_{i}"].update(disabled=True)
                 window[f"money_check_{i}"].update(disabled=True)
-                window[f"show/hide_{i}"].update(visible=False)
+                window[f"show/hide_{i}"].update(disabled=True)
                 window[f"question_percent_correct_{i}"].update(
                     value=question_object["percent"], font=font
                 )
@@ -651,7 +657,7 @@ def oneday_main():
                     wrong_percent = 100 - question_object["percent"]
                     score -= wrong_percent
                 submitted_answers[question_object["question_num"]]["correct"] = False
-                window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light gray")
+                window[f"answer_submission_{i}"].Widget.configure(readonlybackground="red")
             else:
                 window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light green")
                 score += 15
@@ -673,7 +679,6 @@ def oneday_main():
             submitted_answer = values[f"answer_submission_{i}"].lower()
             answer = question_object["answer"]
             window[f"answer_{i}"].update(value=answer, font=("Arial", 16))
-            window[f"show/hide_{i}"].update(visible=False)
             window[f"question_percent_correct_{i}"].update(
                 value=question_object["percent"], font=font
             )
@@ -695,7 +700,7 @@ def oneday_main():
                     wrong_percent = 100 - question_object["percent"]
                     score += wrong_percent
             else:
-                window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light gray")
+                window[f"answer_submission_{i}"].Widget.configure(readonlybackground="red")
 
             if values[f"money_check_{i}"]:
                 num_of_money_questions_left -= 1
