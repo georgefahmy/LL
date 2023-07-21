@@ -242,23 +242,21 @@ layout = [
                     )
                 ],
                 [
-                    sg.Frame(
-                        "Answer",
-                        expand_x=True,
-                        layout=[
-                            [sg.Text(key="answer", font=("Arial", 16), size=(10, 1), expand_x=True)]
-                        ],
-                    )
-                ],
-                [
                     sg.Button(
-                        "Show Answer (s)",
+                        "Show Answer",
                         key="show/hide",
-                        size=(14, 1),
+                        size=(12, 1),
                         font=("Arial", 12),
                         tooltip="Reveal the Answer - (s)",
                     ),
-                    sg.Text("", expand_x=True),
+                    sg.Text(
+                        key="answer",
+                        font=("Arial", 16),
+                        size=(10, 1),
+                        expand_x=True,
+                    ),
+                ],
+                [
                     sg.Text(
                         "Total Questions: ",
                         font=("Arial", 16),
@@ -292,6 +290,36 @@ layout = [
                         key="next",
                         disabled=True,
                         disabled_button_color=("black", "gray"),
+                    ),
+                ],
+                [
+                    sg.Text(
+                        "Answer: ",
+                        font=("Arial", 16),
+                    ),
+                    sg.Input(
+                        "",
+                        key=f"answer_submission",
+                        font=("Arial", 16),
+                        expand_x=True,
+                        use_readonly_for_disable=True,
+                    ),
+                    sg.Button(
+                        "Submit Answer",
+                        key="submit_answer_button",
+                        disabled_button_color=("black", "gray"),
+                        bind_return_key=True,
+                    ),
+                    sg.Checkbox(
+                        "Ans Override",
+                        key="correct_override",
+                        disabled=True,
+                        enable_events=True,
+                        tooltip=(
+                            "Automated answer checking may be incorrect.\n"
+                            + "Use this checkbox to override an incorrect answer assessment "
+                            + "\n(both right and wrong answers)."
+                        ),
                     ),
                 ],
             ],

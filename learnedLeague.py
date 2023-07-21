@@ -6,12 +6,14 @@ import os
 import base64
 import json
 import wikipedia
+import re
 
 from bs4 import BeautifulSoup as bs, SoupStrainer as ss
 from layout import layout
 from check_for_updates import check_for_update
 from random import choice
 from onedays import oneday_main
+from answer_correctness import combined_correctness
 
 
 BASE_URL = "https://www.learnedleague.com"
@@ -184,7 +186,7 @@ def update_question(questions, window, i):
     window["question_category"].update(value=question_object["category"])
     window["defense"].update(value=question_object["defense"])
     window["answer"].update(value="******")
-    window["show/hide"].update(text="Show Answer (s)")
+    window["show/hide"].update(text="Show Answer")
     window["next"].update(disabled=False)
     window["dropdown"].update(value=i)
     window["date"].update(value=question_object["date"])
@@ -296,6 +298,7 @@ window.bind("<n>", "next_key")
 window.bind("<p>", "previous_key")
 window["question"].bind("<ButtonPress-2>", "press")
 window["question"].bind("<ButtonPress-1>", "click_here")
+window["answer_submission"].bind("<Return>", "_submit_answer_button")
 
 values = None
 i = choice(list(questions.keys()))
@@ -348,6 +351,9 @@ while True:
         i = choice(list(questions.keys()))
         question_object = update_question(questions, window, i)
         answer = question_object.get("answer")
+        window["answer_submission"].update(value="", disabled=False)
+        window["submit_answer_button"].update(disabled=False)
+        window["correct_override"].update(disabled=True)
 
     # if the category dropdown is changed from ALL, or the filter button is pressed, display the new questions
     if event in ["filter", "category_selection"]:
@@ -383,6 +389,9 @@ while True:
         question_object = update_question(questions, window, i)
         window["previous"].update(disabled=True)
         window["search_criteria"].update(value="")
+        window["answer_submission"].update(value="", disabled=False)
+        window["submit_answer_button"].update(disabled=False)
+        window["correct_override"].update(disabled=True)
         window["filter"].set_focus()
 
         if len(questions.keys()) == 1:
@@ -391,21 +400,27 @@ while True:
 
     # display or hide the answer for the currently displayed question
     if event in ("show/hide", "show_key"):
-        if window.find_element_with_focus() and window.find_element_with_focus().Key in ("search_criteria", "answer_submission"):
+        if window.find_element_with_focus() and window.find_element_with_focus().Key in (
+            "search_criteria",
+            "answer_submission",
+        ):
             continue
 
         answer = question_object["answer"]
+        window["answer_submission"].update(disabled=True)
+        window["submit_answer_button"].update(disabled=True)
+        window["correct_override"].update(disabled=True)
 
-        if window["show/hide"].get_text() == "Show Answer (s)":
+        if window["show/hide"].get_text() == "Show Answer":
             try:
-                window["show/hide"].update(text="Hide Answer (s)")
+                window["show/hide"].update(text="Hide Answer")
 
                 window["answer"].update(value=answer, font=("Arial", 16))
             except:
                 continue
 
-        elif window["show/hide"].get_text() == "Hide Answer (s)":
-            window["show/hide"].update(text="Show Answer (s)")
+        elif window["show/hide"].get_text() == "Hide Answer":
+            window["show/hide"].update(text="Show Answer")
             try:
                 if answer:
                     window["answer"].update(value="******")
@@ -417,7 +432,10 @@ while True:
     # if the next or previous or a specific question is selected, display that question and its information
     # and hide the answer.
     if event in ["next", "previous", "dropdown", "next_key", "previous_key"]:
-        if window.find_element_with_focus() and window.find_element_with_focus().Key in ("search_criteria", "answer_submission"):
+        if window.find_element_with_focus() and window.find_element_with_focus().Key in (
+            "search_criteria",
+            "answer_submission",
+        ):
             continue
 
         if event in ("next", "next_key"):
@@ -435,6 +453,9 @@ while True:
 
         question_object = update_question(questions, window, i)
         answer = question_object.get("answer")
+        window["answer_submission"].update(value="", disabled=False)
+        window["submit_answer_button"].update(disabled=False)
+        window["correct_override"].update(disabled=True)
 
         if not question_object:
             if event in ("next", "next_key"):
@@ -453,6 +474,43 @@ while True:
             window["previous"].update(disabled=True)
         else:
             window["previous"].update(disabled=False)
+
+    if "submit_answer_button" in event:
+        if not values[f"answer_submission"]:
+            continue
+
+        submitted_answer = values[f"answer_submission"].lower()
+        answer = question_object["answer"]
+        window["answer"].update(value=answer, font=("Arial", 16))
+        window["answer_submission"].update(disabled=True)
+        window["submit_answer_button"].update(disabled=True)
+
+        answers = re.findall("([^\/,()]+)", answer)
+        if len(answers) > 1:
+            correct = [
+                combined_correctness(submitted_answer, answer.strip(), True) for answer in answers
+            ]
+        else:
+            correct = [combined_correctness(submitted_answer, answer.strip())]
+
+        if any(correct):
+            right_answer = True
+            window["answer_submission"].Widget.configure(readonlybackground="light green")
+
+        else:
+            right_answer = False
+            window["answer_submission"].Widget.configure(readonlybackground="red")
+
+        window[f"question"].set_focus()
+        window["correct_override"].update(disabled=False)
+
+    if "correct_override" in event:
+        if right_answer:
+            right_answer = False
+            window[f"answer_submission"].Widget.configure(readonlybackground="red")
+        else:
+            right_answer = True
+            window[f"answer_submission"].Widget.configure(readonlybackground="light green")
 
     if event == "onedays_button":
         window.hide()

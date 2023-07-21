@@ -12,6 +12,6 @@ The first time you open the application you need to Right Click on it in the app
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v2.1.8] - 2023-07-20
+### [v2.2.0] - 2023-07-21
 
-Fixed a minor bug with show/hid answer button and added some clarification tooltips
+Added an answer submission box to the main LearnedLeague app.
