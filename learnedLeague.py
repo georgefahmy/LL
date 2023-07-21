@@ -541,7 +541,9 @@ while True:
         }
         past_answers.append(answer_dict)
         all_data[data_code]["answers"] = past_answers
-        with open(WD + "/resources/all_data.json", "w+") as fp:
+        if not os.path.isdir(os.path.expanduser("~") + "/.LearnedLeague"):
+            os.mkdir(os.path.expanduser("~") + "/.LearnedLeague")
+        with open(os.path.expanduser("~") + f"/.LearnedLeague/all_data.json", "w+") as fp:
             json.dump(all_data, fp, sort_keys=True, indent=4)
 
     if "correct_override" in event:
@@ -562,7 +564,10 @@ while True:
         del past_answers[-1]
         past_answers.append(answer_dict)
         all_data[data_code]["answers"] = past_answers
-        with open(WD + "/resources/all_data.json", "w+") as fp:
+        if not os.path.isdir(os.path.expanduser("~") + "/.LearnedLeague"):
+            os.mkdir(os.path.expanduser("~") + "/.LearnedLeague")
+
+        with open(os.path.expanduser("~") + f"/.LearnedLeague/all_data.json", "w+") as fp:
             json.dump(all_data, fp, sort_keys=True, indent=4)
 
     if event == "onedays_button":

@@ -12,6 +12,6 @@ The first time you open the application you need to Right Click on it in the app
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v2.3.0] - 2023-07-21
+### [v2.3.1] - 2023-07-21
 
-Added Answer tracking to the data structures. (future: check past answers).
+Fixed a bug with writing answers to file. 

@@ -20,20 +20,16 @@ WD = os.getcwd()
 
 
 def get_full_list_of_onedays():
-    if os.path.isfile(WD + "/resources/oneday_data.json"):
-        with open(WD + "/resources/oneday_data.json", "r") as fp:
-            data = json.load(fp)
-    else:
-        data = {
-            info.find("td", {"class": "std-left"}).text: {
-                "title": info.find("td", {"class": "std-left"}).text,
-                "url": BASE_URL + info.find("td", {"class": "std-left"}).a.get("href"),
-                "date": info.find("td", {"class": "std-midleft"}).text,
-            }
-            for info in bs(
-                requests.get(BASE_URL + "/oneday/onedaysalpha.php").content, "html.parser"
-            ).find_all("tr")[1:-1]
+    data = {
+        info.find("td", {"class": "std-left"}).text: {
+            "title": info.find("td", {"class": "std-left"}).text,
+            "url": BASE_URL + info.find("td", {"class": "std-left"}).a.get("href"),
+            "date": info.find("td", {"class": "std-midleft"}).text,
         }
+        for info in bs(
+            requests.get(BASE_URL + "/oneday/onedaysalpha.php").content, "html.parser"
+        ).find_all("tr")[1:-1]
+    }
 
     for key in list(data.keys()):
         if datetime.datetime.strptime(data[key]["date"], "%b %d, %Y") >= datetime.datetime.now():
@@ -69,9 +65,15 @@ def get_specific_oneday(data, onedaykey):
 
 
 def get_oneday_data(oneday):
-    if os.path.isfile(WD + f"/resources/onedays/{re.sub(' ','_', oneday['title'])}.json"):
+    if os.path.isfile(
+        os.path.expanduser("~") + f"/.LearnedLeague/onedays/{re.sub(' ','_', oneday['title'])}.json"
+    ):
         print("file exists")
-        with open(WD + f"/resources/onedays/{re.sub(' ','_', oneday['title'])}.json", "r") as fp:
+        with open(
+            os.path.expanduser("~")
+            + f"/.LearnedLeague/onedays/{re.sub(' ','_', oneday['title'])}.json",
+            "r",
+        ) as fp:
             oneday = json.load(fp)
             return oneday
 
@@ -740,11 +742,13 @@ def oneday_main():
                         min(list(percentile_info.values()), key=lambda x: abs(int(x) - score))
                     )
                 ]
-                if not os.path.isdir(WD + "/resources/onedays/"):
-                    os.mkdir(WD + "/resources/onedays")
+                if not os.path.isdir(os.path.expanduser("~") + "/.LearnedLeague/onedays/"):
+                    os.mkdir(os.path.expanduser("~") + "/.LearnedLeague/onedays")
 
                 with open(
-                    WD + f"/resources/onedays/{re.sub(' ','_', oneday['title'])}.json", "w"
+                    os.path.expanduser("~")
+                    + f"/.LearnedLeague/onedays/{re.sub(' ','_', oneday['title'])}.json",
+                    "w",
                 ) as fp:
                     json.dump(oneday, fp, sort_keys=True, indent=4)
 
@@ -826,11 +830,13 @@ def oneday_main():
                 )
                 oneday["submission_date"] = (datetime.datetime.now().isoformat(),)
 
-                if not os.path.isdir(WD + "/resources/onedays/"):
-                    os.mkdir(WD + "/resources/onedays")
+                if not os.path.isdir(os.path.expanduser("~") + "/.LearnedLeague/onedays/"):
+                    os.mkdir(os.path.expanduser("~") + "/.LearnedLeague/onedays/")
 
                 with open(
-                    WD + f"/resources/onedays/{re.sub(' ','_', oneday['title'])}.json", "w"
+                    os.path.expanduser("~")
+                    + f"/.LearnedLeague/onedays/{re.sub(' ','_', oneday['title'])}.json",
+                    "w",
                 ) as fp:
                     json.dump(oneday, fp, sort_keys=True, indent=4)
 
