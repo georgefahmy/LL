@@ -7,7 +7,7 @@ VERSION = re.compile("[^0-9\.]").sub(
     "",
     (
         BeautifulSoup(markdown(open("changelog.md", "r").read()), "html.parser")
-        .find_all(string=re.compile("v[0-9].[0-9].[0-9]"))[0]
+        .find_all(string=re.compile("v[\.0-9]+"))[0]
         .split()[0]
     ),
 )

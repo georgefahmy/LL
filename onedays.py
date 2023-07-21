@@ -114,6 +114,12 @@ def get_oneday_data(oneday):
             )
             != " "
         }
+        number_of_players = sum(
+            [
+                int(row.find_all("td")[1].text)
+                for row in metrics_page.find("div", {"class": "byl_container"}).find_all("tr")[1:]
+            ]
+        )
     check_blurb = page.find("div", {"id": "blurb_close"})
     if check_blurb:
         blurb = re.sub("[\r\n]+", "\n", "".join(check_blurb.text.split("blurb")[1:]).strip())
@@ -139,6 +145,7 @@ def get_oneday_data(oneday):
     oneday["50th_percentile"] = percentile_info.get(50) or ""
     oneday["10th_percentile"] = percentile_info.get(10) or ""
     oneday["all_percentile"] = percentile_info
+    oneday["number_of_players"] = number_of_players
     oneday_data = {}
     for j, question in enumerate(questions):
         oneday_data[j + 1] = {
@@ -193,19 +200,33 @@ def oneday_main():
                     [
                         sg.Text(
                             "Difficulty: ",
-                            font=font,
+                            font=("Arial", 14),
+                            pad=((5, 0), (5, 5)),
                             enable_events=True,
                             key="difficulty_tooltip",
                             tooltip="https://www.learnedleague.com/images/misc/ModKos.png?t=1649",
                             metadata="https://www.learnedleague.com/images/misc/ModKos.png?t=1649",
                         ),
-                        sg.Text("", key="difficulty", font=font, expand_x=True),
-                        sg.Text("Date:", font=font),
-                        sg.Text("", font=font, key="oneday_date"),
+                        sg.Text(
+                            "",
+                            key="difficulty",
+                            font=("Arial", 14),
+                            expand_x=True,
+                            pad=((0, 5), (5, 5)),
+                        ),
+                        sg.Text("Date:", font=("Arial", 14), pad=((5, 0), (5, 5))),
+                        sg.Text("", font=("Arial", 14), key="oneday_date", pad=((0, 5), (5, 5))),
                     ],
                     [
-                        sg.Text("Overall Correct Rate: ", font=font),
-                        sg.Text("", key="percent_correct", font=font),
+                        sg.Text("% Correct: ", font=("Arial", 14), pad=((5, 0), (5, 5))),
+                        sg.Text(
+                            "", key="percent_correct", font=("Arial", 14), pad=((0, 5), (5, 5))
+                        ),
+                        sg.Text(expand_x=True),
+                        sg.Text("Num Players: ", font=("Arial", 14), pad=((5, 0), (5, 5))),
+                        sg.Text(
+                            "", key="number_of_players", font=("Arial", 14), pad=((0, 5), (5, 5))
+                        ),
                     ],
                 ],
             ),
@@ -336,8 +357,8 @@ def oneday_main():
                                         background_color=background_color,
                                         enable_events=True,
                                         tooltip=(
-                                            "Automated answer checking may be incorrect\n"
-                                            + "Use this checkbox to override an incorrect answer assessment"
+                                            "Automated answer checking may be incorrect.\n"
+                                            + "Use this checkbox to override an incorrect answer assessment "
                                             + "\n(both right and wrong answers)."
                                         ),
                                     ),
@@ -402,6 +423,7 @@ def oneday_main():
         window["90th_percent"].update(value=oneday["90th_percentile"])
         window["50th_percent"].update(value=oneday["50th_percentile"])
         window["10th_percent"].update(value=oneday["10th_percentile"])
+        window["number_of_players"].update(value=oneday["number_of_players"])
         window["score"].update(value=score)
         window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
 
@@ -488,6 +510,7 @@ def oneday_main():
                 window["90th_percent"].update(value=oneday["90th_percentile"])
                 window["50th_percent"].update(value=oneday["50th_percentile"])
                 window["10th_percent"].update(value=oneday["10th_percentile"])
+                window["number_of_players"].update(value=oneday["number_of_players"])
                 window["score"].update(value=score)
                 window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
 
@@ -534,6 +557,7 @@ def oneday_main():
                 window["90th_percent"].update(value=oneday["90th_percentile"])
                 window["50th_percent"].update(value=oneday["50th_percentile"])
                 window["10th_percent"].update(value=oneday["10th_percentile"])
+                window["number_of_players"].update(value=oneday["number_of_players"])
                 window["score"].update(value=score)
                 window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
 
@@ -568,6 +592,7 @@ def oneday_main():
                 window["90th_percent"].update(value=oneday["90th_percentile"])
                 window["50th_percent"].update(value=oneday["50th_percentile"])
                 window["10th_percent"].update(value=oneday["10th_percentile"])
+                window["number_of_players"].update(value=oneday["number_of_players"])
                 window["score"].update(value=score)
                 window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
 

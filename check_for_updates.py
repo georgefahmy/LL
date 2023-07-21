@@ -16,7 +16,14 @@ def get_sudo_password():
     attempts = 0
     layout = [
         [sg.Text("Enter your password:", font=("Arial", 16))],
-        [sg.Input(password_char="*", key="password", font=("Arial", 16))],
+        [
+            sg.Input(
+                password_char="*",
+                key="password",
+                font=("Arial", 16),
+                tooltip="Enter your Main Computer password install the update",
+            )
+        ],
         [sg.Button("OK", bind_return_key=True), sg.Button("Cancel")],
     ]
 
