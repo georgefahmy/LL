@@ -522,6 +522,7 @@ def oneday_main():
             oneday = get_oneday_data(get_specific_oneday(list_of_onedays, choice(filtered_results)))
             data = oneday["data"]
             score = 0
+            num_of_money_questions_left = 5
             submitted_answers = {}
             for i in data.keys():
                 question_object = data[i]
@@ -569,6 +570,7 @@ def oneday_main():
             data = oneday["data"]
             i = 1
             score = 0
+            num_of_money_questions_left = 5
             submitted_answers = {}
             for i in data.keys():
                 question_object = data[i]
@@ -604,6 +606,7 @@ def oneday_main():
             data = oneday["data"]
             i = 1
             score = 0
+            num_of_money_questions_left = 5
             submitted_answers = {}
             for i in data.keys():
                 question_object = data[i]
