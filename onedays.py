@@ -644,7 +644,7 @@ def oneday_main():
             if window.find_element_with_focus().Key in ("oneday_search", "answer_submission"):
                 continue
 
-            i = int(event.split("_")[-1])
+            i = event.split("_")[-1]
             question_object = data[i]
             answer = question_object["answer"]
 

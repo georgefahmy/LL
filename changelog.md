@@ -11,6 +11,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v2.3.3] - 2023-07-21
+### [v2.3.4] - 2023-07-22
 
-Fixed a minor bug with the Return key not rebinding to the proper field
+Fixed indexing bug in show/hide button.
