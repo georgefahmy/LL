@@ -825,11 +825,14 @@ def oneday_main():
 
             if len(submitted_answers) == 12:
                 percentile_info = oneday["all_percentile"]
-                final_percentile = list(percentile_info.keys())[
-                    list(percentile_info.values()).index(
-                        min(list(percentile_info.values()), key=lambda x: abs(int(x) - score))
-                    )
-                ]
+                if not percentile_info:
+                    final_percentile = "NONE"
+                else:
+                    final_percentile = list(percentile_info.keys())[
+                        list(percentile_info.values()).index(
+                            min(list(percentile_info.values()), key=lambda x: abs(int(x) - score))
+                        )
+                    ]
 
                 sg.popup_ok(
                     f"Final Score: {score} pts\nFinal percentile: {final_percentile}%",

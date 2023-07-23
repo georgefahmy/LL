@@ -11,6 +11,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v2.3.4] - 2023-07-22
+### [v2.3.5] - 2023-07-22
 
 Fixed indexing bug in show/hide button.
