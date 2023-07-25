@@ -112,11 +112,11 @@ def get_mini_data(specific_mini):
     specific_mini["overall_correct"] = round(sum(total) / len(total), 2)
     return DotMap(specific_mini)
 
-
-data = get_full_list_of_mini_leagues()
-filtered_results = search_minileagues(data)
-specific_mini = get_specific_minileague(data, choice(filtered_results))
-specific_mini = get_mini_data(specific_mini)
+def q_num_finder(match_days, i):
+    if int(i)%6 == 0:
+        return match_days[f"day_{int(i)//6}"][f"Q{6}"]
+    else:
+        return match_days[f"day_{int(i)//6+1}"][f"Q{int(i)%6}"]
 
 
 font = "Arial", 16
@@ -134,7 +134,7 @@ layout = [
                     sg.Button("Search", key="mini_league_filter_search"),
                 ],
                 [
-                    sg.Text("mini_league:", font=font, tooltip="Choose a Mini league to load"),
+                    sg.Text("Mini League:", font=font, tooltip="Choose a Mini league to load"),
                     sg.Combo(
                         values=[],
                         key="mini_league_selection",
@@ -158,22 +158,6 @@ layout = [
             layout=[
                 [sg.Text("", key="mini_league_title", font=font)],
                 [
-                    sg.Text(
-                        "Difficulty: ",
-                        font=("Arial", 14),
-                        pad=((5, 0), (5, 5)),
-                        enable_events=True,
-                        key="difficulty_tooltip",
-                        tooltip="https://www.learnedleague.com/images/misc/ModKos.png?t=1649",
-                        metadata="https://www.learnedleague.com/images/misc/ModKos.png?t=1649",
-                    ),
-                    sg.Text(
-                        "",
-                        key="difficulty",
-                        font=("Arial", 14),
-                        expand_x=True,
-                        pad=((0, 5), (5, 5)),
-                    ),
                     sg.Text("Date:", font=("Arial", 14), pad=((5, 0), (5, 5))),
                     sg.Text("", font=("Arial", 14), key="mini_league_date", pad=((0, 5), (5, 5))),
                 ],
@@ -187,32 +171,15 @@ layout = [
             ],
         ),
         sg.Frame(
-            "Question Metrics",
+            "Questions Reset",
             size=(325, 105),
             layout=[
                 [
-                    sg.Text("Your Current Score:", font=font),
-                    sg.Text("", key="score", font=font),
-                    sg.Text(expand_x=True),
                     sg.Button(
                         "Reset Quiz",
                         key="full_reset",
                         tooltip="Click this button to fully reset the quiz erasing all answers.",
                     ),
-                ],
-                [sg.HorizontalSeparator()],
-                [
-                    sg.Text("Pts Percentile:", font=("Arial Bold", 14)),
-                    sg.Text("90th:", font=("Arial", 14), pad=0),
-                    sg.Text("", key="90th_percent", font=("Arial Italic", 14), pad=0),
-                    sg.Text("50th:", font=("Arial", 14), pad=0),
-                    sg.Text("", key="50th_percent", font=("Arial Italic", 14), pad=0),
-                    sg.Text("10th:", font=("Arial", 14), pad=0),
-                    sg.Text("", key="10th_percent", font=("Arial Italic", 14), pad=0),
-                ],
-                [
-                    sg.Text("Money Questions Remaining: ", font=font),
-                    sg.Text(f"({5})", font=font, key="num_of_money_questions_left"),
                 ],
             ],
         ),
@@ -341,8 +308,176 @@ layout = [
                         ],
                     )
                 ]
-                for i in range(1, 13)
+                for i in range(1, 67)
             ],
         )
     ],
 ]
+
+data = get_full_list_of_mini_leagues()
+font = "Arial", 16
+
+icon_file = WD + "/resources/ll_app_logo.png"
+sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
+window = sg.Window("LL Mini Leagues", layout=layout, finalize=True, return_keyboard_events=True)
+
+window["mini_league_selection"].update(values=search_minileagues(data))
+
+for i in range(1, 13):
+    window[f"correct_override_{i}"].TooltipObject.timeout = 300
+
+filtered_results = search_minileagues(data)
+specific_mini = get_mini_data(get_specific_minileague(data, choice(filtered_results)))
+while not specific_mini:
+    specific_mini = get_mini_data(get_specific_minileague(data, choice(filtered_results)))
+
+
+
+
+i = 1
+submitted_answers = {}
+for day in specific_mini.data.match_days.keys():
+    for q in specific_mini.data.match_days[day]:
+        question_object = specific_mini.data.match_days[day][q]
+        window["mini_league_title"].update(value=specific_mini.title)
+        window["percent_correct"].update(value=str(specific_mini.overall_correct) + "%")
+        window["mini_league_date"].update(value=specific_mini.date)
+        window["mini_league_selection"].update(value=specific_mini.title)
+        window["number_of_players"].update(value=specific_mini.number_of_players)
+
+        window[f"question_{i}"].update(value=question_object.question)
+        window[f"answer_{i}"].update(value="*******")
+        window[f"show/hide_{i}"].update(text="Show Answer", disabled=False)
+        window[f"answer_submission_{i}"].update(value="", disabled=False, background_color="white")
+        window[f"submit_answer_button_{i}"].update(disabled=False)
+        window[f"question_percent_correct_{i}"].update(
+            value="Submit answer to see", font=("Arial Italic", 10)
+        )
+        question_object.index= i
+        i+=1
+
+while True:
+    event, values = window.read()
+
+    if event in (None, "Quit", sg.WIN_CLOSED):
+        window.close()
+        break
+
+    if event == "random_mini_league":
+        specific_mini = get_mini_data(get_specific_minileague(data, choice(filtered_results)))
+        submitted_answers = {}
+        i = 1
+        for day in specific_mini.data.match_days.keys():
+            for q in specific_mini.data.match_days[day]:
+                question_object = specific_mini.data.match_days[day][q]
+                window["mini_league_title"].update(value=specific_mini.title)
+                window["percent_correct"].update(value=str(specific_mini.overall_correct) + "%")
+                window["mini_league_date"].update(value=specific_mini.date)
+                window["mini_league_selection"].update(value=specific_mini.title)
+                window["number_of_players"].update(value=specific_mini.number_of_players)
+
+                window[f"question_{i}"].update(value=question_object.question)
+                window[f"answer_{i}"].update(value="*******")
+                window[f"show/hide_{i}"].update(text="Show Answer", disabled=False)
+                window[f"answer_submission_{i}"].update(value="", disabled=False, background_color="white")
+                window[f"submit_answer_button_{i}"].update(disabled=False)
+                window[f"question_percent_correct_{i}"].update(
+                    value="Submit answer to see", font=("Arial Italic", 10)
+                )
+                question_object.index= i
+                i+=1
+
+    if event == "oneday_filter_search":
+        filtered_results = search_onedays(
+            list_of_onedays, search_word=values["oneday_search"]
+        ) or [""]
+        window["oneday_search"].update(value="")
+        if not filtered_results[0]:
+            filtered_results = search_onedays(list_of_onedays)
+            sg.popup_error(
+                "WARNING - No Results",
+                font=("Arial", 16),
+                auto_close=True,
+                auto_close_duration=5,
+            )
+            continue
+        window["oneday_selection"].update(value=filtered_results[0], values=filtered_results)
+        oneday = get_oneday_data(get_specific_oneday(list_of_onedays, filtered_results[0]))
+        data = oneday["data"]
+        specific_mini = get_mini_data(get_specific_minileague(data, choice(filtered_results)))
+        submitted_answers = {}
+        i = 1
+        for day in specific_mini.data.match_days.keys():
+            for q in specific_mini.data.match_days[day]:
+                question_object = specific_mini.data.match_days[day][q]
+                window["mini_league_title"].update(value=specific_mini.title)
+                window["percent_correct"].update(value=str(specific_mini.overall_correct) + "%")
+                window["mini_league_date"].update(value=specific_mini.date)
+                window["mini_league_selection"].update(value=specific_mini.title)
+                window["number_of_players"].update(value=specific_mini.number_of_players)
+
+                window[f"question_{i}"].update(value=question_object.question)
+                window[f"answer_{i}"].update(value="*******")
+                window[f"show/hide_{i}"].update(text="Show Answer", disabled=False)
+                window[f"answer_submission_{i}"].update(value="", disabled=False, background_color="white")
+                window[f"submit_answer_button_{i}"].update(disabled=False)
+                window[f"question_percent_correct_{i}"].update(
+                    value="Submit answer to see", font=("Arial Italic", 10)
+                )
+                question_object.index= i
+                i+=1
+
+    if event in ("oneday_selection", "full_reset"):
+        specific_mini = get_mini_data(get_specific_minileague(data, values["mini_league_selection"]))
+        submitted_answers = {}
+        i = 1
+        for day in specific_mini.data.match_days.keys():
+            for q in specific_mini.data.match_days[day]:
+                question_object = specific_mini.data.match_days[day][q]
+                window["mini_league_title"].update(value=specific_mini.title)
+                window["percent_correct"].update(value=str(specific_mini.overall_correct) + "%")
+                window["mini_league_date"].update(value=specific_mini.date)
+                window["mini_league_selection"].update(value=specific_mini.title)
+                window["number_of_players"].update(value=specific_mini.number_of_players)
+
+                window[f"question_{i}"].update(value=question_object.question)
+                window[f"answer_{i}"].update(value="*******")
+                window[f"show/hide_{i}"].update(text="Show Answer", disabled=False)
+                window[f"answer_submission_{i}"].update(value="", disabled=False, background_color="white")
+                window[f"submit_answer_button_{i}"].update(disabled=False)
+                window[f"question_percent_correct_{i}"].update(
+                    value="Submit answer to see", font=("Arial Italic", 10)
+                )
+                question_object.index= i
+                i+=1
+
+    if "show/hide" in event:
+        if window.find_element_with_focus().Key in ("mini_league_search", "answer_submission"):
+            continue
+
+        i = event.split("_")[-1]
+
+        question_object = q_num_finder(specific_mini.data.match_days, i)
+        answer = question_object.answer
+
+        window[f"answer_submission_{i}"].update(disabled=True)
+        window[f"submit_answer_button_{i}"].update(disabled=True)
+        window[f"correct_override_{i}"].update(disabled=True)
+
+        if window[f"show/hide_{i}"].get_text() == "Show Answer":
+            try:
+                window[f"show/hide_{i}"].update(text="Hide Answer")
+
+                window[f"answer_{i}"].update(value=answer, font=("Arial", 16))
+            except:
+                continue
+
+        elif window[f"show/hide_{i}"].get_text() == "Hide Answer":
+            window[f"show/hide_{i}"].update(text="Show Answer")
+            try:
+                if answer:
+                    window[f"answer_{i}"].update(value="******")
+                else:
+                    window[f"answer_{i}"].update(value="")
+            except:
+                continue
