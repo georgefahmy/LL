@@ -16,7 +16,7 @@ from answer_correctness import combined_correctness
 from PyDictionary import PyDictionary
 from time import sleep
 from collections import OrderedDict
-
+# from dotmap import DotMap
 
 BASE_URL = "https://www.learnedleague.com"
 WD = os.getcwd()
