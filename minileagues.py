@@ -62,16 +62,17 @@ def get_full_list_of_mini_leagues():
 
 def search_minileagues(data, search_word=None):
     if not search_word:
-        return list(data.keys())
+        return sorted(list(data.keys()))
     else:
-        return [val for val in list(data.keys()) if search_word.lower() in val.lower()]
+        return sorted([val for val in list(data.keys()) if search_word.lower() in val.lower()])
 
 
 def get_specific_minileague(data, mini_league_key):
-    return data.get(mini_league_key)
+    return DotMap(data.get(mini_league_key))
 
 
-def get_mini_data(specific_mini):
+def get_mini_data(specific_mini, window):
+    p = 0
     page = bs(requests.get(specific_mini["url"]).content, "lxml")
     matches = {
         re.split("(Match[^M]*|Champ[C]+)", match.text)[0]: BASE_URL + match.a.get("href")
@@ -96,6 +97,9 @@ def get_mini_data(specific_mini):
                 "question": "-".join(q.text.strip().split("-")[1:]).strip(),
                 "answer": a.text.strip(),
             }
+            p+=1
+            window["pbar"].update(current_count=p)
+
         for j in range(1, 7):
             mini_details["match_days"]["day_" + str(i + 1)][f"Q{j}"]["%_correct"] = [
                 v.text.strip()
@@ -103,6 +107,7 @@ def get_mini_data(specific_mini):
                 .find("tfoot")
                 .find_all("td", {"class": "ind-Q3-t"})
             ][2:-1][j - 1]
+
     specific_mini["data"] = mini_details
     total = [
         int(specific_mini.get("data").get("match_days").get(day).get(f"Q{i}").get("%_correct"))
@@ -110,6 +115,8 @@ def get_mini_data(specific_mini):
         for day in specific_mini.get("data").get("match_days")
     ]
     specific_mini["overall_correct"] = round(sum(total) / len(total), 2)
+    window["pbar"].update(visible=False)
+    window["pbar_status"].update(visible=False)
     return DotMap(specific_mini)
 
 def q_num_finder(match_days, i):
@@ -175,6 +182,9 @@ layout = [
             size=(325, 105),
             layout=[
                 [
+                    sg.Text("Loading...", key="pbar_status", font=("Arial", 12)),
+                    sg.ProgressBar(66, orientation="horizontal",key="pbar", size=(15,10)),
+                    sg.Text(expand_x=True, key="pbar_spacer"),
                     sg.Button(
                         "Reset Quiz",
                         key="full_reset",
@@ -251,15 +261,6 @@ layout = [
                                 ),
                             ],
                             [
-                                sg.Checkbox(
-                                    "Money Question",
-                                    key=f"money_check_{i}",
-                                    font=font,
-                                    background_color=background_color,
-                                    tooltip="If correct - get points equal to % of people who got the question wrong",
-                                ),
-                            ],
-                            [
                                 sg.Text(
                                     "Answer: ",
                                     font=("Arial", 16),
@@ -327,23 +328,20 @@ for i in range(1, 13):
     window[f"correct_override_{i}"].TooltipObject.timeout = 300
 
 filtered_results = search_minileagues(data)
-specific_mini = get_mini_data(get_specific_minileague(data, choice(filtered_results)))
-while not specific_mini:
-    specific_mini = get_mini_data(get_specific_minileague(data, choice(filtered_results)))
-
-
-
-
+specific_mini = get_specific_minileague(data, choice(filtered_results))
 i = 1
 submitted_answers = {}
+window["mini_league_title"].update(value=specific_mini.title)
+window["mini_league_date"].update(value=specific_mini.date)
+window["mini_league_selection"].update(value=specific_mini.title)
+window["number_of_players"].update(value=specific_mini.number_of_players)
+
+specific_mini = get_mini_data(specific_mini, window)
+window["percent_correct"].update(value=str(specific_mini.overall_correct) + "%")
 for day in specific_mini.data.match_days.keys():
     for q in specific_mini.data.match_days[day]:
         question_object = specific_mini.data.match_days[day][q]
-        window["mini_league_title"].update(value=specific_mini.title)
-        window["percent_correct"].update(value=str(specific_mini.overall_correct) + "%")
-        window["mini_league_date"].update(value=specific_mini.date)
-        window["mini_league_selection"].update(value=specific_mini.title)
-        window["number_of_players"].update(value=specific_mini.number_of_players)
+
 
         window[f"question_{i}"].update(value=question_object.question)
         window[f"answer_{i}"].update(value="*******")
@@ -364,17 +362,19 @@ while True:
         break
 
     if event == "random_mini_league":
-        specific_mini = get_mini_data(get_specific_minileague(data, choice(filtered_results)))
-        submitted_answers = {}
+        specific_mini = get_specific_minileague(data, choice(filtered_results))
         i = 1
+        submitted_answers = {}
+        window["mini_league_title"].update(value=specific_mini.title)
+        window["mini_league_date"].update(value=specific_mini.date)
+        window["mini_league_selection"].update(value=specific_mini.title)
+        window["number_of_players"].update(value=specific_mini.number_of_players)
+        specific_mini = get_mini_data(specific_mini, window)
+        window["percent_correct"].update(value=str(specific_mini.overall_correct) + "%")
+
         for day in specific_mini.data.match_days.keys():
             for q in specific_mini.data.match_days[day]:
                 question_object = specific_mini.data.match_days[day][q]
-                window["mini_league_title"].update(value=specific_mini.title)
-                window["percent_correct"].update(value=str(specific_mini.overall_correct) + "%")
-                window["mini_league_date"].update(value=specific_mini.date)
-                window["mini_league_selection"].update(value=specific_mini.title)
-                window["number_of_players"].update(value=specific_mini.number_of_players)
 
                 window[f"question_{i}"].update(value=question_object.question)
                 window[f"answer_{i}"].update(value="*******")
@@ -387,13 +387,13 @@ while True:
                 question_object.index= i
                 i+=1
 
-    if event == "oneday_filter_search":
-        filtered_results = search_onedays(
-            list_of_onedays, search_word=values["oneday_search"]
+    if event == "mini_league_filter_search":
+        filtered_results = search_minileagues(
+            list_of_onedays, search_word=values["mini_league_search"]
         ) or [""]
-        window["oneday_search"].update(value="")
+        window["mini_league_search"].update(value="")
         if not filtered_results[0]:
-            filtered_results = search_onedays(list_of_onedays)
+            filtered_results = search_minileagues(list_of_onedays)
             sg.popup_error(
                 "WARNING - No Results",
                 font=("Arial", 16),
@@ -401,20 +401,21 @@ while True:
                 auto_close_duration=5,
             )
             continue
-        window["oneday_selection"].update(value=filtered_results[0], values=filtered_results)
-        oneday = get_oneday_data(get_specific_oneday(list_of_onedays, filtered_results[0]))
-        data = oneday["data"]
-        specific_mini = get_mini_data(get_specific_minileague(data, choice(filtered_results)))
-        submitted_answers = {}
+
+        specific_mini = get_specific_minileague(data, choice(filtered_results))
+
         i = 1
+        submitted_answers = {}
+        window["mini_league_title"].update(value=specific_mini.title)
+        window["mini_league_date"].update(value=specific_mini.date)
+        window["mini_league_selection"].update(value=specific_mini.title)
+        window["number_of_players"].update(value=specific_mini.number_of_players)
+        specific_mini = get_mini_data(specific_mini, window)
+        window["percent_correct"].update(value=str(specific_mini.overall_correct) + "%")
+
         for day in specific_mini.data.match_days.keys():
             for q in specific_mini.data.match_days[day]:
                 question_object = specific_mini.data.match_days[day][q]
-                window["mini_league_title"].update(value=specific_mini.title)
-                window["percent_correct"].update(value=str(specific_mini.overall_correct) + "%")
-                window["mini_league_date"].update(value=specific_mini.date)
-                window["mini_league_selection"].update(value=specific_mini.title)
-                window["number_of_players"].update(value=specific_mini.number_of_players)
 
                 window[f"question_{i}"].update(value=question_object.question)
                 window[f"answer_{i}"].update(value="*******")
@@ -427,18 +428,30 @@ while True:
                 question_object.index= i
                 i+=1
 
-    if event in ("oneday_selection", "full_reset"):
-        specific_mini = get_mini_data(get_specific_minileague(data, values["mini_league_selection"]))
+    if event in ("mini_league_selection", "full_reset"):
+        if specific_mini.title != values["mini_league_selection"]:
+            window["pbar_spacer"].update(visible=False)
+            window["full_reset"].update(visible=False)
+            window["pbar_status"].update(visible=True)
+            window["pbar"].update(visible=True, current_count=0)
+            window["pbar_spacer"].update(visible=True)
+            window["full_reset"].update(visible=True)
+            window.refresh()
+            specific_mini = get_specific_minileague(data, values["mini_league_selection"])
+
+
+            window["mini_league_title"].update(value=specific_mini.title)
+            window["mini_league_date"].update(value=specific_mini.date)
+            window["mini_league_selection"].update(value=specific_mini.title)
+            window["number_of_players"].update(value=specific_mini.number_of_players)
+            specific_mini = get_mini_data(specific_mini, window)
+            window["percent_correct"].update(value=str(specific_mini.overall_correct) + "%")
+
         submitted_answers = {}
         i = 1
         for day in specific_mini.data.match_days.keys():
             for q in specific_mini.data.match_days[day]:
                 question_object = specific_mini.data.match_days[day][q]
-                window["mini_league_title"].update(value=specific_mini.title)
-                window["percent_correct"].update(value=str(specific_mini.overall_correct) + "%")
-                window["mini_league_date"].update(value=specific_mini.date)
-                window["mini_league_selection"].update(value=specific_mini.title)
-                window["number_of_players"].update(value=specific_mini.number_of_players)
 
                 window[f"question_{i}"].update(value=question_object.question)
                 window[f"answer_{i}"].update(value="*******")
