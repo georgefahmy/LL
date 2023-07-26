@@ -97,7 +97,7 @@ def get_mini_data(specific_mini, window):
                 "question": "-".join(q.text.strip().split("-")[1:]).strip(),
                 "answer": a.text.strip(),
             }
-            p+=1
+            p += 1
             window["pbar"].update(current_count=p)
 
         for j in range(1, 7):
@@ -119,8 +119,9 @@ def get_mini_data(specific_mini, window):
     window["pbar_status"].update(visible=False)
     return DotMap(specific_mini)
 
+
 def q_num_finder(match_days, i):
-    if int(i)%6 == 0:
+    if int(i) % 6 == 0:
         return match_days[f"day_{int(i)//6}"][f"Q{6}"]
     else:
         return match_days[f"day_{int(i)//6+1}"][f"Q{int(i)%6}"]
@@ -135,11 +136,6 @@ layout = [
             "Mini League Selection",
             size=(325, 105),
             layout=[
-                [
-                    sg.Text("Search:", font=font),
-                    sg.Input("", key="mini_league_search", font=font, size=(14, 1), expand_x=True),
-                    sg.Button("Search", key="mini_league_filter_search"),
-                ],
                 [
                     sg.Text("Mini League:", font=font, tooltip="Choose a Mini league to load"),
                     sg.Combo(
@@ -183,7 +179,7 @@ layout = [
             layout=[
                 [
                     sg.Text("Loading...", key="pbar_status", font=("Arial", 12)),
-                    sg.ProgressBar(66, orientation="horizontal",key="pbar", size=(15,10)),
+                    sg.ProgressBar(66, orientation="horizontal", key="pbar", size=(15, 10)),
                     sg.Text(expand_x=True, key="pbar_spacer"),
                     sg.Button(
                         "Reset Quiz",
@@ -286,11 +282,6 @@ layout = [
                                     disabled=True,
                                     background_color=background_color,
                                     enable_events=True,
-                                    tooltip=(
-                                        "Automated answer checking may be incorrect.\n"
-                                        + "Use this checkbox to override an incorrect answer assessment "
-                                        + "\n(both right and wrong answers)."
-                                    ),
                                 ),
                                 sg.Text(
                                     "%Corr:",
@@ -324,8 +315,6 @@ window = sg.Window("LL Mini Leagues", layout=layout, finalize=True, return_keybo
 
 window["mini_league_selection"].update(values=search_minileagues(data))
 
-for i in range(1, 13):
-    window[f"correct_override_{i}"].TooltipObject.timeout = 300
 
 filtered_results = search_minileagues(data)
 specific_mini = get_specific_minileague(data, choice(filtered_results))
@@ -342,7 +331,6 @@ for day in specific_mini.data.match_days.keys():
     for q in specific_mini.data.match_days[day]:
         question_object = specific_mini.data.match_days[day][q]
 
-
         window[f"question_{i}"].update(value=question_object.question)
         window[f"answer_{i}"].update(value="*******")
         window[f"show/hide_{i}"].update(text="Show Answer", disabled=False)
@@ -351,8 +339,8 @@ for day in specific_mini.data.match_days.keys():
         window[f"question_percent_correct_{i}"].update(
             value="Submit answer to see", font=("Arial Italic", 10)
         )
-        question_object.index= i
-        i+=1
+        question_object.index = i
+        i += 1
 
 while True:
     event, values = window.read()
@@ -379,54 +367,15 @@ while True:
                 window[f"question_{i}"].update(value=question_object.question)
                 window[f"answer_{i}"].update(value="*******")
                 window[f"show/hide_{i}"].update(text="Show Answer", disabled=False)
-                window[f"answer_submission_{i}"].update(value="", disabled=False, background_color="white")
+                window[f"answer_submission_{i}"].update(
+                    value="", disabled=False, background_color="white"
+                )
                 window[f"submit_answer_button_{i}"].update(disabled=False)
                 window[f"question_percent_correct_{i}"].update(
                     value="Submit answer to see", font=("Arial Italic", 10)
                 )
-                question_object.index= i
-                i+=1
-
-    if event == "mini_league_filter_search":
-        filtered_results = search_minileagues(
-            list_of_onedays, search_word=values["mini_league_search"]
-        ) or [""]
-        window["mini_league_search"].update(value="")
-        if not filtered_results[0]:
-            filtered_results = search_minileagues(list_of_onedays)
-            sg.popup_error(
-                "WARNING - No Results",
-                font=("Arial", 16),
-                auto_close=True,
-                auto_close_duration=5,
-            )
-            continue
-
-        specific_mini = get_specific_minileague(data, choice(filtered_results))
-
-        i = 1
-        submitted_answers = {}
-        window["mini_league_title"].update(value=specific_mini.title)
-        window["mini_league_date"].update(value=specific_mini.date)
-        window["mini_league_selection"].update(value=specific_mini.title)
-        window["number_of_players"].update(value=specific_mini.number_of_players)
-        specific_mini = get_mini_data(specific_mini, window)
-        window["percent_correct"].update(value=str(specific_mini.overall_correct) + "%")
-
-        for day in specific_mini.data.match_days.keys():
-            for q in specific_mini.data.match_days[day]:
-                question_object = specific_mini.data.match_days[day][q]
-
-                window[f"question_{i}"].update(value=question_object.question)
-                window[f"answer_{i}"].update(value="*******")
-                window[f"show/hide_{i}"].update(text="Show Answer", disabled=False)
-                window[f"answer_submission_{i}"].update(value="", disabled=False, background_color="white")
-                window[f"submit_answer_button_{i}"].update(disabled=False)
-                window[f"question_percent_correct_{i}"].update(
-                    value="Submit answer to see", font=("Arial Italic", 10)
-                )
-                question_object.index= i
-                i+=1
+                question_object.index = i
+                i += 1
 
     if event in ("mini_league_selection", "full_reset"):
         if specific_mini.title != values["mini_league_selection"]:
@@ -438,7 +387,6 @@ while True:
             window["full_reset"].update(visible=True)
             window.refresh()
             specific_mini = get_specific_minileague(data, values["mini_league_selection"])
-
 
             window["mini_league_title"].update(value=specific_mini.title)
             window["mini_league_date"].update(value=specific_mini.date)
@@ -456,16 +404,18 @@ while True:
                 window[f"question_{i}"].update(value=question_object.question)
                 window[f"answer_{i}"].update(value="*******")
                 window[f"show/hide_{i}"].update(text="Show Answer", disabled=False)
-                window[f"answer_submission_{i}"].update(value="", disabled=False, background_color="white")
+                window[f"answer_submission_{i}"].update(
+                    value="", disabled=False, background_color="white"
+                )
                 window[f"submit_answer_button_{i}"].update(disabled=False)
                 window[f"question_percent_correct_{i}"].update(
                     value="Submit answer to see", font=("Arial Italic", 10)
                 )
-                question_object.index= i
-                i+=1
+                question_object.index = i
+                i += 1
 
     if "show/hide" in event:
-        if window.find_element_with_focus().Key in ("mini_league_search", "answer_submission"):
+        if window.find_element_with_focus().Key in ("answer_submission"):
             continue
 
         i = event.split("_")[-1]
@@ -476,6 +426,9 @@ while True:
         window[f"answer_submission_{i}"].update(disabled=True)
         window[f"submit_answer_button_{i}"].update(disabled=True)
         window[f"correct_override_{i}"].update(disabled=True)
+        window[f"question_percent_correct_{i}"].update(
+            value=question_object["%_correct"] + "%", font=font
+        )
 
         if window[f"show/hide_{i}"].get_text() == "Show Answer":
             try:
@@ -494,3 +447,45 @@ while True:
                     window[f"answer_{i}"].update(value="")
             except:
                 continue
+
+    if "submit_answer_button" in event:
+        i = event.split("_")[-1]
+        if not values[f"answer_submission_{i}"]:
+            continue
+
+        submitted_answer = values[f"answer_submission_{i}"].lower()
+        question_object = q_num_finder(specific_mini.data.match_days, i)
+        answer = question_object.answer
+        window[f"answer_{i}"].update(value=answer, font=("Arial", 16))
+        window[f"answer_submission_{i}"].update(disabled=True)
+        window[f"submit_answer_button_{i}"].update(disabled=True)
+        window[f"question_percent_correct_{i}"].update(
+            value=question_object["%_correct"] + "%", font=font
+        )
+
+        answers = re.findall("([^\/,()]+)", answer)
+        if len(answers) > 1:
+            correct = [
+                combined_correctness(submitted_answer, answer.strip(), True) for answer in answers
+            ]
+        else:
+            correct = [combined_correctness(submitted_answer, answer.strip())]
+
+        if any(correct):
+            right_answer = True
+            window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light green")
+
+        else:
+            right_answer = False
+            window[f"answer_submission_{i}"].Widget.configure(readonlybackground="red")
+
+        window[f"question_{i}"].set_focus()
+        window[f"correct_override_{i}"].update(disabled=False)
+
+    if "correct_override" in event:
+        if right_answer:
+            right_answer = False
+            window[f"answer_submission_{i}"].Widget.configure(readonlybackground="red")
+        else:
+            right_answer = True
+            window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light green")
