@@ -127,6 +127,34 @@ def q_num_finder(match_days, i):
         return match_days[f"day_{int(i)//6+1}"][f"Q{int(i)%6}"]
 
 
+def fix_sizes():
+    for i in range(66, 0, -1):
+        w = window[f"question_{i}"].Widget
+        height = w.tk.call(w._w, "count", "-displaylines", "1.0", "end")
+        window[f"question_{i}"].set_size((970, height + 1))
+        window[f"question_{i}"].expand(expand_x=True, expand_y=True, expand_row=False)
+
+        window.refresh()
+        window[f"frame_question_{i}"].set_size(
+            (
+                970,
+                (
+                    75
+                    + list(window[f"frame_question_{i}"].Widget.children.values())[0].winfo_height()
+                ),
+            )
+        )
+
+    window[f"frame_question_66"].set_size(
+        (
+            970,
+            (75 + list(window[f"frame_question_66"].Widget.children.values())[0].winfo_height()),
+        )
+    )
+    window.refresh()
+    window["questions_column"].contents_changed()
+
+
 font = "Arial", 16
 sg.theme("Reddit")
 background_color = "LightSteelBlue3"
@@ -148,19 +176,15 @@ layout = [
                         enable_events=True,
                     ),
                 ],
-                [
-                    sg.Button("Show Description", key="show_hide_blurb"),
-                    sg.Text(expand_x=True),
-                    sg.Button("Random", key="random_mini_league"),
-                ],
             ],
         ),
         sg.Frame(
             "Mini league Info",
-            size=(325, 105),
+            size=(375, 105),
             layout=[
-                [sg.Text("", key="mini_league_title", font=font)],
                 [
+                    sg.Text("", key="mini_league_title", font=font),
+                    sg.Text(expand_x=True),
                     sg.Text("Date:", font=("Arial", 14), pad=((5, 0), (5, 5))),
                     sg.Text("", font=("Arial", 14), key="mini_league_date", pad=((0, 5), (5, 5))),
                 ],
@@ -174,12 +198,12 @@ layout = [
             ],
         ),
         sg.Frame(
-            "Questions Reset",
-            size=(325, 105),
+            "Options",
+            size=(275, 105),
             layout=[
                 [
                     sg.Text("Loading...", key="pbar_status", font=("Arial", 12)),
-                    sg.ProgressBar(66, orientation="horizontal", key="pbar", size=(15, 10)),
+                    sg.ProgressBar(66, orientation="horizontal", key="pbar", size=(10, 10)),
                     sg.Text(expand_x=True, key="pbar_spacer"),
                     sg.Button(
                         "Reset Quiz",
@@ -187,29 +211,12 @@ layout = [
                         tooltip="Click this button to fully reset the quiz erasing all answers.",
                     ),
                 ],
-            ],
-        ),
-    ],
-    [
-        sg.Frame(
-            "Blurb",
-            expand_x=True,
-            key="blurb_frame",
-            size=(300, 1),
-            layout=[
                 [
-                    sg.Multiline(
-                        "",
-                        expand_x=True,
-                        expand_y=True,
-                        disabled=True,
-                        no_scrollbar=True,
-                        key="blurb_text",
-                        font=("Arial", 14),
-                    )
+                    sg.Text(expand_x=True),
+                    sg.Button("Random", key="random_mini_league"),
                 ],
             ],
-        )
+        ),
     ],
     [
         sg.Column(
@@ -218,20 +225,26 @@ layout = [
             scrollable=True,
             size=(975, 615),
             vertical_scroll_only=True,
+            justification="c",
+            element_justification="c",
+            key="questions_column",
             layout=[
                 [
                     sg.Frame(
                         f"Question {i}",
                         size=(970, 300),
                         expand_x=True,
-                        expand_y=True,
+                        expand_y=False,
                         background_color=background_color,
+                        key=f"frame_question_{i}",
                         layout=[
                             [
                                 sg.Multiline(
                                     key=f"question_{i}",
                                     font=("Arial", 20),
                                     disabled=True,
+                                    auto_size_text=True,
+                                    auto_refresh=True,
                                     no_scrollbar=True,
                                     expand_x=True,
                                     expand_y=True,
@@ -330,8 +343,8 @@ window["percent_correct"].update(value=str(specific_mini.overall_correct) + "%")
 for day in specific_mini.data.match_days.keys():
     for q in specific_mini.data.match_days[day]:
         question_object = specific_mini.data.match_days[day][q]
+        question_object.index = i
 
-        window[f"question_{i}"].update(value=question_object.question)
         window[f"answer_{i}"].update(value="*******")
         window[f"show/hide_{i}"].update(text="Show Answer", disabled=False)
         window[f"answer_submission_{i}"].update(value="", disabled=False, background_color="white")
@@ -339,8 +352,11 @@ for day in specific_mini.data.match_days.keys():
         window[f"question_percent_correct_{i}"].update(
             value="Submit answer to see", font=("Arial Italic", 10)
         )
-        question_object.index = i
+        window[f"question_{i}"].update(value=question_object.question)
         i += 1
+
+fix_sizes()
+
 
 while True:
     event, values = window.read()
@@ -376,6 +392,7 @@ while True:
                 )
                 question_object.index = i
                 i += 1
+        fix_sizes()
 
     if event in ("mini_league_selection", "full_reset"):
         if specific_mini.title != values["mini_league_selection"]:
@@ -413,6 +430,7 @@ while True:
                 )
                 question_object.index = i
                 i += 1
+        fix_sizes()
 
     if "show/hide" in event:
         if window.find_element_with_focus().Key in ("answer_submission"):
@@ -459,6 +477,7 @@ while True:
         window[f"answer_{i}"].update(value=answer, font=("Arial", 16))
         window[f"answer_submission_{i}"].update(disabled=True)
         window[f"submit_answer_button_{i}"].update(disabled=True)
+        window[f"show/hide_{i}"].update(text="Show Answer", disabled=True)
         window[f"question_percent_correct_{i}"].update(
             value=question_object["%_correct"] + "%", font=font
         )
@@ -489,3 +508,7 @@ while True:
         else:
             right_answer = True
             window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light green")
+
+    if event == "test":
+        w = window["question_1"].Widget
+        break
