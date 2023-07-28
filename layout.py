@@ -108,32 +108,32 @@ layout = [
                         ),
                         layout=[
                             [
-                                sg.Text("Rundle A %Corr: ", font=("Arial", 16)),
+                                sg.Text("Rundle A % Correct: ", font=("Arial", 16)),
                                 sg.Text(expand_x=True),
                                 sg.Text("", key="rundle_A", font=("Arial", 16)),
                             ],
                             [
-                                sg.Text("Rundle B %Corr: ", font=("Arial", 16)),
+                                sg.Text("Rundle B % Correct: ", font=("Arial", 16)),
                                 sg.Text(expand_x=True),
                                 sg.Text("", key="rundle_B", font=("Arial", 16)),
                             ],
                             [
-                                sg.Text("Rundle C %Corr: ", font=("Arial", 16)),
+                                sg.Text("Rundle C % Correct: ", font=("Arial", 16)),
                                 sg.Text(expand_x=True),
                                 sg.Text("", key="rundle_C", font=("Arial", 16)),
                             ],
                             [
-                                sg.Text("Rundle D %Corr: ", font=("Arial", 16)),
+                                sg.Text("Rundle D % Correct: ", font=("Arial", 16)),
                                 sg.Text(expand_x=True),
                                 sg.Text("", key="rundle_D", font=("Arial", 16)),
                             ],
                             [
-                                sg.Text("Rundle E %Corr: ", font=("Arial", 16)),
+                                sg.Text("Rundle E % Correct: ", font=("Arial", 16)),
                                 sg.Text(expand_x=True),
                                 sg.Text("", key="rundle_E", font=("Arial", 16)),
                             ],
                             [
-                                sg.Text("Rundle R %Corr: ", font=("Arial", 16)),
+                                sg.Text("Rundle R % Correct: ", font=("Arial", 16)),
                                 sg.Text(expand_x=True),
                                 sg.Text("", key="rundle_R", font=("Arial", 16)),
                             ],
