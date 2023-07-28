@@ -15,6 +15,7 @@ from PyDictionary import PyDictionary
 from check_for_updates import check_for_update
 from random import choice
 from onedays import oneday_main
+from minileagues import minileague
 from answer_correctness import combined_correctness
 
 
@@ -573,6 +574,11 @@ while True:
     if event == "onedays_button":
         window.hide()
         unhide = oneday_main()
+        window.un_hide()
+
+    if event == "minileague_button":
+        window.hide()
+        unhide = minileague()
         window.un_hide()
 
     # if the question number is clicked, open the link

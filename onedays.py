@@ -302,6 +302,7 @@ def oneday_main():
                 expand_y=True,
                 scrollable=True,
                 size=(975, 615),
+                key="questions_column",
                 vertical_scroll_only=True,
                 layout=[
                     [
@@ -310,6 +311,7 @@ def oneday_main():
                             size=(970, 300),
                             expand_x=True,
                             expand_y=True,
+                            key=f"frame_question_{i}",
                             background_color=background_color,
                             layout=[
                                 [
@@ -457,6 +459,30 @@ def oneday_main():
         window[f"question_percent_correct_{i}"].update(
             value="Submit answer to see", font=("Arial Italic", 10)
         )
+        w = window[f"question_{i}"].Widget
+        w.configure(yscrollcommand=False, state="disabled")
+        height = w.tk.call(w._w, "count", "-displaylines", "1.0", "end")
+        window[f"question_{i}"].set_size((970, height + 1))
+        window[f"question_{i}"].expand(expand_x=True, expand_y=True, expand_row=False)
+
+        window.refresh()
+        window[f"frame_question_{i}"].set_size(
+            (
+                970,
+                (
+                    105
+                    + list(window[f"frame_question_{i}"].Widget.children.values())[0].winfo_height()
+                ),
+            )
+        )
+    window[f"frame_question_12"].set_size(
+        (
+            970,
+            (105 + list(window[f"frame_question_12"].Widget.children.values())[0].winfo_height()),
+        )
+    )
+    window.refresh()
+    window["questions_column"].contents_changed()
 
     while True:
         event, values = window.read()
@@ -553,6 +579,37 @@ def oneday_main():
                 window[f"question_percent_correct_{i}"].update(
                     value="Submit answer to see", font=("Arial Italic", 10)
                 )
+                w = window[f"question_{i}"].Widget
+                w.configure(yscrollcommand=False, state="disabled")
+                height = w.tk.call(w._w, "count", "-displaylines", "1.0", "end")
+                window[f"question_{i}"].set_size((970, height + 1))
+                window[f"question_{i}"].expand(expand_x=True, expand_y=True, expand_row=False)
+
+                window.refresh()
+                window[f"frame_question_{i}"].set_size(
+                    (
+                        970,
+                        (
+                            105
+                            + list(window[f"frame_question_{i}"].Widget.children.values())[
+                                0
+                            ].winfo_height()
+                        ),
+                    )
+                )
+            window[f"frame_question_12"].set_size(
+                (
+                    970,
+                    (
+                        105
+                        + list(window[f"frame_question_12"].Widget.children.values())[
+                            0
+                        ].winfo_height()
+                    ),
+                )
+            )
+            window.refresh()
+            window["questions_column"].contents_changed()
 
         if event == "oneday_filter_search":
             filtered_results = search_onedays(
@@ -602,6 +659,37 @@ def oneday_main():
                 window[f"question_percent_correct_{i}"].update(
                     value="Submit answer to see", font=("Arial Italic", 10)
                 )
+                w = window[f"question_{i}"].Widget
+                w.configure(yscrollcommand=False, state="disabled")
+                height = w.tk.call(w._w, "count", "-displaylines", "1.0", "end")
+                window[f"question_{i}"].set_size((970, height + 1))
+                window[f"question_{i}"].expand(expand_x=True, expand_y=True, expand_row=False)
+
+                window.refresh()
+                window[f"frame_question_{i}"].set_size(
+                    (
+                        970,
+                        (
+                            105
+                            + list(window[f"frame_question_{i}"].Widget.children.values())[
+                                0
+                            ].winfo_height()
+                        ),
+                    )
+                )
+            window[f"frame_question_12"].set_size(
+                (
+                    970,
+                    (
+                        105
+                        + list(window[f"frame_question_12"].Widget.children.values())[
+                            0
+                        ].winfo_height()
+                    ),
+                )
+            )
+            window.refresh()
+            window["questions_column"].contents_changed()
 
         if event in ("oneday_selection", "full_reset"):
             oneday = get_oneday_data(
@@ -639,6 +727,37 @@ def oneday_main():
                 window[f"question_percent_correct_{i}"].update(
                     value="Submit answer to see", font=("Arial Italic", 10)
                 )
+                w = window[f"question_{i}"].Widget
+                w.configure(yscrollcommand=False, state="disabled")
+                height = w.tk.call(w._w, "count", "-displaylines", "1.0", "end")
+                window[f"question_{i}"].set_size((970, height + 1))
+                window[f"question_{i}"].expand(expand_x=True, expand_y=True, expand_row=False)
+
+                window.refresh()
+                window[f"frame_question_{i}"].set_size(
+                    (
+                        970,
+                        (
+                            105
+                            + list(window[f"frame_question_{i}"].Widget.children.values())[
+                                0
+                            ].winfo_height()
+                        ),
+                    )
+                )
+            window[f"frame_question_12"].set_size(
+                (
+                    970,
+                    (
+                        105
+                        + list(window[f"frame_question_12"].Widget.children.values())[
+                            0
+                        ].winfo_height()
+                    ),
+                )
+            )
+            window.refresh()
+            window["questions_column"].contents_changed()
 
         if "show/hide" in event:
             if window.find_element_with_focus().Key in ("oneday_search", "answer_submission"):
