@@ -20,6 +20,11 @@ layout = [
                                     key="onedays_button",
                                     tooltip="OneDay trivia (opens new window)",
                                 ),
+                                sg.Button(
+                                    "Mini Leagues",
+                                    key="minileague_button",
+                                    tooltip="Mini League trivia (opens new window)",
+                                ),
                                 sg.Text(expand_x=True),
                                 sg.Button("Filter", key="filter"),
                             ],

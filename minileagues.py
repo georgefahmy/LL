@@ -182,6 +182,7 @@ def load_questions(specific_mini, window):
         window.refresh()
         window["questions_column"].contents_changed()
 
+    specific_mini.data.score = 0
     return specific_mini
 
 
@@ -231,6 +232,10 @@ def minileague():
                         sg.Text(
                             "", key="number_of_players", font=("Arial", 14), pad=((0, 5), (5, 5))
                         ),
+                    ],
+                    [
+                        sg.Text("Score:", font=("Arial", 14), pad=((5, 0), (5, 5))),
+                        sg.Text("", font=("Arial", 14), key="score", pad=((0, 5), (5, 5))),
                     ],
                 ],
             ),
@@ -364,17 +369,16 @@ def minileague():
     window = sg.Window("LL Mini Leagues", layout=layout, finalize=True, return_keyboard_events=True)
 
     window["mini_league_selection"].update(values=search_minileagues(data))
-    [window[f"question_{i}"].bind("<ButtonPress-2>", "press") for i in range(1, 13)]
-    [window[f"question_{i}"].bind("<ButtonPress-1>", "click_here") for i in range(1, 13)]
+    [window[f"question_{i}"].bind("<ButtonPress-2>", "press") for i in range(1, 67)]
+    [window[f"question_{i}"].bind("<ButtonPress-1>", "click_here") for i in range(1, 67)]
     [
         window[f"answer_submission_{i}"].bind("<Return>", f"_submit_answer_button_{i}")
-        for i in range(1, 13)
+        for i in range(1, 67)
     ]
 
     filtered_results = search_minileagues(data)
     specific_mini = get_specific_minileague(data, choice(filtered_results))
     specific_mini = load_questions(specific_mini, window)
-
     while True:
         event, values = window.read()
 
@@ -511,24 +515,45 @@ def minileague():
             if any(correct):
                 right_answer = True
                 window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light green")
-
+                specific_mini.data.score += 1
             else:
                 right_answer = False
                 window[f"answer_submission_{i}"].Widget.configure(readonlybackground="red")
 
             window[f"question_{i}"].set_focus()
             window[f"correct_override_{i}"].update(disabled=False)
+            window["score"].update(value=specific_mini.data.score)
+
+            # TODO Check back for this in the future
+            # c = window["questions_column"].Widget
+            # c.children["!canvas"].yview_moveto(
+            #     (
+            #         (c.children["!canvas"].yview()[-1] + c.children["!canvas"].yview()[0])
+            #         * (
+            #             list(
+            #                 list(list(c.children.values())[0].children.values())[
+            #                     0
+            #                 ].children.values()
+            #             )[int(i) - 1].winfo_height()
+            #             / c.winfo_height()
+            #         )
+            #     )
+            # )
+            return window
 
         if "correct_override" in event:
             if right_answer:
                 right_answer = False
+                specific_mini.data.score -= 1
                 window[f"answer_submission_{i}"].Widget.configure(readonlybackground="red")
             else:
                 right_answer = True
                 window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light green")
+                specific_mini.data.score += 1
+            window["score"].update(value=specific_mini.data.score)
 
     return True
 
 
 if __name__ == "__main__":
-    minileague()
+    window = minileague()
