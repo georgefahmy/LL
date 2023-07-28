@@ -11,6 +11,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v2.3.5] - 2023-07-22
+### [v3.0.0] - 2023-07-27
 
-Fixed indexing bug in show/hide button.
+Mini League Support! You can now play past mini leagues (until the championship, round which requires login). there are hundreds of mini leagues to play, each with 66 questions!
