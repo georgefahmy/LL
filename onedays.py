@@ -19,6 +19,14 @@ BASE_URL = "https://www.learnedleague.com"
 WD = os.getcwd()
 
 
+def internet_on():
+    try:
+        requests.get("https://8.8.8.8")
+        return True
+    except requests.exceptions.ConnectionError as err:
+        return False
+
+
 def get_full_list_of_onedays():
     data = {
         info.find("td", {"class": "std-left"}).text: {
@@ -173,6 +181,12 @@ def get_oneday_data(oneday):
 
 
 def oneday_main():
+    if not internet_on():
+        sg.popup_ok(
+            "No Internet Connection.\nPlease reconnect or just play regular LL trivia.",
+            font=("arial", 14),
+        )
+        return True
     font = "Arial", 16
     sg.theme("Reddit")
     background_color = "LightSteelBlue3"

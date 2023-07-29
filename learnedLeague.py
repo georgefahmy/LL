@@ -205,15 +205,18 @@ def update_question(questions, window, i):
     return question_object
 
 
-latest_season = (
-    bs(
-        requests.get("https://www.learnedleague.com/allrundles.php").content,
-        "html.parser",
-        parse_only=ss("h1"),
+try:
+    latest_season = (
+        bs(
+            requests.get("https://www.learnedleague.com/allrundles.php").content,
+            "html.parser",
+            parse_only=ss("h1"),
+        )
+        .text.split(":")[0]
+        .split("LL")[-1]
     )
-    .text.split(":")[0]
-    .split("LL")[-1]
-)
+except:
+    latest_season = 97
 
 available_seasons = [str(season) for season in list(range(60, int(latest_season) + 1, 1))]
 

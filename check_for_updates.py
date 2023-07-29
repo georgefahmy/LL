@@ -66,9 +66,13 @@ def get_sudo_password():
 # Check if outdated
 def check_for_update():
     restart = False
-
-    version_response = requests.get("https://github.com/georgefahmy/LL/releases/latest")
-    new_version = version_response.url.split("/")[-1].strip("v") if version_response.ok else None
+    try:
+        version_response = requests.get("https://github.com/georgefahmy/LL/releases/latest")
+        new_version = (
+            version_response.url.split("/")[-1].strip("v") if version_response.ok else None
+        )
+    except:
+        return restart
 
     current_version = open(WD + "/resources/VERSION", "r").read().strip()
 
