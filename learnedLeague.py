@@ -437,6 +437,8 @@ while True:
             continue
 
         answer = question_object["answer"]
+        if not values[f"answer_submission"].lower():
+            window["answer_submission"].Widget.configure(readonlybackground="gray")
         window["answer_submission"].update(disabled=True)
         window["submit_answer_button"].update(disabled=True)
         window["correct_override"].update(disabled=True)
@@ -514,6 +516,7 @@ while True:
         window["answer"].update(value=answer, font=("Arial", 16))
         window["answer_submission"].update(disabled=True)
         window["submit_answer_button"].update(disabled=True)
+        window["show/hide"].update(text="Hide Answer")
 
         answers = re.findall("([^\/,()]+)", answer)
         if len(answers) > 1:
@@ -549,6 +552,7 @@ while True:
             os.mkdir(os.path.expanduser("~") + "/.LearnedLeague")
         with open(os.path.expanduser("~") + f"/.LearnedLeague/all_data.json", "w+") as fp:
             json.dump(all_data, fp, sort_keys=True, indent=4)
+        correct = []
 
     if "correct_override" in event:
         if right_answer:

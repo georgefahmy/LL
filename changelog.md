@@ -11,6 +11,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 # Changelog
 All notable changes to this project will be documented in this file.
 
-### [v3.0.1] - 2023-07-29
+### [v3.0.2] - 2023-08-05
 
-Minor update to handle issues when not connected to the internet.
+Fixed minor bug with showing an answer after submitting a previous answer causing the submission box to be red or green based on previous answers.
