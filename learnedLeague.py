@@ -179,7 +179,7 @@ def update_question(questions, window, i):
         window["question"].TooltipObject.timeout = 10
     else:
         window["question"].set_tooltip("")
-        window["question"].TooltipObject.timeout = 10000
+        window["question"].TooltipObject.timeout = 1000000
     window["num_questions"].update(value=len(list(questions.keys())))
     window["%_correct"].update(value=str(question_object["percent"]) + "%")
     window["season_number"].update(value=question_object["season"])
