@@ -1,18 +1,19 @@
-import requests
-import datetime
-import webbrowser
-import wikipedia
-import unicodedata
 import base64
-import os
-import PySimpleGUI as sg
-import re
+import datetime
 import json
-
-from bs4 import BeautifulSoup as bs
+import os
+import re
+import unicodedata
+import webbrowser
 from random import choice
-from answer_correctness import combined_correctness
+
+import PySimpleGUI as sg
+import requests
+import wikipedia
+from bs4 import BeautifulSoup as bs
 from PyDictionary import PyDictionary
+
+from answer_correctness import combined_correctness
 
 BASE_URL = "https://www.learnedleague.com"
 WD = os.getcwd()

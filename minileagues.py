@@ -1,18 +1,18 @@
-import requests
-import datetime
-import wikipedia
 import base64
+import datetime
 import os
-import PySimpleGUI as sg
 import re
-
-from bs4 import BeautifulSoup as bs
-from random import choice
-from answer_correctness import combined_correctness
-from PyDictionary import PyDictionary
 from collections import OrderedDict
-from dotmap import DotMap
+from random import choice
 
+import PySimpleGUI as sg
+import requests
+import wikipedia
+from bs4 import BeautifulSoup as bs
+from dotmap import DotMap
+from PyDictionary import PyDictionary
+
+from answer_correctness import combined_correctness
 
 BASE_URL = "https://www.learnedleague.com"
 WD = os.getcwd()

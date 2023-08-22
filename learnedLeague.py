@@ -1,23 +1,24 @@
-import requests
-import PySimpleGUI as sg
-import webbrowser
-import sys
-import os
 import base64
-import json
-import wikipedia
-import re
 import datetime
-
-from layout import layout
-from bs4 import BeautifulSoup as bs, SoupStrainer as ss
-from PyDictionary import PyDictionary
-from check_for_updates import check_for_update
+import json
+import os
+import re
+import sys
+import webbrowser
 from random import choice
-from onedays import oneday_main
-from minileagues import minileague
-from answer_correctness import combined_correctness
 
+import PySimpleGUI as sg
+import requests
+import wikipedia
+from bs4 import BeautifulSoup as bs
+from bs4 import SoupStrainer as ss
+from PyDictionary import PyDictionary
+
+from answer_correctness import combined_correctness
+from check_for_updates import check_for_update
+from layout import layout
+from minileagues import minileague
+from onedays import oneday_main
 
 BASE_URL = "https://www.learnedleague.com"
 

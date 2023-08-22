@@ -1,10 +1,10 @@
+import base64
 import os
+import subprocess
+
 import PySimpleGUI as sg
 import requests
 from packaging import version
-import base64
-import subprocess
-
 
 WD = os.getcwd()
 

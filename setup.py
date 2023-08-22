@@ -1,7 +1,8 @@
-from setuptools import setup
-from markdown import markdown
-from bs4 import BeautifulSoup
 import re
+
+from bs4 import BeautifulSoup
+from markdown import markdown
+from setuptools import setup
 
 VERSION = re.compile("[^0-9.]").sub(
     "",
