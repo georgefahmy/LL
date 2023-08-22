@@ -67,9 +67,13 @@ def get_sudo_password():
 def check_for_update():
     restart = False
     try:
-        version_response = requests.get("https://github.com/georgefahmy/LL/releases/latest")
+        version_response = requests.get(
+            "https://github.com/georgefahmy/LL/releases/latest"
+        )
         new_version = (
-            version_response.url.split("/")[-1].strip("v") if version_response.ok else None
+            version_response.url.split("/")[-1].strip("v")
+            if version_response.ok
+            else None
         )
     except:
         return restart
@@ -131,7 +135,9 @@ def check_for_update():
                 update_window["progress"].update(10)
                 os.system("cd $HOME/Downloads")
                 os.system(
-                    'cd  $HOME/Downloads; curl -L -o LearnedLeague.dmg "https://github.com/georgefahmy/LL/releases/latest/download/LearnedLeague.dmg"'
+                    "cd  $HOME/Downloads; curl -L -o LearnedLeague.dmg "
+                    + '"https://github.com/georgefahmy/LL/releases'
+                    + '/latest/download/LearnedLeague.dmg"'
                 )
                 update_window["progress"].update(30)
                 update_window["p_status"].update(value="Installing...")
@@ -140,7 +146,7 @@ def check_for_update():
                 update_window["p_status"].update(value="Removing old files...")
                 command = ["cp", "-rf", "Learned League.app", "/Applications"]
                 sudo_password = get_sudo_password()
-                p = subprocess.run(
+                _ = subprocess.run(
                     ["sudo", "-Sk"] + command,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,

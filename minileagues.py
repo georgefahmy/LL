@@ -1,20 +1,15 @@
 import requests
 import datetime
-import webbrowser
 import wikipedia
-import unicodedata
 import base64
 import os
 import PySimpleGUI as sg
 import re
-import json
 
 from bs4 import BeautifulSoup as bs
 from random import choice
-from pprint import pprint
 from answer_correctness import combined_correctness
 from PyDictionary import PyDictionary
-from time import sleep
 from collections import OrderedDict
 from dotmap import DotMap
 
@@ -27,7 +22,7 @@ def internet_on():
     try:
         requests.get("https://8.8.8.8")
         return True
-    except requests.exceptions.ConnectionError as err:
+    except requests.exceptions.ConnectionError:
         return False
 
 
@@ -46,9 +41,9 @@ def get_full_list_of_mini_leagues():
         if info.find("td", {"class": "std-left"})
     }
     for key in list(data.keys()):
-        if datetime.datetime.strptime(data[key]["date"], "%b %d, %Y") <= datetime.datetime(
-            2014, 1, 1
-        ):
+        if datetime.datetime.strptime(
+            data[key]["date"], "%b %d, %Y"
+        ) <= datetime.datetime(2014, 1, 1):
             del data[key]
 
     for key in list(data.keys()):
@@ -72,7 +67,9 @@ def search_minileagues(data, search_word=None):
     if not search_word:
         return sorted(list(data.keys()))
     else:
-        return sorted([val for val in list(data.keys()) if search_word.lower() in val.lower()])
+        return sorted(
+            [val for val in list(data.keys()) if search_word.lower() in val.lower()]
+        )
 
 
 def get_specific_minileague(data, mini_league_key):
@@ -83,7 +80,8 @@ def get_mini_data(specific_mini, window):
     p = 0
     page = bs(requests.get(specific_mini["url"]).content, "lxml")
     matches = {
-        re.split("(Match[^M]*|Champ[C]+)", match.text)[0]: BASE_URL + match.a.get("href")
+        re.split("(Match[^M]*|Champ[C]+)", match.text)[0]: BASE_URL
+        + match.a.get("href")
         for match in page.find("table", {"class": "mtch"}).find_all("tr")
         if match.text
     }
@@ -118,7 +116,13 @@ def get_mini_data(specific_mini, window):
 
     specific_mini["data"] = mini_details
     total = [
-        int(specific_mini.get("data").get("match_days").get(day).get(f"Q{i}").get("%_correct"))
+        int(
+            specific_mini.get("data")
+            .get("match_days")
+            .get(day)
+            .get(f"Q{i}")
+            .get("%_correct")
+        )
         for i in range(1, 7)
         for day in specific_mini.get("data").get("match_days")
     ]
@@ -163,7 +167,9 @@ def load_questions(specific_mini, window):
             w.configure(yscrollcommand=False, state="disabled")
             height = w.tk.call(w._w, "count", "-displaylines", "1.0", "end")
             window[f"question_{i}"].set_size((970, height + 1))
-            window[f"question_{i}"].expand(expand_x=True, expand_y=True, expand_row=False)
+            window[f"question_{i}"].expand(
+                expand_x=True, expand_y=True, expand_row=False
+            )
 
             window.refresh()
             window[f"frame_question_{i}"].set_size(
@@ -178,12 +184,14 @@ def load_questions(specific_mini, window):
                 )
             )
             i += 1
-        window[f"frame_question_66"].set_size(
+        window["frame_question_66"].set_size(
             (
                 970,
                 (
                     75
-                    + list(window[f"frame_question_66"].Widget.children.values())[0].winfo_height()
+                    + list(window["frame_question_66"].Widget.children.values())[
+                        0
+                    ].winfo_height()
                 ),
             )
         )
@@ -211,7 +219,11 @@ def minileague():
                 size=(275, 105),
                 layout=[
                     [
-                        sg.Text("Mini League:", font=font, tooltip="Choose a Mini league to load"),
+                        sg.Text(
+                            "Mini League:",
+                            font=font,
+                            tooltip="Choose a Mini league to load",
+                        ),
                         sg.Combo(
                             values=[],
                             key="mini_league_selection",
@@ -233,23 +245,38 @@ def minileague():
                         sg.Text(expand_x=True),
                         sg.Text("Date:", font=("Arial", 14), pad=((5, 0), (5, 5))),
                         sg.Text(
-                            "", font=("Arial", 14), key="mini_league_date", pad=((0, 5), (5, 5))
+                            "",
+                            font=("Arial", 14),
+                            key="mini_league_date",
+                            pad=((0, 5), (5, 5)),
                         ),
                     ],
                     [
-                        sg.Text("% Correct: ", font=("Arial", 14), pad=((5, 0), (5, 5))),
                         sg.Text(
-                            "", key="percent_correct", font=("Arial", 14), pad=((0, 5), (5, 5))
+                            "% Correct: ", font=("Arial", 14), pad=((5, 0), (5, 5))
+                        ),
+                        sg.Text(
+                            "",
+                            key="percent_correct",
+                            font=("Arial", 14),
+                            pad=((0, 5), (5, 5)),
                         ),
                         sg.Text(expand_x=True),
-                        sg.Text("Num Players: ", font=("Arial", 14), pad=((5, 0), (5, 5))),
                         sg.Text(
-                            "", key="number_of_players", font=("Arial", 14), pad=((0, 5), (5, 5))
+                            "Num Players: ", font=("Arial", 14), pad=((5, 0), (5, 5))
+                        ),
+                        sg.Text(
+                            "",
+                            key="number_of_players",
+                            font=("Arial", 14),
+                            pad=((0, 5), (5, 5)),
                         ),
                     ],
                     [
                         sg.Text("Score:", font=("Arial", 14), pad=((5, 0), (5, 5))),
-                        sg.Text("", font=("Arial", 14), key="score", pad=((0, 5), (5, 5))),
+                        sg.Text(
+                            "", font=("Arial", 14), key="score", pad=((0, 5), (5, 5))
+                        ),
                     ],
                 ],
             ),
@@ -259,12 +286,16 @@ def minileague():
                 layout=[
                     [
                         sg.Text("Loading...", key="pbar_status", font=("Arial", 12)),
-                        sg.ProgressBar(66, orientation="horizontal", key="pbar", size=(10, 10)),
+                        sg.ProgressBar(
+                            66, orientation="horizontal", key="pbar", size=(10, 10)
+                        ),
                         sg.Text(expand_x=True, key="pbar_spacer"),
                         sg.Button(
                             "Reset Quiz",
                             key="full_reset",
-                            tooltip="Click this button to fully reset the quiz erasing all answers.",
+                            tooltip="""
+                                Click this button to fully reset the quiz
+                                erasing all answers.""",
                         ),
                     ],
                     [
@@ -305,7 +336,10 @@ def minileague():
                                         expand_x=True,
                                         expand_y=True,
                                         enable_events=True,
-                                        right_click_menu=["&Right", ["!Lookup Selection"]],
+                                        right_click_menu=[
+                                            "&Right",
+                                            ["!Lookup Selection"],
+                                        ],
                                     )
                                 ],
                                 [
@@ -344,7 +378,9 @@ def minileague():
                                         disabled_button_color=("black", "gray"),
                                         bind_return_key=True,
                                     ),
-                                    sg.Text(expand_x=True, background_color=background_color),
+                                    sg.Text(
+                                        expand_x=True, background_color=background_color
+                                    ),
                                     sg.Checkbox(
                                         "Ans Override",
                                         key=f"correct_override_{i}",
@@ -355,14 +391,14 @@ def minileague():
                                     sg.Text(
                                         "%Corr:",
                                         font=font,
-                                        tooltip="Correct Answer Percentage (all players)",
+                                        tooltip="Percent Correct (all players)",
                                         background_color=background_color,
                                     ),
                                     sg.Text(
                                         "Submit answer to see",
                                         key=f"question_percent_correct_{i}",
                                         font=("Arial Italic", 10),
-                                        tooltip="Correct Answer Percentage (all players)",
+                                        tooltip="Percent Correct (all players)",
                                         background_color=background_color,
                                     ),
                                 ],
@@ -380,11 +416,16 @@ def minileague():
 
     icon_file = WD + "/resources/ll_app_logo.png"
     sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
-    window = sg.Window("LL Mini Leagues", layout=layout, finalize=True, return_keyboard_events=True)
+    window = sg.Window(
+        "LL Mini Leagues", layout=layout, finalize=True, return_keyboard_events=True
+    )
 
     window["mini_league_selection"].update(values=search_minileagues(data))
     [window[f"question_{i}"].bind("<ButtonPress-2>", "press") for i in range(1, 67)]
-    [window[f"question_{i}"].bind("<ButtonPress-1>", "click_here") for i in range(1, 67)]
+    [
+        window[f"question_{i}"].bind("<ButtonPress-1>", "click_here")
+        for i in range(1, 67)
+    ]
     [
         window[f"answer_submission_{i}"].bind("<Return>", f"_submit_answer_button_{i}")
         for i in range(1, 67)
@@ -409,10 +450,14 @@ def minileague():
             question_widget = window[f"question_{i}"].Widget
             selection_ranges = question_widget.tag_ranges(sg.tk.SEL)
             if selection_ranges:
-                window[f"question_{i}"].set_right_click_menu(["&Right", ["Lookup Selection"]])
+                window[f"question_{i}"].set_right_click_menu(
+                    ["&Right", ["Lookup Selection"]]
+                )
                 selected_text = question_widget.get(*selection_ranges)
             else:
-                window[f"question_{i}"].set_right_click_menu(["&Right", ["!Lookup Selection"]])
+                window[f"question_{i}"].set_right_click_menu(
+                    ["&Right", ["!Lookup Selection"]]
+                )
                 continue
 
         if event == "Lookup Selection":
@@ -425,13 +470,16 @@ def minileague():
                         selected_text
                         + "\n"
                         + "\n".join(
-                            [key + ": " + ", ".join(value) for key, value in definition.items()]
+                            [
+                                key + ": " + ", ".join(value)
+                                for key, value in definition.items()
+                            ]
                         )
                     )
                     print(result)
                     sg.popup_ok(result, title="Dictionary Result", font=("Arial", 16))
                     continue
-                except:
+                except Exception:
                     result = "No results available - Try another search."
             else:
                 try:
@@ -456,14 +504,20 @@ def minileague():
                 window["pbar_spacer"].update(visible=True)
                 window["full_reset"].update(visible=True)
                 window.refresh()
-                specific_mini = get_specific_minileague(data, values["mini_league_selection"])
+                specific_mini = get_specific_minileague(
+                    data, values["mini_league_selection"]
+                )
 
                 window["mini_league_title"].update(value=specific_mini.title)
                 window["mini_league_date"].update(value=specific_mini.date)
                 window["mini_league_selection"].update(value=specific_mini.title)
-                window["number_of_players"].update(value=specific_mini.number_of_players)
+                window["number_of_players"].update(
+                    value=specific_mini.number_of_players
+                )
                 specific_mini = get_mini_data(specific_mini, window)
-                window["percent_correct"].update(value=str(specific_mini.overall_correct) + "%")
+                window["percent_correct"].update(
+                    value=str(specific_mini.overall_correct) + "%"
+                )
 
             specific_mini = load_questions(specific_mini, window)
 
@@ -517,7 +571,7 @@ def minileague():
                 value=question_object["%_correct"] + "%", font=font
             )
 
-            answers = re.findall("([^\/,()]+)", answer)
+            answers = re.findall("([^/,()]+)", answer)
             if len(answers) > 1:
                 correct = [
                     combined_correctness(submitted_answer, answer.strip(), True)
@@ -528,11 +582,15 @@ def minileague():
 
             if any(correct):
                 right_answer = True
-                window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light green")
+                window[f"answer_submission_{i}"].Widget.configure(
+                    readonlybackground="light green"
+                )
                 specific_mini.data.score += 1
             else:
                 right_answer = False
-                window[f"answer_submission_{i}"].Widget.configure(readonlybackground="red")
+                window[f"answer_submission_{i}"].Widget.configure(
+                    readonlybackground="red"
+                )
 
             window[f"question_{i}"].set_focus()
             window[f"correct_override_{i}"].update(disabled=False)
@@ -542,7 +600,10 @@ def minileague():
             # c = window["questions_column"].Widget
             # c.children["!canvas"].yview_moveto(
             #     (
-            #         (c.children["!canvas"].yview()[-1] + c.children["!canvas"].yview()[0])
+            #         (
+            #             c.children["!canvas"].yview()[-1]
+            #             + c.children["!canvas"].yview()[0]
+            #         )
             #         * (
             #             list(
             #                 list(list(c.children.values())[0].children.values())[
@@ -559,10 +620,14 @@ def minileague():
             if right_answer:
                 right_answer = False
                 specific_mini.data.score -= 1
-                window[f"answer_submission_{i}"].Widget.configure(readonlybackground="red")
+                window[f"answer_submission_{i}"].Widget.configure(
+                    readonlybackground="red"
+                )
             else:
                 right_answer = True
-                window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light green")
+                window[f"answer_submission_{i}"].Widget.configure(
+                    readonlybackground="light green"
+                )
                 specific_mini.data.score += 1
             window["score"].update(value=specific_mini.data.score)
 

@@ -9,8 +9,8 @@ import wikipedia
 import re
 import datetime
 
-from bs4 import BeautifulSoup as bs, SoupStrainer as ss
 from layout import layout
+from bs4 import BeautifulSoup as bs, SoupStrainer as ss
 from PyDictionary import PyDictionary
 from check_for_updates import check_for_update
 from random import choice
@@ -33,7 +33,7 @@ def get_new_data(season_number):
     try:
         with open(WD + "/resources/all_data.json", "r") as fp:
             all_data = json.load(fp)
-    except:
+    except Exception:
         all_data = {}
 
     url = BASE_URL + "/match.php?" + str(season_number)
@@ -47,11 +47,13 @@ def get_new_data(season_number):
         ]
 
         percentages = [
-            cell.text for cell in page.find_all("tr")[-2].find_all("td", {"class": "ind-Q3"})
+            cell.text
+            for cell in page.find_all("tr")[-2].find_all("td", {"class": "ind-Q3"})
         ][2:-1]
 
         question_defense = [
-            cell.text for cell in page.find_all("tr")[-1].find_all("td", {"class": "ind-Q3"})
+            cell.text
+            for cell in page.find_all("tr")[-1].find_all("td", {"class": "ind-Q3"})
         ][2:-1]
 
         question_clickable_links = [
@@ -67,16 +69,26 @@ def get_new_data(season_number):
             "-".join(link.text.strip().split("-")[1:]).strip()
             for link in page.find_all("div", {"class": "ind-Q20 dont-break-out"})
         ]
-        answers = [link.text.strip() for link in page.find_all("div", {"class": "a-red"})]
+        answers = [
+            link.text.strip() for link in page.find_all("div", {"class": "a-red"})
+        ]
         date = page.find_all("h1", {"class": "matchday"})[0].text.strip().split(":")[0]
 
-        rundles = [row.find_all("td", {"class": "ind-Q3"}) for row in page.find_all("tr")[1:8]]
+        rundles = [
+            row.find_all("td", {"class": "ind-Q3"}) for row in page.find_all("tr")[1:8]
+        ]
 
         for j, question in enumerate(questions):
             question_num_code = "D" + str(i).zfill(2) + "Q" + str(j + 1)
             combined_season_num_code = "S" + season_number + question_num_code
             question_url = (
-                BASE_URL + "/question.php?" + str(season_number) + "&" + str(i) + "&" + str(j + 1)
+                BASE_URL
+                + "/question.php?"
+                + str(season_number)
+                + "&"
+                + str(i)
+                + "&"
+                + str(j + 1)
             )
 
             if len(question_clickable_links[j]) == 1:
@@ -175,7 +187,9 @@ def update_question(questions, window, i):
     window["question"].update(value=question)
     window["question"].metadata = question_object.get("clickable_link")
     if question_object.get("clickable_link"):
-        window["question"].set_tooltip("Click to Open: " + question_object.get("clickable_link"))
+        window["question"].set_tooltip(
+            "Click to Open: " + question_object.get("clickable_link")
+        )
         window["question"].TooltipObject.timeout = 10
     else:
         window["question"].set_tooltip("")
@@ -215,10 +229,12 @@ try:
         .text.split(":")[0]
         .split("LL")[-1]
     )
-except:
+except Exception:
     latest_season = 97
 
-available_seasons = [str(season) for season in list(range(60, int(latest_season) + 1, 1))]
+available_seasons = [
+    str(season) for season in list(range(60, int(latest_season) + 1, 1))
+]
 
 
 datapath = WD + "/resources/all_data.json"
@@ -228,8 +244,12 @@ if os.path.isfile(datapath):
 else:
     all_data = {}
 
-season_in_data = list(set([val.split("D")[0].strip("S") for val in list(all_data.keys())]))
-missing_seasons = sorted(list(set(available_seasons).symmetric_difference(set(season_in_data))))
+season_in_data = list(
+    set([val.split("D")[0].strip("S") for val in list(all_data.keys())])
+)
+missing_seasons = sorted(
+    list(set(available_seasons).symmetric_difference(set(season_in_data)))
+)
 
 if len(missing_seasons) > 0:
     icon_file = WD + "/resources/ll_app_logo.png"
@@ -240,7 +260,11 @@ if len(missing_seasons) > 0:
         [
             [
                 sg.ProgressBar(
-                    max_length, orientation="h", expand_x=True, size=(20, 20), key="-PBAR-"
+                    max_length,
+                    orientation="h",
+                    expand_x=True,
+                    size=(20, 20),
+                    key="-PBAR-",
                 )
             ],
             [
@@ -269,7 +293,9 @@ if len(missing_seasons) > 0:
         for season in missing_seasons:
             loading_window["-OUT-"].update("Loading New Season: " + str(season))
             all_data = get_new_data(season)
-            loading_window["-PBAR-"].update(current_count=missing_seasons.index(season) + 1)
+            loading_window["-PBAR-"].update(
+                current_count=missing_seasons.index(season) + 1
+            )
 
         loading_window.close()
 
@@ -349,20 +375,23 @@ while True:
                     selected_text
                     + "\n"
                     + "\n".join(
-                        [key + ": " + ", ".join(value) for key, value in definition.items()]
+                        [
+                            key + ": " + ", ".join(value)
+                            for key, value in definition.items()
+                        ]
                     )
                 )
                 print(result)
                 sg.popup_ok(result, title="Dictionary Result", font=("Arial", 16))
                 continue
-            except:
+            except Exception:
                 result = "No results available - Try another search."
         else:
             try:
                 result = wikipedia.summary(
                     selected_text, sentences=2, auto_suggest=True, redirect=True
                 )
-            except:
+            except Exception:
                 result = "No results available - Try another search."
 
             sg.popup_ok(result, title="Wiki Summary", font=("Arial", 16))
@@ -373,9 +402,13 @@ while True:
         answer = question_object.get("answer")
 
     if event in ("random_choice", "random_key"):
-        if window.find_element_with_focus() and window.find_element_with_focus().Key in (
-            "search_criteria",
-            "answer_submission",
+        if (
+            window.find_element_with_focus()
+            and window.find_element_with_focus().Key
+            in (
+                "search_criteria",
+                "answer_submission",
+            )
         ):
             continue
         i = choice(list(questions.keys()))
@@ -385,7 +418,8 @@ while True:
         window["submit_answer_button"].update(disabled=False)
         window["correct_override"].update(disabled=True)
 
-    # if the category dropdown is changed from ALL, or the filter button is pressed, display the new questions
+    # if the category dropdown is changed from ALL, or the filter button is pressed
+    # display the new questions
     if event in ["filter", "category_selection"]:
         if int(values["min_%"]) > int(values["max_%"]):
             values["max_%"] = str(int(values["min_%"]) + 1)
@@ -430,14 +464,18 @@ while True:
 
     # display or hide the answer for the currently displayed question
     if event in ("show/hide", "show_key"):
-        if window.find_element_with_focus() and window.find_element_with_focus().Key in (
-            "search_criteria",
-            "answer_submission",
+        if (
+            window.find_element_with_focus()
+            and window.find_element_with_focus().Key
+            in (
+                "search_criteria",
+                "answer_submission",
+            )
         ):
             continue
 
         answer = question_object["answer"]
-        if not values[f"answer_submission"].lower():
+        if not values["answer_submission"].lower():
             window["answer_submission"].Widget.configure(readonlybackground="gray")
         window["answer_submission"].update(disabled=True)
         window["submit_answer_button"].update(disabled=True)
@@ -448,7 +486,7 @@ while True:
                 window["show/hide"].update(text="Hide Answer")
 
                 window["answer"].update(value=answer, font=("Arial", 16))
-            except:
+            except Exception:
                 continue
 
         elif window["show/hide"].get_text() == "Hide Answer":
@@ -458,15 +496,19 @@ while True:
                     window["answer"].update(value="******")
                 else:
                     window["answer"].update(value="")
-            except:
+            except Exception:
                 continue
 
-    # if the next or previous or a specific question is selected, display that question and its information
-    # and hide the answer.
+    # if the next or previous or a specific question is selected, display that question
+    # and its information and hide the answer.
     if event in ["next", "previous", "dropdown", "next_key", "previous_key"]:
-        if window.find_element_with_focus() and window.find_element_with_focus().Key in (
-            "search_criteria",
-            "answer_submission",
+        if (
+            window.find_element_with_focus()
+            and window.find_element_with_focus().Key
+            in (
+                "search_criteria",
+                "answer_submission",
+            )
         ):
             continue
 
@@ -508,33 +550,36 @@ while True:
             window["previous"].update(disabled=False)
 
     if "submit_answer_button" in event:
-        if not values[f"answer_submission"]:
+        if not values["answer_submission"]:
             continue
 
-        submitted_answer = values[f"answer_submission"].lower()
+        submitted_answer = values["answer_submission"].lower()
         answer = question_object["answer"]
         window["answer"].update(value=answer, font=("Arial", 16))
         window["answer_submission"].update(disabled=True)
         window["submit_answer_button"].update(disabled=True)
         window["show/hide"].update(text="Hide Answer")
 
-        answers = re.findall("([^\/,()]+)", answer)
+        answers = re.findall("([^/,()]+)", answer)
         if len(answers) > 1:
             correct = [
-                combined_correctness(submitted_answer, answer.strip(), True) for answer in answers
+                combined_correctness(submitted_answer, answer.strip(), True)
+                for answer in answers
             ]
         else:
             correct = [combined_correctness(submitted_answer, answer.strip())]
 
         if any(correct):
             right_answer = True
-            window["answer_submission"].Widget.configure(readonlybackground="light green")
+            window["answer_submission"].Widget.configure(
+                readonlybackground="light green"
+            )
 
         else:
             right_answer = False
             window["answer_submission"].Widget.configure(readonlybackground="red")
 
-        window[f"question"].set_focus()
+        window["question"].set_focus()
         window["correct_override"].update(disabled=False)
 
         # track answers in all_data.json
@@ -550,17 +595,21 @@ while True:
         all_data[data_code]["answers"] = past_answers
         if not os.path.isdir(os.path.expanduser("~") + "/.LearnedLeague"):
             os.mkdir(os.path.expanduser("~") + "/.LearnedLeague")
-        with open(os.path.expanduser("~") + f"/.LearnedLeague/all_data.json", "w+") as fp:
+        with open(
+            os.path.expanduser("~") + "/.LearnedLeague/all_data.json", "w+"
+        ) as fp:
             json.dump(all_data, fp, sort_keys=True, indent=4)
         correct = []
 
     if "correct_override" in event:
         if right_answer:
             right_answer = False
-            window[f"answer_submission"].Widget.configure(readonlybackground="red")
+            window["answer_submission"].Widget.configure(readonlybackground="red")
         else:
             right_answer = True
-            window[f"answer_submission"].Widget.configure(readonlybackground="light green")
+            window["answer_submission"].Widget.configure(
+                readonlybackground="light green"
+            )
 
         answer_dict = {
             "answer": submitted_answer,
@@ -575,7 +624,9 @@ while True:
         if not os.path.isdir(os.path.expanduser("~") + "/.LearnedLeague"):
             os.mkdir(os.path.expanduser("~") + "/.LearnedLeague")
 
-        with open(os.path.expanduser("~") + f"/.LearnedLeague/all_data.json", "w+") as fp:
+        with open(
+            os.path.expanduser("~") + "/.LearnedLeague/all_data.json", "w+"
+        ) as fp:
             json.dump(all_data, fp, sort_keys=True, indent=4)
 
     if event == "onedays_button":

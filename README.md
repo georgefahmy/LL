@@ -1,6 +1,7 @@
 # Learned League Tool
 
 ## Background
+
 Learned League is an invite only online trivia competition. Each season is 25 days long and occurs four times per year. The format includes answering six questions against an opponent, and assigning point values to each question. Whoever has a higher score after the six questions wins that day. https://www.learnedleague.com
 
 ## Purpose
@@ -9,7 +10,7 @@ The purpose of this tool is to allow a user to see questions from past seasons (
 
 ## Download
 
-To download the latest version of the app: https://github.com/georgefahmy/LL/releases/latest/download/LearnedLeague.dmg. 
+To download the latest version of the app: https://github.com/georgefahmy/LL/releases/latest/download/LearnedLeague.dmg.
 
 ## Installation
 

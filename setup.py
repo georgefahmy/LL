@@ -1,13 +1,13 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 from markdown import markdown
 from bs4 import BeautifulSoup
 import re
 
-VERSION = re.compile("[^0-9\.]").sub(
+VERSION = re.compile("[^0-9.]").sub(
     "",
     (
         BeautifulSoup(markdown(open("changelog.md", "r").read()), "html.parser")
-        .find_all(string=re.compile("v[\.0-9]+"))[0]
+        .find_all(string=re.compile("v[.0-9]+"))[0]
         .split()[0]
     ),
 )
@@ -46,7 +46,8 @@ setup(
     author="George Fahmy",
     description="LearnedLeague",
     python_requires=">=3.10",
-    long_description="""The Learned League app allows access to the learned league seasons from the past and allows users
-        to experience difficult trivia. Some stats are provided about the difficulty of each question based on the % of
+    long_description="""The Learned League app allows access to the learned league
+        seasons from the past and allows users to experience difficult trivia.
+        Some stats are provided about the difficulty of each question based on the % of
         people that got that question correct.""",
 )

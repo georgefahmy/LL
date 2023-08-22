@@ -104,7 +104,8 @@ layout = [
                         expand_x=True,
                         tooltip=(
                             "Learned League has 5 Rundles (A, B, C, D, E and R).\n"
-                            + "Rundle A has the top players, and Rundle R is for Rookies playing in their first season."
+                            + "Rundle A has the top players, and Rundle R is for "
+                            + "Rookies playing in their first season."
                         ),
                         layout=[
                             [
@@ -185,40 +186,48 @@ layout = [
                             [
                                 sg.Text("Category: ", font=("Arial", 16)),
                                 sg.Text(expand_x=True),
-                                sg.Text("", key="question_category", font=("Arial", 16)),
+                                sg.Text(
+                                    "", key="question_category", font=("Arial", 16)
+                                ),
                             ],
                             [
                                 sg.Text(
                                     "% Correct: ",
                                     font=("Arial", 16),
-                                    tooltip="Percentage of people who got the answer correct",
+                                    tooltip="""
+                                    Percentage of people who got the answer correct""",
                                 ),
                                 sg.Text(
                                     expand_x=True,
-                                    tooltip="Percentage of people who got the answer correct",
+                                    tooltip="""
+                                    Percentage of people who got the answer correct""",
                                 ),
                                 sg.Text(
                                     "",
                                     key="%_correct",
                                     font=("Arial", 16),
-                                    tooltip="Percentage of people who got the answer correct",
+                                    tooltip="""
+                                    Percentage of people who got the answer correct""",
                                 ),
                             ],
                             [
                                 sg.Text(
                                     "Defense Value: ",
                                     font=("Arial", 16),
-                                    tooltip="Values 0 - 3 with 3 being considered hardest and 0 considered easiest",
+                                    tooltip="Values 0 - 3 with 3 being considered "
+                                    + "hardest and 0 considered easiest",
                                 ),
                                 sg.Text(
                                     expand_x=True,
-                                    tooltip="Values 0 - 3 with 3 being considered hardest and 0 considered easiest",
+                                    tooltip="Values 0 - 3 with 3 being considered "
+                                    + "hardest and 0 considered easiest",
                                 ),
                                 sg.Text(
                                     "",
                                     key="defense",
                                     font=("Arial", 16),
-                                    tooltip="Values 0 - 3 with 3 being considered hardest and 0 considered easiest",
+                                    tooltip="Values 0 - 3 with 3 being considered "
+                                    + "hardest and 0 considered easiest",
                                 ),
                             ],
                         ],
@@ -265,7 +274,7 @@ layout = [
                     sg.Text(
                         "Total Questions: ",
                         font=("Arial", 16),
-                        tooltip="Total number of questions available with the current filters.",
+                        tooltip="Questions available with the current filters.",
                     ),
                     sg.Text("", key="num_questions", font=("Arial", 16), expand_x=True),
                     sg.Button(
@@ -306,7 +315,7 @@ layout = [
                     ),
                     sg.Input(
                         "",
-                        key=f"answer_submission",
+                        key="answer_submission",
                         font=("Arial", 16),
                         expand_x=True,
                         use_readonly_for_disable=True,
@@ -324,8 +333,8 @@ layout = [
                         enable_events=True,
                         tooltip=(
                             "Automated answer checking may be incorrect.\n"
-                            + "Use this checkbox to override an incorrect answer assessment "
-                            + "\n(both right and wrong answers)."
+                            + "Use this checkbox to override an incorrect answer "
+                            + "assessment \n(both right and wrong answers)."
                         ),
                     ),
                 ],

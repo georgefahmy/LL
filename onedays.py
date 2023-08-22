@@ -11,19 +11,19 @@ import json
 
 from bs4 import BeautifulSoup as bs
 from random import choice
-from pprint import pprint
 from answer_correctness import combined_correctness
 from PyDictionary import PyDictionary
 
 BASE_URL = "https://www.learnedleague.com"
 WD = os.getcwd()
+MODKOS = "https://www.learnedleague.com/images/misc/ModKos.png?t=1649"
 
 
 def internet_on():
     try:
         requests.get("https://8.8.8.8")
         return True
-    except requests.exceptions.ConnectionError as err:
+    except requests.exceptions.ConnectionError:
         return False
 
 
@@ -40,7 +40,10 @@ def get_full_list_of_onedays():
     }
 
     for key in list(data.keys()):
-        if datetime.datetime.strptime(data[key]["date"], "%b %d, %Y") >= datetime.datetime.now():
+        if (
+            datetime.datetime.strptime(data[key]["date"], "%b %d, %Y")
+            >= datetime.datetime.now()
+        ):
             del data[key]
 
     for key in list(data.keys()):
@@ -74,7 +77,8 @@ def get_specific_oneday(data, onedaykey):
 
 def get_oneday_data(oneday):
     if os.path.isfile(
-        os.path.expanduser("~") + f"/.LearnedLeague/onedays/{re.sub(' ','_', oneday['title'])}.json"
+        os.path.expanduser("~")
+        + f"/.LearnedLeague/onedays/{re.sub(' ','_', oneday['title'])}.json"
     ):
         print("file exists")
         with open(
@@ -88,7 +92,9 @@ def get_oneday_data(oneday):
     page = bs(requests.get(oneday["url"]).content, "lxml")
     try:
         metrics_page = bs(
-            requests.get(BASE_URL + page.find("ul", {"id": "profilestabs"}).a.get("href")).content,
+            requests.get(
+                BASE_URL + page.find("ul", {"id": "profilestabs"}).a.get("href")
+            ).content,
             "lxml",
         )
     except:
@@ -96,15 +102,17 @@ def get_oneday_data(oneday):
     try:
         questions = [
             ". ".join(q.text.split(".")[1:]).strip()
-            for q in page.find("div", {"id": "qs_close", "class": "qdivshow_wide"}).find_all("p")
+            for q in page.find(
+                "div", {"id": "qs_close", "class": "qdivshow_wide"}
+            ).find_all("p")
         ]
     except:
         return None
     answers = [
         a.text.strip().split("\n")[-1]
-        for a in page.find("div", {"id": "qs_close", "class": "qdivshow_wide"}).find_all(
-            "div", {"class": "answer3"}
-        )
+        for a in page.find(
+            "div", {"id": "qs_close", "class": "qdivshow_wide"}
+        ).find_all("div", {"class": "answer3"})
     ]
     if metrics_page:
         question_metrics = [
@@ -139,19 +147,25 @@ def get_oneday_data(oneday):
         number_of_players = sum(
             [
                 int(row.find_all("td")[1].text)
-                for row in metrics_page.find("div", {"class": "byl_container"}).find_all("tr")[1:]
+                for row in metrics_page.find(
+                    "div", {"class": "byl_container"}
+                ).find_all("tr")[1:]
             ]
         )
     check_blurb = page.find("div", {"id": "blurb_close"})
     if check_blurb:
-        blurb = re.sub("[\r\n]+", "\n", "".join(check_blurb.text.split("blurb")[1:]).strip())
+        blurb = re.sub(
+            "[\r\n]+", "\n", "".join(check_blurb.text.split("blurb")[1:]).strip()
+        )
     else:
         blurb = ""
     if "ModKos" in blurb.split():
         ratings = set(["G", "PG", "PG-13", "R", "X"])
         ind = [
             i
-            for i, e in enumerate([val.replace(".", "").strip() for val in blurb.split()])
+            for i, e in enumerate(
+                [val.replace(".", "").strip() for val in blurb.split()]
+            )
             if e in ratings
         ]
         if ind:
@@ -198,11 +212,19 @@ def oneday_main():
                 layout=[
                     [
                         sg.Text("Search:", font=font),
-                        sg.Input("", key="oneday_search", font=font, size=(14, 1), expand_x=True),
+                        sg.Input(
+                            "",
+                            key="oneday_search",
+                            font=font,
+                            size=(14, 1),
+                            expand_x=True,
+                        ),
                         sg.Button("Search", key="oneday_filter_search"),
                     ],
                     [
-                        sg.Text("OneDay:", font=font, tooltip="Choose a OneDay to load"),
+                        sg.Text(
+                            "OneDay:", font=font, tooltip="Choose a OneDay to load"
+                        ),
                         sg.Combo(
                             values=[],
                             key="oneday_selection",
@@ -232,8 +254,8 @@ def oneday_main():
                             pad=((5, 0), (5, 5)),
                             enable_events=True,
                             key="difficulty_tooltip",
-                            tooltip="https://www.learnedleague.com/images/misc/ModKos.png?t=1649",
-                            metadata="https://www.learnedleague.com/images/misc/ModKos.png?t=1649",
+                            tooltip="Click to read the definition of the difficulty",
+                            metadata=MODKOS,
                         ),
                         sg.Text(
                             "",
@@ -243,17 +265,32 @@ def oneday_main():
                             pad=((0, 5), (5, 5)),
                         ),
                         sg.Text("Date:", font=("Arial", 14), pad=((5, 0), (5, 5))),
-                        sg.Text("", font=("Arial", 14), key="oneday_date", pad=((0, 5), (5, 5))),
+                        sg.Text(
+                            "",
+                            font=("Arial", 14),
+                            key="oneday_date",
+                            pad=((0, 5), (5, 5)),
+                        ),
                     ],
                     [
-                        sg.Text("% Correct: ", font=("Arial", 14), pad=((5, 0), (5, 5))),
                         sg.Text(
-                            "", key="percent_correct", font=("Arial", 14), pad=((0, 5), (5, 5))
+                            "% Correct: ", font=("Arial", 14), pad=((5, 0), (5, 5))
+                        ),
+                        sg.Text(
+                            "",
+                            key="percent_correct",
+                            font=("Arial", 14),
+                            pad=((0, 5), (5, 5)),
                         ),
                         sg.Text(expand_x=True),
-                        sg.Text("Num Players: ", font=("Arial", 14), pad=((5, 0), (5, 5))),
                         sg.Text(
-                            "", key="number_of_players", font=("Arial", 14), pad=((0, 5), (5, 5))
+                            "Num Players: ", font=("Arial", 14), pad=((5, 0), (5, 5))
+                        ),
+                        sg.Text(
+                            "",
+                            key="number_of_players",
+                            font=("Arial", 14),
+                            pad=((0, 5), (5, 5)),
                         ),
                     ],
                 ],
@@ -269,18 +306,24 @@ def oneday_main():
                         sg.Button(
                             "Reset Quiz",
                             key="full_reset",
-                            tooltip="Click this button to fully reset the quiz erasing all answers.",
+                            tooltip="Click this button to reset the quiz.",
                         ),
                     ],
                     [sg.HorizontalSeparator()],
                     [
                         sg.Text("Pts Percentile:", font=("Arial Bold", 14)),
                         sg.Text("90th:", font=("Arial", 14), pad=0),
-                        sg.Text("", key="90th_percent", font=("Arial Italic", 14), pad=0),
+                        sg.Text(
+                            "", key="90th_percent", font=("Arial Italic", 14), pad=0
+                        ),
                         sg.Text("50th:", font=("Arial", 14), pad=0),
-                        sg.Text("", key="50th_percent", font=("Arial Italic", 14), pad=0),
+                        sg.Text(
+                            "", key="50th_percent", font=("Arial Italic", 14), pad=0
+                        ),
                         sg.Text("10th:", font=("Arial", 14), pad=0),
-                        sg.Text("", key="10th_percent", font=("Arial Italic", 14), pad=0),
+                        sg.Text(
+                            "", key="10th_percent", font=("Arial Italic", 14), pad=0
+                        ),
                     ],
                     [
                         sg.Text("Money Questions Remaining: ", font=font),
@@ -337,7 +380,10 @@ def oneday_main():
                                         expand_x=True,
                                         expand_y=True,
                                         enable_events=True,
-                                        right_click_menu=["&Right", ["!Lookup Selection"]],
+                                        right_click_menu=[
+                                            "&Right",
+                                            ["!Lookup Selection"],
+                                        ],
                                     )
                                 ],
                                 [
@@ -363,7 +409,8 @@ def oneday_main():
                                         key=f"money_check_{i}",
                                         font=font,
                                         background_color=background_color,
-                                        tooltip="If correct - get points equal to % of people who got the question wrong",
+                                        tooltip="""If correct - get points equal to % of
+                                          people who got the question wrong""",
                                     ),
                                 ],
                                 [
@@ -385,7 +432,9 @@ def oneday_main():
                                         disabled_button_color=("black", "gray"),
                                         bind_return_key=True,
                                     ),
-                                    sg.Text(expand_x=True, background_color=background_color),
+                                    sg.Text(
+                                        expand_x=True, background_color=background_color
+                                    ),
                                     sg.Checkbox(
                                         "Ans Override",
                                         key=f"correct_override_{i}",
@@ -393,22 +442,23 @@ def oneday_main():
                                         background_color=background_color,
                                         enable_events=True,
                                         tooltip=(
-                                            "Automated answer checking may be incorrect.\n"
-                                            + "Use this checkbox to override an incorrect answer assessment "
+                                            "Automated  checking may be incorrect.\n"
+                                            + "Use this checkbox to override an "
+                                            + "incorrect answer assessment "
                                             + "\n(both right and wrong answers)."
                                         ),
                                     ),
                                     sg.Text(
                                         "%Corr:",
                                         font=font,
-                                        tooltip="Correct Answer Percentage (all players)",
+                                        tooltip="Percent Correct (all players)",
                                         background_color=background_color,
                                     ),
                                     sg.Text(
                                         "Submit answer to see",
                                         key=f"question_percent_correct_{i}",
                                         font=("Arial Italic", 10),
-                                        tooltip="Correct Answer Percentage (all players)",
+                                        tooltip="Percent Correct (all players)",
                                         background_color=background_color,
                                     ),
                                 ],
@@ -421,17 +471,24 @@ def oneday_main():
         ],
     ]
 
-    list_of_onedays = get_full_list_of_onedays()  # one time use? store this data in a json file?
+    list_of_onedays = (
+        get_full_list_of_onedays()
+    )  # one time use? store this data in a json file?
     font = "Arial", 16
 
     icon_file = WD + "/resources/ll_app_logo.png"
     sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
-    window = sg.Window("OneDay Trivia", layout=layout, finalize=True, return_keyboard_events=True)
+    window = sg.Window(
+        "OneDay Trivia", layout=layout, finalize=True, return_keyboard_events=True
+    )
 
     window["oneday_selection"].update(values=search_onedays(list_of_onedays))
 
     [window[f"question_{i}"].bind("<ButtonPress-2>", "press") for i in range(1, 13)]
-    [window[f"question_{i}"].bind("<ButtonPress-1>", "click_here") for i in range(1, 13)]
+    [
+        window[f"question_{i}"].bind("<ButtonPress-1>", "click_here")
+        for i in range(1, 13)
+    ]
     [
         window[f"answer_submission_{i}"].bind("<Return>", f"_submit_answer_button_{i}")
         for i in range(1, 13)
@@ -440,9 +497,13 @@ def oneday_main():
         window[f"correct_override_{i}"].TooltipObject.timeout = 300
 
     filtered_results = search_onedays(list_of_onedays)
-    oneday = get_oneday_data(get_specific_oneday(list_of_onedays, choice(filtered_results)))
+    oneday = get_oneday_data(
+        get_specific_oneday(list_of_onedays, choice(filtered_results))
+    )
     while not oneday:
-        oneday = get_oneday_data(get_specific_oneday(list_of_onedays, choice(filtered_results)))
+        oneday = get_oneday_data(
+            get_specific_oneday(list_of_onedays, choice(filtered_results))
+        )
 
     data = oneday["data"]
     i = 1
@@ -468,7 +529,9 @@ def oneday_main():
         window[f"answer_{i}"].update(value="*******")
         window[f"money_check_{i}"].update(disabled=False, value=False)
         window[f"show/hide_{i}"].update(text="Show Answer", disabled=False)
-        window[f"answer_submission_{i}"].update(value="", disabled=False, background_color="white")
+        window[f"answer_submission_{i}"].update(
+            value="", disabled=False, background_color="white"
+        )
         window[f"submit_answer_button_{i}"].update(disabled=False)
         window[f"question_percent_correct_{i}"].update(
             value="Submit answer to see", font=("Arial Italic", 10)
@@ -485,14 +548,21 @@ def oneday_main():
                 970,
                 (
                     105
-                    + list(window[f"frame_question_{i}"].Widget.children.values())[0].winfo_height()
+                    + list(window[f"frame_question_{i}"].Widget.children.values())[
+                        0
+                    ].winfo_height()
                 ),
             )
         )
-    window[f"frame_question_12"].set_size(
+    window["frame_question_12"].set_size(
         (
             970,
-            (105 + list(window[f"frame_question_12"].Widget.children.values())[0].winfo_height()),
+            (
+                105
+                + list(window["frame_question_12"].Widget.children.values())[
+                    0
+                ].winfo_height()
+            ),
         )
     )
     window.refresh()
@@ -517,10 +587,14 @@ def oneday_main():
             question_widget = window[f"question_{i}"].Widget
             selection_ranges = question_widget.tag_ranges(sg.tk.SEL)
             if selection_ranges:
-                window[f"question_{i}"].set_right_click_menu(["&Right", ["Lookup Selection"]])
+                window[f"question_{i}"].set_right_click_menu(
+                    ["&Right", ["Lookup Selection"]]
+                )
                 selected_text = question_widget.get(*selection_ranges)
             else:
-                window[f"question_{i}"].set_right_click_menu(["&Right", ["!Lookup Selection"]])
+                window[f"question_{i}"].set_right_click_menu(
+                    ["&Right", ["!Lookup Selection"]]
+                )
                 continue
 
         if event == "Lookup Selection":
@@ -533,7 +607,10 @@ def oneday_main():
                         selected_text
                         + "\n"
                         + "\n".join(
-                            [key + ": " + ", ".join(value) for key, value in definition.items()]
+                            [
+                                key + ": " + ", ".join(value)
+                                for key, value in definition.items()
+                            ]
                         )
                     )
                     print(result)
@@ -561,7 +638,9 @@ def oneday_main():
                 window["show_hide_blurb"].update(text="Hide Description")
 
         if event == "random_oneday":
-            oneday = get_oneday_data(get_specific_oneday(list_of_onedays, choice(filtered_results)))
+            oneday = get_oneday_data(
+                get_specific_oneday(list_of_onedays, choice(filtered_results))
+            )
             data = oneday["data"]
             score = 0
             num_of_money_questions_left = 5
@@ -570,7 +649,9 @@ def oneday_main():
                 question_object = data[i]
                 window["oneday_title"].update(value=oneday["title"])
                 window["difficulty"].update(value=oneday["difficulty_rating"])
-                window["percent_correct"].update(value=str(oneday["overall_average"]) + "%")
+                window["percent_correct"].update(
+                    value=str(oneday["overall_average"]) + "%"
+                )
                 window["blurb_text"].update(value=oneday["blurb"])
                 window["oneday_date"].update(value=oneday["date"])
                 window["oneday_selection"].update(value=oneday["title"])
@@ -579,7 +660,9 @@ def oneday_main():
                 window["10th_percent"].update(value=oneday["10th_percentile"])
                 window["number_of_players"].update(value=oneday["number_of_players"])
                 window["score"].update(value=score)
-                window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
+                window["num_of_money_questions_left"].update(
+                    value=num_of_money_questions_left
+                )
 
                 window[f"question_{i}"].update(value=question_object["_question"])
                 window[f"answer_{i}"].update(value="*******")
@@ -588,7 +671,9 @@ def oneday_main():
                 window[f"answer_submission_{i}"].update(
                     value="", disabled=False, background_color="white"
                 )
-                window[f"answer_submission_{i}"].bind("<Return>", f"_submit_answer_button_{i}")
+                window[f"answer_submission_{i}"].bind(
+                    "<Return>", f"_submit_answer_button_{i}"
+                )
                 window[f"submit_answer_button_{i}"].update(disabled=False)
                 window[f"question_percent_correct_{i}"].update(
                     value="Submit answer to see", font=("Arial Italic", 10)
@@ -597,7 +682,9 @@ def oneday_main():
                 w.configure(yscrollcommand=False, state="disabled")
                 height = w.tk.call(w._w, "count", "-displaylines", "1.0", "end")
                 window[f"question_{i}"].set_size((970, height + 1))
-                window[f"question_{i}"].expand(expand_x=True, expand_y=True, expand_row=False)
+                window[f"question_{i}"].expand(
+                    expand_x=True, expand_y=True, expand_row=False
+                )
 
                 window.refresh()
                 window[f"frame_question_{i}"].set_size(
@@ -605,18 +692,18 @@ def oneday_main():
                         970,
                         (
                             105
-                            + list(window[f"frame_question_{i}"].Widget.children.values())[
-                                0
-                            ].winfo_height()
+                            + list(
+                                window[f"frame_question_{i}"].Widget.children.values()
+                            )[0].winfo_height()
                         ),
                     )
                 )
-            window[f"frame_question_12"].set_size(
+            window["frame_question_12"].set_size(
                 (
                     970,
                     (
                         105
-                        + list(window[f"frame_question_12"].Widget.children.values())[
+                        + list(window["frame_question_12"].Widget.children.values())[
                             0
                         ].winfo_height()
                     ),
@@ -639,8 +726,12 @@ def oneday_main():
                     auto_close_duration=5,
                 )
                 continue
-            window["oneday_selection"].update(value=filtered_results[0], values=filtered_results)
-            oneday = get_oneday_data(get_specific_oneday(list_of_onedays, filtered_results[0]))
+            window["oneday_selection"].update(
+                value=filtered_results[0], values=filtered_results
+            )
+            oneday = get_oneday_data(
+                get_specific_oneday(list_of_onedays, filtered_results[0])
+            )
             data = oneday["data"]
             i = 1
             score = 0
@@ -650,7 +741,9 @@ def oneday_main():
                 question_object = data[i]
                 window["oneday_title"].update(value=oneday["title"])
                 window["difficulty"].update(value=oneday["difficulty_rating"])
-                window["percent_correct"].update(value=str(oneday["overall_average"]) + "%")
+                window["percent_correct"].update(
+                    value=str(oneday["overall_average"]) + "%"
+                )
                 window["blurb_text"].update(value=oneday["blurb"])
                 window["oneday_date"].update(value=oneday["date"])
                 window["oneday_selection"].update(value=oneday["title"])
@@ -659,7 +752,9 @@ def oneday_main():
                 window["10th_percent"].update(value=oneday["10th_percentile"])
                 window["number_of_players"].update(value=oneday["number_of_players"])
                 window["score"].update(value=score)
-                window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
+                window["num_of_money_questions_left"].update(
+                    value=num_of_money_questions_left
+                )
 
                 window[f"question_{i}"].update(value=question_object["_question"])
                 window[f"answer_{i}"].update(value="*******")
@@ -668,7 +763,9 @@ def oneday_main():
                 window[f"answer_submission_{i}"].update(
                     value="", disabled=False, background_color="white"
                 )
-                window[f"answer_submission_{i}"].bind("<Return>", f"_submit_answer_button_{i}")
+                window[f"answer_submission_{i}"].bind(
+                    "<Return>", f"_submit_answer_button_{i}"
+                )
                 window[f"submit_answer_button_{i}"].update(disabled=False)
                 window[f"question_percent_correct_{i}"].update(
                     value="Submit answer to see", font=("Arial Italic", 10)
@@ -677,7 +774,9 @@ def oneday_main():
                 w.configure(yscrollcommand=False, state="disabled")
                 height = w.tk.call(w._w, "count", "-displaylines", "1.0", "end")
                 window[f"question_{i}"].set_size((970, height + 1))
-                window[f"question_{i}"].expand(expand_x=True, expand_y=True, expand_row=False)
+                window[f"question_{i}"].expand(
+                    expand_x=True, expand_y=True, expand_row=False
+                )
 
                 window.refresh()
                 window[f"frame_question_{i}"].set_size(
@@ -685,18 +784,18 @@ def oneday_main():
                         970,
                         (
                             105
-                            + list(window[f"frame_question_{i}"].Widget.children.values())[
-                                0
-                            ].winfo_height()
+                            + list(
+                                window[f"frame_question_{i}"].Widget.children.values()
+                            )[0].winfo_height()
                         ),
                     )
                 )
-            window[f"frame_question_12"].set_size(
+            window["frame_question_12"].set_size(
                 (
                     970,
                     (
                         105
-                        + list(window[f"frame_question_12"].Widget.children.values())[
+                        + list(window["frame_question_12"].Widget.children.values())[
                             0
                         ].winfo_height()
                     ),
@@ -718,7 +817,9 @@ def oneday_main():
                 question_object = data[i]
                 window["oneday_title"].update(value=oneday["title"])
                 window["difficulty"].update(value=oneday["difficulty_rating"])
-                window["percent_correct"].update(value=str(oneday["overall_average"]) + "%")
+                window["percent_correct"].update(
+                    value=str(oneday["overall_average"]) + "%"
+                )
                 window["blurb_text"].update(value=oneday["blurb"])
                 window["oneday_date"].update(value=oneday["date"])
                 window["oneday_selection"].update(value=oneday["title"])
@@ -727,7 +828,9 @@ def oneday_main():
                 window["10th_percent"].update(value=oneday["10th_percentile"])
                 window["number_of_players"].update(value=oneday["number_of_players"])
                 window["score"].update(value=score)
-                window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
+                window["num_of_money_questions_left"].update(
+                    value=num_of_money_questions_left
+                )
 
                 window[f"question_{i}"].update(value=question_object["_question"])
                 window[f"answer_{i}"].update(value="*******")
@@ -736,7 +839,9 @@ def oneday_main():
                 window[f"answer_submission_{i}"].update(
                     value="", disabled=False, background_color="white"
                 )
-                window[f"answer_submission_{i}"].bind("<Return>", f"_submit_answer_button_{i}")
+                window[f"answer_submission_{i}"].bind(
+                    "<Return>", f"_submit_answer_button_{i}"
+                )
                 window[f"submit_answer_button_{i}"].update(disabled=False)
                 window[f"question_percent_correct_{i}"].update(
                     value="Submit answer to see", font=("Arial Italic", 10)
@@ -745,7 +850,9 @@ def oneday_main():
                 w.configure(yscrollcommand=False, state="disabled")
                 height = w.tk.call(w._w, "count", "-displaylines", "1.0", "end")
                 window[f"question_{i}"].set_size((970, height + 1))
-                window[f"question_{i}"].expand(expand_x=True, expand_y=True, expand_row=False)
+                window[f"question_{i}"].expand(
+                    expand_x=True, expand_y=True, expand_row=False
+                )
 
                 window.refresh()
                 window[f"frame_question_{i}"].set_size(
@@ -753,18 +860,18 @@ def oneday_main():
                         970,
                         (
                             105
-                            + list(window[f"frame_question_{i}"].Widget.children.values())[
-                                0
-                            ].winfo_height()
+                            + list(
+                                window[f"frame_question_{i}"].Widget.children.values()
+                            )[0].winfo_height()
                         ),
                     )
                 )
-            window[f"frame_question_12"].set_size(
+            window["frame_question_12"].set_size(
                 (
                     970,
                     (
                         105
-                        + list(window[f"frame_question_12"].Widget.children.values())[
+                        + list(window["frame_question_12"].Widget.children.values())[
                             0
                         ].winfo_height()
                     ),
@@ -774,7 +881,10 @@ def oneday_main():
             window["questions_column"].contents_changed()
 
         if "show/hide" in event:
-            if window.find_element_with_focus().Key in ("oneday_search", "answer_submission"):
+            if window.find_element_with_focus().Key in (
+                "oneday_search",
+                "answer_submission",
+            ):
                 continue
 
             i = event.split("_")[-1]
@@ -786,7 +896,11 @@ def oneday_main():
                     "Confirm",
                     element_justification="c",
                     layout=[
-                        [sg.Text("You have not submitted an answer.", font=("Arial", 14))],
+                        [
+                            sg.Text(
+                                "You have not submitted an answer.", font=("Arial", 14)
+                            )
+                        ],
                         [
                             sg.Text(
                                 "Do you want to continue? (and forfeit your guess)",
@@ -859,9 +973,13 @@ def oneday_main():
                 oneday["data"][question_object["question_num"]]["submitted_answer"][
                     "override"
                 ] = values[f"correct_override_{i}"]
-                window[f"answer_submission_{i}"].Widget.configure(readonlybackground="red")
+                window[f"answer_submission_{i}"].Widget.configure(
+                    readonlybackground="red"
+                )
             else:
-                window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light green")
+                window[f"answer_submission_{i}"].Widget.configure(
+                    readonlybackground="light green"
+                )
                 score += 15
 
                 if values[f"money_check_{i}"]:
@@ -880,15 +998,21 @@ def oneday_main():
                 percentile_info = oneday["all_percentile"]
                 final_percentile = list(percentile_info.keys())[
                     list(percentile_info.values()).index(
-                        min(list(percentile_info.values()), key=lambda x: abs(int(x) - score))
+                        min(
+                            list(percentile_info.values()),
+                            key=lambda x: abs(int(x) - score),
+                        )
                     )
                 ]
-                if not os.path.isdir(os.path.expanduser("~") + "/.LearnedLeague/onedays/"):
+                if not os.path.isdir(
+                    os.path.expanduser("~") + "/.LearnedLeague/onedays/"
+                ):
                     os.mkdir(os.path.expanduser("~") + "/.LearnedLeague/onedays")
 
                 with open(
                     os.path.expanduser("~")
-                    + f"/.LearnedLeague/onedays/{re.sub(' ','_', oneday['title'])}.json",
+                    + f"/.LearnedLeague/onedays/{re.sub(' ','_', oneday['title'])}"
+                    + ".json",
                     "w",
                 ) as fp:
                     json.dump(oneday, fp, sort_keys=True, indent=4)
@@ -907,7 +1031,7 @@ def oneday_main():
                 value=question_object["percent"], font=font
             )
 
-            answers = re.findall("([^\/,()]+)", answer)
+            answers = re.findall("([^/,()]+)", answer)
             if len(answers) > 1:
                 correct = [
                     combined_correctness(submitted_answer, answer.strip(), True)
@@ -917,18 +1041,24 @@ def oneday_main():
                 correct = [combined_correctness(submitted_answer, answer.strip())]
 
             if any(correct):
-                window[f"answer_submission_{i}"].Widget.configure(readonlybackground="light green")
+                window[f"answer_submission_{i}"].Widget.configure(
+                    readonlybackground="light green"
+                )
                 score += 15
 
                 if values[f"money_check_{i}"]:
                     wrong_percent = 100 - question_object["percent"]
                     score += wrong_percent
             else:
-                window[f"answer_submission_{i}"].Widget.configure(readonlybackground="red")
+                window[f"answer_submission_{i}"].Widget.configure(
+                    readonlybackground="red"
+                )
 
             if values[f"money_check_{i}"]:
                 num_of_money_questions_left -= 1
-                window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
+                window["num_of_money_questions_left"].update(
+                    value=num_of_money_questions_left
+                )
 
             window["score"].update(value=score)
             window[f"answer_submission_{i}"].unbind("<Return>")
@@ -963,7 +1093,10 @@ def oneday_main():
                 else:
                     final_percentile = list(percentile_info.keys())[
                         list(percentile_info.values()).index(
-                            min(list(percentile_info.values()), key=lambda x: abs(int(x) - score))
+                            min(
+                                list(percentile_info.values()),
+                                key=lambda x: abs(int(x) - score),
+                            )
                         )
                     ]
 
@@ -974,12 +1107,15 @@ def oneday_main():
                 )
                 oneday["submission_date"] = (datetime.datetime.now().isoformat(),)
 
-                if not os.path.isdir(os.path.expanduser("~") + "/.LearnedLeague/onedays/"):
+                if not os.path.isdir(
+                    os.path.expanduser("~") + "/.LearnedLeague/onedays/"
+                ):
                     os.mkdir(os.path.expanduser("~") + "/.LearnedLeague/onedays/")
 
                 with open(
                     os.path.expanduser("~")
-                    + f"/.LearnedLeague/onedays/{re.sub(' ','_', oneday['title'])}.json",
+                    + f"/.LearnedLeague/onedays/{re.sub(' ','_', oneday['title'])}"
+                    + ".json",
                     "w",
                 ) as fp:
                     json.dump(oneday, fp, sort_keys=True, indent=4)
