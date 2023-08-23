@@ -58,5 +58,15 @@ pillow_universal = (
 )
 fuse_wheels(pillow_filenames[0], pillow_filenames[1], pillow_universal)
 
-os.system(f"pip install ./{'/'.join(pillow_universal.split('/')[-2:])}")
-os.system(f"pip install ./{'/'.join(numpy_universal.split('/')[-2:])}")
+os.system(
+    f"pip install ./{'/'.join(pillow_universal.split('/')[-2:])} --force-reinstall"
+)
+os.system(
+    f"pip install ./{'/'.join(numpy_universal.split('/')[-2:])} --force-reinstall"
+)
+
+for file in pillow_filenames:
+    os.remove(file)
+
+for file in np_filenames:
+    os.remove(file)
