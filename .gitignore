@@ -2,9 +2,9 @@ resources/
 .eggs/
 build/
 dist/
-todo_list
+todo_list.notes
 utilities/
 .DS_Store
 __pycache__/
 VERSION
-universal_wheels/
+universal_wheels/*.whl
