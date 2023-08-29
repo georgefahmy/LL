@@ -42,6 +42,9 @@ def get_new_data(season_number):
         question_url = url + "&" + str(i)
         page = bs(requests.get(question_url).content, "html.parser")
 
+        if not page.find_all("tr"):
+            continue
+
         categories = [
             link.text.strip().split("-")[0].split(".")[-1].strip()
             for link in page.find_all("div", {"class": "ind-Q20 dont-break-out"})
