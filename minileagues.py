@@ -19,6 +19,11 @@ WD = os.getcwd()
 
 
 def internet_on():
+    """Check to see if the application has access to the internet
+
+    Returns:
+        bool: True/False flag of internet access
+    """
     try:
         requests.get("https://8.8.8.8")
         return True
@@ -27,6 +32,11 @@ def internet_on():
 
 
 def get_full_list_of_mini_leagues():
+    """Get the full list of available mini leagues. This is a large list of mini league dictonaries
+
+    Returns:
+        dict: the complete list of mini league dicts
+    """
     data = {
         info.find("td", {"class": "std-left"}).text: {
             "title": info.find("td", {"class": "std-left"}).text,
@@ -64,6 +74,15 @@ def get_full_list_of_mini_leagues():
 
 
 def search_minileagues(data, search_word=None):
+    """_summary_
+
+    Args:
+        data (dict): minileague dict
+        search_word (str, optional): Keyword to search for in the mini league titles. Defaults to None.
+
+    Returns:
+        list: list of mini league titles matching the search
+    """
     if not search_word:
         return sorted(list(data.keys()))
     else:
@@ -73,10 +92,28 @@ def search_minileagues(data, search_word=None):
 
 
 def get_specific_minileague(data, mini_league_key):
+    """return the specific mini league based on the key
+
+    Args:
+        data (dict): full dict of mini league data
+        mini_league_key (str): mini league key - the title
+
+    Returns:
+        _type_: _description_
+    """
     return DotMap(data.get(mini_league_key))
 
 
 def get_mini_data(specific_mini, window):
+    """_summary_
+
+    Args:
+        specific_mini (dict): mini league data
+        window (obj): mini league application window
+
+    Returns:
+        dict: full details of the mini league with quesitons and answers
+    """
     p = 0
     page = bs(requests.get(specific_mini["url"]).content, "lxml")
     matches = {
@@ -140,6 +177,15 @@ def q_num_finder(match_days, i):
 
 
 def load_questions(specific_mini, window):
+    """Load the mini league questions into the window and update the window formatting
+
+    Args:
+        specific_mini (dict): specific mini league complete data dictionary
+        window (obj): mini league applciation window
+
+    Returns:
+        dict: the specific mini league data dictionary
+    """
     i = 1
     window["mini_league_title"].update(value=specific_mini.title)
     window["mini_league_date"].update(value=specific_mini.date)

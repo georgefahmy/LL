@@ -13,6 +13,11 @@ VOLUME_NAME = FILENAME.split(".")[0]
 
 
 def get_sudo_password():
+    """Get the computer password of the user in order to update the app
+
+    Returns:
+        string: the password of the user for updating the app
+    """
     attempts = 0
     layout = [
         [sg.Text("Enter your password:", font=("Arial", 16))],
@@ -65,6 +70,11 @@ def get_sudo_password():
 
 # Check if outdated
 def check_for_update():
+    """Check to see if the LearnedLeague app is up-to-date or not.
+
+    Returns:
+        bool: the restart command - if true, automatically restart the app after updating
+    """
     restart = False
     try:
         version_response = requests.get(

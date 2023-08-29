@@ -31,6 +31,14 @@ if restart:
 
 
 def get_new_data(season_number):
+    """Get the latest data from the season number provided
+
+    Args:
+        season_number (int): Season number
+
+    Returns:
+        all_data: Data structure of all questions and answers (and metrics)
+    """
     try:
         with open(WD + "/resources/all_data.json", "r") as fp:
             all_data = json.load(fp)
@@ -136,6 +144,19 @@ def filter_questions(
     season_filter,
     search_criteria=None,
 ):
+    """_summary_
+
+    Args:
+        all_data (dict): Unfiltered full data dictionary
+        min_threshold (int): Minimum % correct
+        max_threshold (int): Maximum % correct
+        category_filter (str): Limit questions to specific category
+        season_filter (str): Limit questions to specific season
+        search_criteria (str, optional): Keyword to search for in the questions. Defaults to None.
+
+    Returns:
+        final_filtered_questions_dict: dictionary of the filtered questions
+    """
     min_threshold = int(min_threshold)
     max_threshold = int(max_threshold)
 
@@ -183,6 +204,16 @@ def filter_questions(
 
 
 def update_question(questions, window, i):
+    """Update the question window with the question information provided
+
+    Args:
+        questions (dict): Full list of questions (filtered or unfiltered)
+        window (obj): The Window object
+        i (int): the question number
+
+    Returns:
+        dict: the question object that gets returned for access later
+    """
     question_object = questions.get(i)
     if not question_object:
         return
