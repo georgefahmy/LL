@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v3.0.2] - 2023-08-05
+### [v3.1.0] - 2023-08-28
 
-Fixed minor bug with showing an answer after submitting a previous answer causing the submission box to be red or green based on previous answers.
+Updated dependencies and improved the installation process
