@@ -17,6 +17,7 @@ from PyDictionary import PyDictionary
 from answer_correctness import combined_correctness
 from check_for_updates import check_for_update
 from layout import layout
+from logged_in_tools import get_question_history, get_user_stats, login
 from minileagues import minileague
 from onedays import oneday_main
 
@@ -680,3 +681,22 @@ while True:
 
     if "click_here" in event:
         webbrowser.open(window["question"].metadata)
+
+    if event == "login_button":
+        print(window["login_button"].get_text())
+        if window["login_button"].get_text() == "Login":
+            sess = login()
+            if not sess:
+                continue
+            user_data = get_question_history(sess)
+            user_data = get_user_stats(sess, user_data)
+            if user_data.ok:
+                window["login_button"].update(text="Logout")
+                window["stats_button"].update(disabled=False)
+
+        elif window["login_button"].get_text() == "Logout":
+            window["login_button"].update(text="Login")
+            sess.close()
+
+    if event == "stats_button":
+        user_data.pprint(pformat="json")

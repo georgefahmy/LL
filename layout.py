@@ -3,6 +3,40 @@ import PySimpleGUI as sg
 sg.theme("Reddit")
 layout = [
     [
+        sg.Frame(
+            "Main",
+            expand_x=True,
+            expand_y=True,
+            layout=[
+                [
+                    sg.Button(
+                        "OneDays",
+                        key="onedays_button",
+                        tooltip="OneDay trivia (opens new window)",
+                    ),
+                    sg.Button(
+                        "Mini Leagues",
+                        key="minileague_button",
+                        tooltip="Mini League trivia (opens new window)",
+                    ),
+                    sg.Text(expand_x=True),
+                    sg.Button(
+                        "Stats",
+                        key="stats_button",
+                        disabled=True,
+                        disabled_button_color=("black", "gray"),
+                        tooltip="Login to see details from your personal data",
+                    ),
+                    sg.Button(
+                        "Login",
+                        key="login_button",
+                        tooltip="Login to see details from your personal data",
+                    ),
+                ],
+            ],
+        )
+    ],
+    [
         sg.Column(
             pad=(0, 0),
             layout=[
@@ -15,16 +49,6 @@ layout = [
                         size=(275, 185),
                         layout=[
                             [
-                                sg.Button(
-                                    "OneDays",
-                                    key="onedays_button",
-                                    tooltip="OneDay trivia (opens new window)",
-                                ),
-                                sg.Button(
-                                    "Mini Leagues",
-                                    key="minileague_button",
-                                    tooltip="Mini League trivia (opens new window)",
-                                ),
                                 sg.Text(expand_x=True),
                                 sg.Button("Filter", key="filter"),
                             ],
