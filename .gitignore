@@ -4,7 +4,8 @@ build/
 dist/
 todo_list.notes
 utilities/
-.DS_Store
+.DS_Store*
 __pycache__/
 VERSION
 universal_wheels/*.whl
+.LearnedLeague*

@@ -75,6 +75,11 @@ def login():
     return sess
 
 
+class UserData:
+    def __init__(self, username=None):
+        self.username = username
+
+
 def get_question_history(sess=None, username=None, user_data=None):
     if not sess:
         sess = login()
@@ -84,6 +89,9 @@ def get_question_history(sess=None, username=None, user_data=None):
         username = sess.headers.get("profile")
     else:
         username = username.lower()
+    if not user_data.username:
+        user_data.username = username
+
     profile_id = sess.get(
         f"https://learnedleague.com/profiles.php?{username}"
     ).url.split("?")[-1]
@@ -117,16 +125,46 @@ def get_user_stats(sess=None, username=None, user_data=None):
         sess = login()
     if not user_data:
         user_data = DotMap()
-    if not username:
+    if not username and not user_data:
         username = sess.headers.get("profile")
+    elif not username and user_data:
+        username = user_data.username
     else:
         username = username.lower()
+    if not user_data.username:
+        user_data.username = username
 
     profile_id = sess.get(
         f"https://learnedleague.com/profiles.php?{username}"
     ).url.split("?")[-1]
     response = sess.get(f"https://learnedleague.com/profiles.php?{profile_id}&2")
     page = bs(response.content, "html.parser")
+    """
+    W: Wins
+    L: Losses
+    T: Ties
+    PTS: Points (in standings)
+    MPD: Match Points Differential
+    TMP: Total Match Points
+    TCA: Total Correct Answers
+    TPA: Total Points Allowed
+    CAA: Correct Answers Against
+    PCAA: Points Per Correct Answer Against
+    UfPA: Unforced Points Allowed
+        num correct - perfect defensive points (0, 1, 1, 2, 2, 3)
+        1 = 0
+        2 = 1
+        3 = 2
+        4 = 4
+        5 = 6
+        6 = 9
+    DE: Defensive Efficiency
+    FW: Forfeit Wins
+    FL: Forfeit Losses
+    3PT: 3-Pointers
+    MCW: Most Common Wrong Answers
+    STR: Streak
+    """
     header = [
         val.text
         for val in page.find("table", {"class": "std std_bord stats"})
@@ -146,8 +184,32 @@ def get_user_stats(sess=None, username=None, user_data=None):
     return user_data
 
 
-def compare_users(user1_qhist_dict, user2_qhistory_dict):
-    # Search through entire shared match day question histories,
-    # +1 point if both are correct, +1 if both get incorrect, 0 if differnt
-    # divide by total number of shared questions
-    return
+def calc_hun_score(user1_qhist_dict, user2_qhist_dict, save=False, debug=False):
+    raw = 0
+    total = 0
+    for key, values in user1_qhist_dict.question_history.items():
+        # print(key, values.correct)
+        if key in user2_qhist_dict.question_history.keys():
+            total += 1
+            if values.correct == user2_qhist_dict.question_history[key].correct:
+                raw += 1
+    if debug:
+        print(raw, total)
+    hun = raw / total
+    print(hun)
+    user1_qhist_dict.hun[user2_qhist_dict.username] = hun
+    user2_qhist_dict.hun[user1_qhist_dict.username] = hun
+    if save:
+        save_user(user1_qhist_dict)
+        save_user(user2_qhist_dict)
+    return user1_qhist_dict, user2_qhist_dict
+
+
+def save_user(user_dict):
+    user_data_dir = os.path.expanduser("~") + "/.LearnedLeague/user_data"
+    if not os.path.isdir(user_data_dir):
+        os.mkdir(user_data_dir)
+
+    filename = user_data_dir + "/" + user_dict.username + ".json"
+    with open(filename, "w") as fp:
+        json.dump(user_dict, fp, indent=4, sort_keys=True)
