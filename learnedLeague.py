@@ -18,7 +18,13 @@ from PyDictionary import PyDictionary
 from answer_correctness import combined_correctness
 from check_for_updates import check_for_update
 from layout import layout
-from logged_in_tools import calc_hun_score, get_question_history, get_user_stats, login
+from logged_in_tools import (
+    calc_hun_score,
+    get_question_history,
+    get_user_stats,
+    login,
+    save_user,
+)
 from minileagues import minileague
 from onedays import oneday_main
 
@@ -711,9 +717,6 @@ while True:
             window["login_button"].update(text="Login")
             sess.close()
 
-    if event == "stats_button":
-        user_data.pprint(pformat="json")
-
     if (
         "return_key" in event
         and window.find_element_with_focus().Key == "player_search"
@@ -726,7 +729,11 @@ while True:
         searched_user_data = get_user_stats(
             sess, username=username, user_data=searched_user_data
         )
-        user_data, searched_user_data = calc_hun_score(
-            user_data, searched_user_data, save=True
-        )
+        user_data, searched_user_data = calc_hun_score(user_data, searched_user_data)
+        save_user(user_data)
         # searched_user_data.pprint(pformat="json")
+
+    if event == "stats_button":
+        user_data.pprint(pformat="json")
+        # compare stats with loaded person?
+        # display the stats and their meanings
