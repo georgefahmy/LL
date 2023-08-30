@@ -706,5 +706,13 @@ while True:
     if (
         "return_key" in event
         and window.find_element_with_focus().Key == "player_search"
+        and window["player_search"].get()
     ):
-        print(window["player_search"].get())
+        if not window["player_search"].get():
+            continue
+        username = window["player_search"].get()
+        searched_user_data = get_question_history(sess, username=username)
+        searched_user_data = get_user_stats(
+            sess, username=username, user_data=searched_user_data
+        )
+        searched_user_data.pprint(pformat="json")
