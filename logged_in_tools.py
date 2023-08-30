@@ -144,3 +144,10 @@ def get_user_stats(sess=None, username=None, user_data=None):
     for i, header_value in enumerate(header):
         user_data["stats"][header_value] = body[i]
     return user_data
+
+
+def compare_users(user1_qhist_dict, user2_qhistory_dict):
+    # Search through entire shared match day question histories,
+    # +1 point if both are correct, +1 if both get incorrect, 0 if differnt
+    # divide by total number of shared questions
+    return
