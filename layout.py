@@ -20,6 +20,20 @@ layout = [
                         tooltip="Mini League trivia (opens new window)",
                     ),
                     sg.Text(expand_x=True),
+                    sg.Text(
+                        "Player Search:",
+                        font=("Arial", 14),
+                        justification="r",
+                    ),
+                    sg.Input(
+                        "",
+                        key="player_search",
+                        font=("Arial", 14),
+                        size=(15, 15),
+                        disabled=True,
+                        use_readonly_for_disable=True,
+                        enable_events=True,
+                    ),
                     sg.Button(
                         "Stats",
                         key="stats_button",

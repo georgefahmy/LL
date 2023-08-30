@@ -266,7 +266,7 @@ try:
         .split("LL")[-1]
     )
 except Exception:
-    latest_season = 97
+    latest_season = 98
 
 available_seasons = [
     str(season) for season in list(range(60, int(latest_season) + 1, 1))
@@ -362,6 +362,7 @@ window.bind("<Command-s>", "show_key")
 window.bind("<Command-r>", "random_key")
 window.bind("<Command-n>", "next_key")
 window.bind("<Command-p>", "previous_key")
+window.bind("<Return>", "return_key")
 window["question"].bind("<ButtonPress-2>", "press")
 window["question"].bind("<ButtonPress-1>", "click_here")
 window["answer_submission"].bind("<Return>", "_submit_answer_button")
@@ -689,10 +690,11 @@ while True:
             if not sess:
                 continue
             user_data = get_question_history(sess)
-            user_data = get_user_stats(sess, user_data)
+            user_data = get_user_stats(sess, user_data=user_data)
             if user_data.ok:
                 window["login_button"].update(text="Logout")
                 window["stats_button"].update(disabled=False)
+                window["player_search"].update(disabled=False)
 
         elif window["login_button"].get_text() == "Logout":
             window["login_button"].update(text="Login")
@@ -700,3 +702,9 @@ while True:
 
     if event == "stats_button":
         user_data.pprint(pformat="json")
+
+    if (
+        "return_key" in event
+        and window.find_element_with_focus().Key == "player_search"
+    ):
+        print(window["player_search"].get())
