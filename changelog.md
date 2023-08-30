@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v3.1.0] - 2023-08-28
+### [v3.2.0] - 2023-08-29
 
-Updated dependencies and improved the installation process
+Fixed a bug with current season data being unavailable. Also beginning to allow logged in data to be accessed

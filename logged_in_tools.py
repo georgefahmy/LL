@@ -13,8 +13,10 @@ LOGIN_URL = BASE_URL + "/ucp.php?mode=login"
 
 
 def login():
-    if os.path.isfile(os.getcwd() + "/resources/login_info.json"):
-        login_info = json.load(open(os.getcwd() + "/resources/login_info.json"))
+    if os.path.isfile(os.path.expanduser("~") + "/.LearnedLeague/login_info.json"):
+        login_info = json.load(
+            open(os.path.expanduser("~") + "/.LearnedLeague/login_info.json")
+        )
     else:
         login_info = {}
         event, login_info = sg.Window(
@@ -56,7 +58,7 @@ def login():
             return False
     json.dump(
         login_info,
-        open(os.getcwd() + "/resources/login_info.json", "w"),
+        open(os.path.expanduser("~") + "/.LearnedLeague/login_info.json", "w"),
         indent=4,
         sort_keys=False,
     )
