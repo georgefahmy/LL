@@ -10,6 +10,7 @@ from dotmap import DotMap
 DEFAULT_FONT = ("Arial", 14)
 BASE_URL = "https://www.learnedleague.com"
 LOGIN_URL = BASE_URL + "/ucp.php?mode=login"
+USER_QHIST = BASE_URL + "/profiles.php?%s&9"
 
 
 def login():
@@ -70,13 +71,23 @@ def login():
     }
     sess = requests.Session()
     sess.post(LOGIN_URL, data=payload)
+    sess.headers["profile"] = login_info.get("username").lower()
     return sess
 
 
-def get_question_history(sess, user_data=None):
+def get_question_history(sess=None, username=None, user_data=None):
+    if not sess:
+        sess = login()
     if not user_data:
         user_data = DotMap()
-    response = sess.get("https://learnedleague.com/profiles.php?75344&9")
+    if not username:
+        username = sess.headers.get("profile")
+    else:
+        username = username.lower()
+    profile_id = sess.get(
+        f"https://learnedleague.com/profiles.php?{username}"
+    ).url.split("?")[-1]
+    response = sess.get(f"https://learnedleague.com/profiles.php?{profile_id}&9")
     page = bs(response.content, "html.parser")
     all_categories = page.find_all("ul", {"class": "mktree"})
     question_history = DotMap()
@@ -84,16 +95,16 @@ def get_question_history(sess, user_data=None):
         category_name = re.sub(
             " ", "_", category.find("span", {"class": "catname"}).text
         )
-        question_history[category_name] = DotMap()
         questions = category.find("table", {"class": "qh"}).find_all("tr")[1:]
         for i, question in enumerate(questions):
-            question_url = question.find_all("td")[0].find_all("a")[2].get("href")
-            question_text = question.find_all("td")[1].text
-            question_correct = "green" in question.find_all("td")[2].img.get("src")
-            question_history[category_name][i + 1] = DotMap(
-                question=question_text,
-                correct=question_correct,
-                url=BASE_URL + question_url,
+            q_id = (
+                question.find_all("td")[0].find_all("a")[2].get("href").split("?")[-1]
+            )
+            question_history[q_id] = DotMap(
+                question_category=category_name,
+                # question=question.find_all("td")[1].text,
+                correct="green" in question.find_all("td")[2].img.get("src"),
+                url=BASE_URL + question.find_all("td")[0].find_all("a")[2].get("href"),
             )
 
     user_data.question_history = question_history
@@ -101,10 +112,20 @@ def get_question_history(sess, user_data=None):
     return user_data
 
 
-def get_user_stats(sess, user_data=None):
+def get_user_stats(sess=None, username=None, user_data=None):
+    if not sess:
+        sess = login()
     if not user_data:
         user_data = DotMap()
-    response = sess.get("https://learnedleague.com/profiles.php?75344&2")
+    if not username:
+        username = sess.headers.get("profile")
+    else:
+        username = username.lower()
+
+    profile_id = sess.get(
+        f"https://learnedleague.com/profiles.php?{username}"
+    ).url.split("?")[-1]
+    response = sess.get(f"https://learnedleague.com/profiles.php?{profile_id}&2")
     page = bs(response.content, "html.parser")
     header = [
         val.text
