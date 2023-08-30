@@ -12,12 +12,13 @@ import requests
 import wikipedia
 from bs4 import BeautifulSoup as bs
 from bs4 import SoupStrainer as ss
+from dotmap import DotMap
 from PyDictionary import PyDictionary
 
 from answer_correctness import combined_correctness
 from check_for_updates import check_for_update
 from layout import layout
-from logged_in_tools import get_question_history, get_user_stats, login
+from logged_in_tools import calc_hun_score, get_question_history, get_user_stats, login
 from minileagues import minileague
 from onedays import oneday_main
 
@@ -684,12 +685,22 @@ while True:
         webbrowser.open(window["question"].metadata)
 
     if event == "login_button":
-        print(window["login_button"].get_text())
+        user_data = None
         if window["login_button"].get_text() == "Login":
             sess = login()
             if not sess:
                 continue
-            user_data = get_question_history(sess)
+
+            if os.path.isfile(
+                os.path.expanduser("~")
+                + f"/.LearnedLeague/user_data/{sess.headers.get('profile')}.json"
+            ):
+                with open(
+                    os.path.expanduser("~")
+                    + f"/.LearnedLeague/user_data/{sess.headers.get('profile')}.json"
+                ) as fp:
+                    user_data = DotMap(json.load(fp))
+            user_data = get_question_history(sess, user_data=user_data)
             user_data = get_user_stats(sess, user_data=user_data)
             if user_data.ok:
                 window["login_button"].update(text="Logout")
@@ -715,4 +726,7 @@ while True:
         searched_user_data = get_user_stats(
             sess, username=username, user_data=searched_user_data
         )
-        searched_user_data.pprint(pformat="json")
+        user_data, searched_user_data = calc_hun_score(
+            user_data, searched_user_data, save=True
+        )
+        # searched_user_data.pprint(pformat="json")

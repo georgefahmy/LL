@@ -89,6 +89,7 @@ def get_question_history(sess=None, username=None, user_data=None):
         username = sess.headers.get("profile")
     else:
         username = username.lower()
+
     if not user_data.username:
         user_data.username = username
 
@@ -195,10 +196,10 @@ def calc_hun_score(user1_qhist_dict, user2_qhist_dict, save=False, debug=False):
                 raw += 1
     if debug:
         print(raw, total)
-    hun = raw / total
-    print(hun)
-    user1_qhist_dict.hun[user2_qhist_dict.username] = hun
-    user2_qhist_dict.hun[user1_qhist_dict.username] = hun
+    hun_score = raw / total
+    print(hun_score)
+    user1_qhist_dict.hun[user2_qhist_dict.username] = hun_score
+    user2_qhist_dict.hun[user1_qhist_dict.username] = hun_score
     if save:
         save_user(user1_qhist_dict)
         save_user(user2_qhist_dict)
