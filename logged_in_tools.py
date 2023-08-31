@@ -11,6 +11,28 @@ DEFAULT_FONT = ("Arial", 14)
 BASE_URL = "https://www.learnedleague.com"
 LOGIN_URL = BASE_URL + "/ucp.php?mode=login"
 USER_QHIST = BASE_URL + "/profiles.php?%s&9"
+STATS_DEFINITION = {
+    "W": "Wins",
+    "L": "Losses",
+    "T": "Ties",
+    "PTS": "Points (in standings)",
+    "MPD": "Match Points Differential",
+    "TMP": "Total Match Points",
+    "TCA": "Total Correct Answers",
+    "TPA": "Total Points Allowed",
+    "CAA": "Correct Answers Against",
+    "PCAA": "Points Per Correct Answer Against",
+    "UfPA": """Unforced Points Allowed
+        Num correct - perfect defensive points (0, 1, 1, 2, 2, 3)
+        """,
+    "DE": "Defensive Efficiency",
+    "FW": "Forfeit Wins",
+    "FL": "Forfeit Losses",
+    "3PT": "3-Pointers",
+    "MCW": "Most Common Wrong Answers",
+    "STR": "Streak",
+    "QPct": "Percent of correct answers"
+}
 
 
 def login():
@@ -96,7 +118,12 @@ def get_question_history(sess=None, username=None, user_data=None):
     profile_id = sess.get(
         f"https://learnedleague.com/profiles.php?{username}"
     ).url.split("?")[-1]
-    response = sess.get(f"https://learnedleague.com/profiles.php?{profile_id}&9")
+    try:
+        response = sess.get(f"https://learnedleague.com/profiles.php?{profile_id}&9")
+    except Exception as e:
+        print(e)
+        user_data.ok = False
+        return user_data
     page = bs(response.content, "html.parser")
     all_categories = page.find_all("ul", {"class": "mktree"})
     question_history = DotMap()
@@ -105,13 +132,13 @@ def get_question_history(sess=None, username=None, user_data=None):
             " ", "_", category.find("span", {"class": "catname"}).text
         )
         questions = category.find("table", {"class": "qh"}).find_all("tr")[1:]
-        for i, question in enumerate(questions):
+        for question in questions:
             q_id = (
                 question.find_all("td")[0].find_all("a")[2].get("href").split("?")[-1]
             )
+            q_id = f'S{q_id.split("&")[0]}D{q_id.split("&")[1]}Q{q_id.split("&")[2]}'
             question_history[q_id] = DotMap(
                 question_category=category_name,
-                # question=question.find_all("td")[1].text,
                 correct="green" in question.find_all("td")[2].img.get("src"),
                 url=BASE_URL + question.find_all("td")[0].find_all("a")[2].get("href"),
             )

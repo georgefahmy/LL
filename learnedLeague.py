@@ -19,11 +19,12 @@ from answer_correctness import combined_correctness
 from check_for_updates import check_for_update
 from layout import layout
 from logged_in_tools import (
+    DEFAULT_FONT,
+    STATS_DEFINITION,
     calc_hun_score,
     get_question_history,
     get_user_stats,
     login,
-    save_user,
 )
 from minileagues import minileague
 from onedays import oneday_main
@@ -48,7 +49,7 @@ def get_new_data(season_number):
         all_data: Data structure of all questions and answers (and metrics)
     """
     try:
-        with open(WD + "/resources/all_data.json", "r") as fp:
+        with open(os.path.expanduser("~") + "/.LearnedLeague/all_data.json", "r") as fp:
             all_data = json.load(fp)
     except Exception:
         all_data = {}
@@ -138,7 +139,7 @@ def get_new_data(season_number):
                 "R": [cell.text for cell in rundles[5]][2:-1][j],
             }
 
-    with open(WD + "/resources/all_data.json", "w+") as fp:
+    with open(os.path.expanduser("~") + "/.LearnedLeague/all_data.json", "w+") as fp:
         json.dump(all_data, fp, sort_keys=True, indent=4)
 
     return all_data
@@ -280,21 +281,26 @@ available_seasons = [
 ]
 
 
-datapath = WD + "/resources/all_data.json"
+datapath = os.path.expanduser("~") + "/.LearnedLeague/all_data.json"
 if os.path.isfile(datapath):
     with open(datapath, "r") as fp:
         all_data = json.load(fp)
 else:
     all_data = {}
 
-season_in_data = list(
-    set([val.split("D")[0].strip("S") for val in list(all_data.keys())])
+season_in_data = sorted(
+    list(set([val.split("D")[0].strip("S") for val in list(all_data.keys())]))
 )
 missing_seasons = sorted(
     list(set(available_seasons).symmetric_difference(set(season_in_data)))
 )
 
-if len(missing_seasons) > 0:
+latest_season_questions = 0
+for key in all_data.keys():
+    if latest_season in key:
+        latest_season_questions += 1
+
+if len(missing_seasons) > 0 or latest_season_questions < 150:
     icon_file = WD + "/resources/ll_app_logo.png"
     sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
     max_length = len(missing_seasons)
@@ -332,6 +338,9 @@ if len(missing_seasons) > 0:
 
         if event == sg.WIN_CLOSED or event == "Exit":
             break
+
+        if latest_season_questions < 150 and missing_seasons == 0:
+            missing_seasons = [latest_season]
 
         for season in missing_seasons:
             loading_window["-OUT-"].update("Loading New Season: " + str(season))
@@ -715,6 +724,8 @@ while True:
 
         elif window["login_button"].get_text() == "Logout":
             window["login_button"].update(text="Login")
+            window["player_search"].update(disabled=True)
+            window["stats_button"].update(disabled=True)
             sess.close()
 
     if (
@@ -729,11 +740,66 @@ while True:
         searched_user_data = get_user_stats(
             sess, username=username, user_data=searched_user_data
         )
-        user_data, searched_user_data = calc_hun_score(user_data, searched_user_data)
-        save_user(user_data)
+        user_data, searched_user_data = calc_hun_score(
+            user_data, searched_user_data, save=True
+        )
+        window["player_search"].update(value="")
         # searched_user_data.pprint(pformat="json")
 
     if event == "stats_button":
-        user_data.pprint(pformat="json")
+        # user_data.pprint(pformat="json")
+        if user_data.get("stats"):
+            stats_layout = [
+                [
+                    sg.Text(
+                        key,
+                        font=("Arial Bold", 16),
+                        size=(5, 1),
+                        tooltip=STATS_DEFINITION.get(key),
+                    )
+                    for key, val in user_data.stats.items()
+                    if key not in ["Season", "Rundle", "Rank"]
+                ],
+                [
+                    sg.Text(
+                        val,
+                        font=DEFAULT_FONT,
+                        size=(5, 1),
+                        tooltip=STATS_DEFINITION.get(key),
+                    )
+                    for key, val in user_data.stats.items()
+                    if key not in ["Season", "Rundle", "Rank"]
+                ],
+                [
+                    sg.Table(
+                        [
+                            [
+                                [val]
+                                for key, val in user_data.stats.items()
+                                if key not in ["Season", "Rundle", "Rank"]
+                            ],
+                        ],
+                        headings=[
+                            key
+                            for key, val in user_data.stats.items()
+                            if key not in ["Season", "Rundle", "Rank"]
+                        ],
+                        def_col_width=5,
+                        font=DEFAULT_FONT,
+                        header_font=("Arial Bold", 16),
+                        justification="c",
+                    )
+                ],
+            ]
+            stats_window = sg.Window(
+                "Learned League User Stats", stats_layout, finalize=True
+            )
+            while True:
+                stat_event, stat_values = stats_window.read()
+
+                if stat_event in (None, "Quit", sg.WIN_CLOSED):
+                    stats_window.close()
+                    break
+
         # compare stats with loaded person?
         # display the stats and their meanings
