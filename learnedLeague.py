@@ -32,6 +32,7 @@ from onedays import oneday_main
 BASE_URL = "https://www.learnedleague.com"
 
 WD = os.getcwd()
+USER_DATA_DIR = os.path.expanduser("~") + f"/.LearnedLeague/user_data/"
 
 restart = check_for_update()
 if restart:
@@ -740,14 +741,8 @@ while True:
             if not sess:
                 continue
 
-            if os.path.isfile(
-                os.path.expanduser("~")
-                + f"/.LearnedLeague/user_data/{sess.headers.get('profile')}.json"
-            ):
-                with open(
-                    os.path.expanduser("~")
-                    + f"/.LearnedLeague/user_data/{sess.headers.get('profile')}.json"
-                ) as fp:
+            if USER_DATA_DIR + f"{sess.headers.get('profile')}.json":
+                with open(USER_DATA_DIR + f"{sess.headers.get('profile')}.json") as fp:
                     user_data = DotMap(json.load(fp))
             user_data = get_question_history(sess, user_data=user_data)
             user_data = get_user_stats(sess, user_data=user_data)
@@ -777,6 +772,17 @@ while True:
                         size=(15, 15),
                         use_readonly_for_disable=True,
                         enable_events=True,
+                    ),
+                    sg.Button(
+                        "Search",
+                        key="player_search_button",
+                        size=(10, 1),
+                    ),
+                    sg.Button(
+                        "Calc HUN",
+                        key="calc_hun",
+                        size=(10, 1),
+                        tooltip="HUN Similarity score - compare how similar two players are",
                     ),
                 ],
                 [
@@ -830,22 +836,123 @@ while True:
                     "return_key" in stat_event
                     and stats_window.find_element_with_focus().Key == "player_search"
                     and stats_window["player_search"].get()
+                ) or (
+                    "player_search_button" in stat_event
+                    and stats_window["player_search"].get()
                 ):
                     if not stats_window["player_search"].get():
                         continue
                     username = stats_window["player_search"].get()
-                    searched_user_data = get_question_history(sess, username=username)
-                    searched_user_data = get_user_stats(
-                        sess, username=username, user_data=searched_user_data
-                    )
-                    user_data, searched_user_data = calc_hun_score(
-                        user_data, searched_user_data, save=True
-                    )
+                    if os.path.isfile(USER_DATA_DIR + f"{username}.json"):
+                        with open(USER_DATA_DIR + f"{username}.json") as fp:
+                            searched_user_data = get_user_stats(
+                                sess, username=username, user_data=DotMap(json.load(fp))
+                            )
+                    else:
+                        searched_user_data = get_user_stats(sess, username=username)
                     stats_window["player_search"].update(value="")
                     stats_window.extend_layout(
                         stats_window["stats_column"], add_stats_row(searched_user_data)
                     )
-                    # searched_user_data.pprint(pformat="json")
+                if "calc_hun" in stat_event:
+                    hun_window = sg.Window(
+                        "Calculate HUN Similarity",
+                        [
+                            [
+                                sg.Text(
+                                    "Player 1: ", font=("Arial", 16), expand_x=True
+                                ),
+                                sg.Input(
+                                    user_data.username,
+                                    font=DEFAULT_FONT,
+                                    key="player_1",
+                                    size=(10, 1),
+                                ),
+                            ],
+                            [
+                                sg.Text(
+                                    "Player 2: ", font=("Arial", 16), expand_x=True
+                                ),
+                                sg.Input(
+                                    "",
+                                    font=DEFAULT_FONT,
+                                    key="player_2",
+                                    size=(10, 1),
+                                ),
+                            ],
+                            [
+                                sg.Button("Submit", bind_return_key=True),
+                                sg.Button("Cancel"),
+                                sg.Button("Clear"),
+                            ],
+                            [sg.HorizontalSeparator()],
+                            [
+                                sg.Text("HUN Similarity:", font=DEFAULT_FONT),
+                                sg.Text("", key="hun_score", font=DEFAULT_FONT),
+                            ],
+                        ],
+                        size=(300, 150),
+                        finalize=True,
+                    )
+                    while True:
+                        hun_event, player_names = hun_window.read()
+                        if hun_event in (None, "Quit", sg.WIN_CLOSED):
+                            hun_window.close()
+                            break
 
-        # compare stats with loaded person?
-        # display the stats and their meanings
+                        if hun_event == "Cancel":
+                            hun_window["player_1"].update(value=user_data.username)
+                            hun_window["player_2"].update(value="")
+
+                        if hun_event == "Clear":
+                            hun_window["player_1"].update(value="")
+                            hun_window["player_2"].update(value="")
+
+                        if hun_event == "Submit":
+                            if os.path.isfile(
+                                USER_DATA_DIR + player_names.get("player_1") + ".json"
+                            ):
+                                with open(
+                                    USER_DATA_DIR
+                                    + player_names.get("player_1")
+                                    + ".json"
+                                ) as fp:
+                                    player_1 = get_question_history(
+                                        sess,
+                                        username=player_names.get("player_1"),
+                                        user_data=DotMap(json.load(fp)),
+                                    )
+                            else:
+                                player_1 = (
+                                    get_question_history(
+                                        sess, username=player_names.get("player_1")
+                                    ),
+                                )
+                            if os.path.isfile(
+                                USER_DATA_DIR + player_names.get("player_2") + ".json"
+                            ):
+                                with open(
+                                    USER_DATA_DIR
+                                    + player_names.get("player_2")
+                                    + ".json"
+                                ) as fp:
+                                    player_2 = get_question_history(
+                                        sess,
+                                        username=player_names.get("player_2"),
+                                        user_data=DotMap(json.load(fp)),
+                                    )
+                            else:
+                                player_2 = (
+                                    get_question_history(
+                                        sess, username=player_names.get("player_2")
+                                    ),
+                                )
+                            player_1, player_2 = calc_hun_score(
+                                player_1,
+                                player_2,
+                                save=True,
+                            )
+                            hun_score = player_1.hun.get(player_2.username)
+                            hun_window["hun_score"].update(value=round(hun_score, 3))
+                            hun_window["player_1"].update(value=user_data.username)
+                            hun_window["player_2"].update(value="")

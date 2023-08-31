@@ -31,7 +31,7 @@ STATS_DEFINITION = {
     "3PT": "3-Pointers",
     "MCW": "Most Common Wrong Answers",
     "STR": "Streak",
-    "QPct": "Percent of correct answers"
+    "QPct": "Percent of correct answers",
 }
 
 
@@ -223,8 +223,11 @@ def calc_hun_score(user1_qhist_dict, user2_qhist_dict, save=False, debug=False):
                 raw += 1
     if debug:
         print(raw, total)
-    hun_score = raw / total
-    print(hun_score)
+    if not total:
+        hun_score = 0
+    else:
+        hun_score = raw / total
+    # print(hun_score)
     user1_qhist_dict.hun[user2_qhist_dict.username] = hun_score
     user2_qhist_dict.hun[user1_qhist_dict.username] = hun_score
     if save:
