@@ -32,7 +32,7 @@ from onedays import oneday_main
 BASE_URL = "https://www.learnedleague.com"
 
 WD = os.getcwd()
-USER_DATA_DIR = os.path.expanduser("~") + f"/.LearnedLeague/user_data/"
+USER_DATA_DIR = os.path.expanduser("~") + "/.LearnedLeague/user_data/"
 
 restart = check_for_update()
 if restart:

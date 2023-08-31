@@ -6,6 +6,7 @@ import PySimpleGUI as sg
 import requests
 from bs4 import BeautifulSoup as bs
 from dotmap import DotMap
+from numpy import percentile
 
 DEFAULT_FONT = ("Arial", 14)
 BASE_URL = "https://www.learnedleague.com"
@@ -105,10 +106,14 @@ class UserData:
 def get_question_history(sess=None, username=None, user_data=None, save=False):
     if not sess:
         sess = login()
+
     if not user_data:
         user_data = DotMap()
-    if not username:
+
+    if not username and not user_data:
         username = sess.headers.get("profile")
+    elif not username and user_data:
+        username = user_data.username
     else:
         username = username.lower()
 
@@ -155,14 +160,17 @@ def get_question_history(sess=None, username=None, user_data=None, save=False):
 def get_user_stats(sess=None, username=None, user_data=None, save=False):
     if not sess:
         sess = login()
+
     if not user_data:
         user_data = DotMap()
+
     if not username and not user_data:
         username = sess.headers.get("profile")
     elif not username and user_data:
         username = user_data.username
     else:
         username = username.lower()
+
     if not user_data.username:
         user_data.username = username
 
@@ -171,32 +179,6 @@ def get_user_stats(sess=None, username=None, user_data=None, save=False):
     ).url.split("?")[-1]
     response = sess.get(f"https://learnedleague.com/profiles.php?{profile_id}&2")
     page = bs(response.content, "html.parser")
-    """
-    W: Wins
-    L: Losses
-    T: Ties
-    PTS: Points (in standings)
-    MPD: Match Points Differential
-    TMP: Total Match Points
-    TCA: Total Correct Answers
-    TPA: Total Points Allowed
-    CAA: Correct Answers Against
-    PCAA: Points Per Correct Answer Against
-    UfPA: Unforced Points Allowed
-        num correct - perfect defensive points (0, 1, 1, 2, 2, 3)
-        1 = 0
-        2 = 1
-        3 = 2
-        4 = 4
-        5 = 6
-        6 = 9
-    DE: Defensive Efficiency
-    FW: Forfeit Wins
-    FL: Forfeit Losses
-    3PT: 3-Pointers
-    MCW: Most Common Wrong Answers
-    STR: Streak
-    """
     header = [
         val.text
         for val in page.find("table", {"class": "std std_bord stats"})
@@ -220,27 +202,49 @@ def get_user_stats(sess=None, username=None, user_data=None, save=False):
     return user_data
 
 
+def calc_category_metrics(user_data):
+    qhist = user_data.question_history
+    category_metrics = DotMap()
+    for val in qhist.values():
+        category_metrics[val.question_category].total += 1
+        if val.correct:
+            category_metrics[val.question_category].correct += 1
+        else:
+            category_metrics[val.question_category].correct += 0
+        percent = (
+            category_metrics[val.question_category].correct
+            / category_metrics[val.question_category].total
+        )
+        category_metrics[val.question_category].percent = percent
+    user_data.category_metrics = category_metrics
+    return user_data
+
+
 def calc_hun_score(user1_qhist_dict, user2_qhist_dict, save=False, debug=False):
     raw = 0
     total = 0
+
     for key, values in user1_qhist_dict.question_history.items():
-        # print(key, values.correct)
         if key in user2_qhist_dict.question_history.keys():
             total += 1
             if values.correct == user2_qhist_dict.question_history[key].correct:
                 raw += 1
-    if debug:
-        print(raw, total)
+
     if not total:
         hun_score = 0
     else:
         hun_score = raw / total
-    # print(hun_score)
+
     user1_qhist_dict.hun[user2_qhist_dict.username] = hun_score
     user2_qhist_dict.hun[user1_qhist_dict.username] = hun_score
+
     if save:
         save_user(user1_qhist_dict)
         save_user(user2_qhist_dict)
+
+    if debug:
+        print(raw, total)
+
     return user1_qhist_dict, user2_qhist_dict
 
 
