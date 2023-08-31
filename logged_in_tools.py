@@ -102,7 +102,7 @@ class UserData:
         self.username = username
 
 
-def get_question_history(sess=None, username=None, user_data=None):
+def get_question_history(sess=None, username=None, user_data=None, save=False):
     if not sess:
         sess = login()
     if not user_data:
@@ -145,10 +145,14 @@ def get_question_history(sess=None, username=None, user_data=None):
 
     user_data.question_history = question_history
     user_data.ok = response.ok
+
+    if save:
+        save_user(user_data)
+
     return user_data
 
 
-def get_user_stats(sess=None, username=None, user_data=None):
+def get_user_stats(sess=None, username=None, user_data=None, save=False):
     if not sess:
         sess = login()
     if not user_data:
@@ -209,6 +213,10 @@ def get_user_stats(sess=None, username=None, user_data=None):
     user_data["stats"] = DotMap()
     for i, header_value in enumerate(header):
         user_data["stats"][header_value] = body[i]
+
+    if save:
+        save_user(user_data)
+
     return user_data
 
 

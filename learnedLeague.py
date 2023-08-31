@@ -417,7 +417,7 @@ window.bind("<Command-p>", "previous_key")
 window["question"].bind("<ButtonPress-2>", "press")
 window["question"].bind("<ButtonPress-1>", "click_here")
 window["answer_submission"].bind("<Return>", "_submit_answer_button")
-
+sess = None
 values = None
 i = choice(list(questions.keys()))
 question_object = update_question(questions, window, i)
@@ -432,6 +432,8 @@ while True:
 
     # If the window is closed, break the loop and close the application
     if event in (None, "Quit", sg.WIN_CLOSED):
+        if sess:
+            sess.close()
         window.close()
         break
 
@@ -744,6 +746,7 @@ while True:
             if USER_DATA_DIR + f"{sess.headers.get('profile')}.json":
                 with open(USER_DATA_DIR + f"{sess.headers.get('profile')}.json") as fp:
                     user_data = DotMap(json.load(fp))
+
             user_data = get_question_history(sess, user_data=user_data)
             user_data = get_user_stats(sess, user_data=user_data)
             if user_data.ok:
@@ -849,11 +852,14 @@ while True:
                                 sess, username=username, user_data=DotMap(json.load(fp))
                             )
                     else:
-                        searched_user_data = get_user_stats(sess, username=username)
+                        searched_user_data = get_user_stats(
+                            sess, username=username, save=True
+                        )
                     stats_window["player_search"].update(value="")
                     stats_window.extend_layout(
                         stats_window["stats_column"], add_stats_row(searched_user_data)
                     )
+
                 if "calc_hun" in stat_event:
                     hun_window = sg.Window(
                         "Calculate HUN Similarity",
