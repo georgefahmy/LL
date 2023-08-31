@@ -263,6 +263,41 @@ def update_question(questions, window, i):
     return question_object
 
 
+def add_stats_row(user_data):
+    row = (
+        [
+            sg.Column(
+                layout=[
+                    [
+                        sg.Text(
+                            user_data.username,
+                            font=DEFAULT_FONT,
+                            justification="c",
+                        ),
+                    ]
+                ],
+                element_justification="c",
+                size=(100, 30),
+            ),
+            sg.Column(
+                layout=[
+                    [
+                        sg.Text(
+                            user_data.stats.get(key),
+                            font=DEFAULT_FONT,
+                            size=(5, 1),
+                            justification="c",
+                        )
+                        for key in list(user_data.stats.keys())
+                        if key not in ["Season", "Rundle", "Rank"]
+                    ],
+                ]
+            ),
+        ],
+    )
+    return row
+
+
 try:
     latest_season = (
         bs(
@@ -295,12 +330,15 @@ missing_seasons = sorted(
     list(set(available_seasons).symmetric_difference(set(season_in_data)))
 )
 
-latest_season_questions = 0
-for key in all_data.keys():
-    if latest_season in key:
-        latest_season_questions += 1
+for season in available_seasons:
+    season_questions = 0
+    for key in all_data.keys():
+        if season in key:
+            season_questions += 1
+    if season_questions < 150 and False:
+        missing_seasons += [season]
 
-if len(missing_seasons) > 0 or latest_season_questions < 150:
+if len(missing_seasons) > 0:
     icon_file = WD + "/resources/ll_app_logo.png"
     sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
     max_length = len(missing_seasons)
@@ -339,9 +377,6 @@ if len(missing_seasons) > 0 or latest_season_questions < 150:
         if event == sg.WIN_CLOSED or event == "Exit":
             break
 
-        if latest_season_questions < 150 and missing_seasons == 0:
-            missing_seasons = [latest_season]
-
         for season in missing_seasons:
             loading_window["-OUT-"].update("Loading New Season: " + str(season))
             all_data = get_new_data(season)
@@ -378,7 +413,6 @@ window.bind("<Command-s>", "show_key")
 window.bind("<Command-r>", "random_key")
 window.bind("<Command-n>", "next_key")
 window.bind("<Command-p>", "previous_key")
-window.bind("<Return>", "return_key")
 window["question"].bind("<ButtonPress-2>", "press")
 window["question"].bind("<ButtonPress-1>", "click_here")
 window["answer_submission"].bind("<Return>", "_submit_answer_button")
@@ -720,31 +754,11 @@ while True:
             if user_data.ok:
                 window["login_button"].update(text="Logout")
                 window["stats_button"].update(disabled=False)
-                window["player_search"].update(disabled=False)
 
         elif window["login_button"].get_text() == "Logout":
             window["login_button"].update(text="Login")
-            window["player_search"].update(disabled=True)
             window["stats_button"].update(disabled=True)
             sess.close()
-
-    if (
-        "return_key" in event
-        and window.find_element_with_focus().Key == "player_search"
-        and window["player_search"].get()
-    ):
-        if not window["player_search"].get():
-            continue
-        username = window["player_search"].get()
-        searched_user_data = get_question_history(sess, username=username)
-        searched_user_data = get_user_stats(
-            sess, username=username, user_data=searched_user_data
-        )
-        user_data, searched_user_data = calc_hun_score(
-            user_data, searched_user_data, save=True
-        )
-        window["player_search"].update(value="")
-        # searched_user_data.pprint(pformat="json")
 
     if event == "stats_button":
         # user_data.pprint(pformat="json")
@@ -752,54 +766,86 @@ while True:
             stats_layout = [
                 [
                     sg.Text(
-                        key,
-                        font=("Arial Bold", 16),
-                        size=(5, 1),
-                        tooltip=STATS_DEFINITION.get(key),
-                    )
-                    for key, val in user_data.stats.items()
-                    if key not in ["Season", "Rundle", "Rank"]
+                        "Player Search:",
+                        font=("Arial", 14),
+                        justification="r",
+                    ),
+                    sg.Input(
+                        "",
+                        key="player_search",
+                        font=("Arial", 14),
+                        size=(15, 15),
+                        use_readonly_for_disable=True,
+                        enable_events=True,
+                    ),
                 ],
                 [
-                    sg.Text(
-                        val,
-                        font=DEFAULT_FONT,
-                        size=(5, 1),
-                        tooltip=STATS_DEFINITION.get(key),
-                    )
-                    for key, val in user_data.stats.items()
-                    if key not in ["Season", "Rundle", "Rank"]
-                ],
-                [
-                    sg.Table(
-                        [
+                    sg.Column(
+                        layout=[
                             [
-                                [val]
-                                for key, val in user_data.stats.items()
+                                sg.Text(
+                                    "User",
+                                    font=("Arial Bold", 14),
+                                    justification="c",
+                                ),
+                            ]
+                        ],
+                        element_justification="c",
+                        size=(100, 30),
+                    ),
+                    sg.Column(
+                        layout=[
+                            [
+                                sg.Text(
+                                    key,
+                                    font=("Arial Bold", 14),
+                                    size=(5, 1),
+                                    tooltip=STATS_DEFINITION.get(key),
+                                    justification="c",
+                                )
+                                for key in list(user_data.stats.keys())
                                 if key not in ["Season", "Rundle", "Rank"]
                             ],
-                        ],
-                        headings=[
-                            key
-                            for key, val in user_data.stats.items()
-                            if key not in ["Season", "Rundle", "Rank"]
-                        ],
-                        def_col_width=5,
-                        font=DEFAULT_FONT,
-                        header_font=("Arial Bold", 16),
-                        justification="c",
-                    )
+                        ]
+                    ),
                 ],
+                [sg.Column(add_stats_row(user_data), key="stats_column")],
             ]
             stats_window = sg.Window(
-                "Learned League User Stats", stats_layout, finalize=True
+                "Learned League User Stats",
+                stats_layout,
+                finalize=True,
+                return_keyboard_events=True,
             )
+            stats_window.bind("<Return>", "return_key")
+
             while True:
                 stat_event, stat_values = stats_window.read()
 
                 if stat_event in (None, "Quit", sg.WIN_CLOSED):
                     stats_window.close()
                     break
+
+                if (
+                    "return_key" in stat_event
+                    and stats_window.find_element_with_focus().Key == "player_search"
+                    and stats_window["player_search"].get()
+                ):
+                    if not stats_window["player_search"].get():
+                        continue
+                    username = stats_window["player_search"].get()
+                    searched_user_data = get_question_history(sess, username=username)
+                    searched_user_data = get_user_stats(
+                        sess, username=username, user_data=searched_user_data
+                    )
+                    user_data, searched_user_data = calc_hun_score(
+                        user_data, searched_user_data, save=True
+                    )
+                    stats_window["player_search"].update(value="")
+                    stats_window.extend_layout(
+                        stats_window["stats_column"], add_stats_row(searched_user_data)
+                    )
+                    # searched_user_data.pprint(pformat="json")
 
         # compare stats with loaded person?
         # display the stats and their meanings
