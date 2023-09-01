@@ -7,9 +7,33 @@ import requests
 from bs4 import BeautifulSoup as bs
 from dotmap import DotMap
 
+USER_DATA_DIR = os.path.expanduser("~") + "/.LearnedLeague/user_data/"
 DEFAULT_FONT = ("Arial", 14)
 BASE_URL = "https://www.learnedleague.com"
 LOGIN_URL = BASE_URL + "/ucp.php?mode=login"
+USER_QHIST = BASE_URL + "/profiles.php?%s&9"
+STATS_DEFINITION = {
+    "W": "Wins",
+    "L": "Losses",
+    "T": "Ties",
+    "PTS": "Points (in standings)",
+    "MPD": "Match Points Differential",
+    "TMP": "Total Match Points",
+    "TCA": "Total Correct Answers",
+    "TPA": "Total Points Allowed",
+    "CAA": "Correct Answers Against",
+    "PCAA": "Points Per Correct Answer Against",
+    "UfPA": """Unforced Points Allowed
+        Num correct - perfect defensive points (0, 1, 1, 2, 2, 3)
+        """,
+    "DE": "Defensive Efficiency",
+    "FW": "Forfeit Wins",
+    "FL": "Forfeit Losses",
+    "3PT": "3-Pointers",
+    "MCW": "Most Common Wrong Answers",
+    "STR": "Streak",
+    "QPct": "Percent of correct answers",
+}
 
 
 def login():
@@ -70,42 +94,112 @@ def login():
     }
     sess = requests.Session()
     sess.post(LOGIN_URL, data=payload)
+    sess.headers["profile"] = login_info.get("username").lower()
     return sess
 
 
-def get_question_history(sess, user_data=None):
+class UserData:
+    def __init__(self, username=None):
+        self.username = username
+
+
+def get_question_history(
+    sess=None, username=None, user_data=None, save=False, display=True
+):
+    if not sess:
+        sess = login()
+
     if not user_data:
         user_data = DotMap()
-    response = sess.get("https://learnedleague.com/profiles.php?75344&9")
+
+    if not username and not user_data:
+        username = sess.headers.get("profile")
+    elif not username and user_data:
+        username = user_data.username
+    else:
+        username = username.lower()
+
+    if not user_data.username:
+        user_data.username = username
+
+    profile_id = sess.get(
+        f"https://learnedleague.com/profiles.php?{username}"
+    ).url.split("?")[-1]
+    try:
+        response = sess.get(f"https://learnedleague.com/profiles.php?{profile_id}&9")
+    except Exception as e:
+        print(e)
+        user_data.ok = False
+        return user_data
     page = bs(response.content, "html.parser")
     all_categories = page.find_all("ul", {"class": "mktree"})
     question_history = DotMap()
+    category_metrics = DotMap()
     for category in all_categories:
         category_name = re.sub(
             " ", "_", category.find("span", {"class": "catname"}).text
         )
-        question_history[category_name] = DotMap()
         questions = category.find("table", {"class": "qh"}).find_all("tr")[1:]
-        for i, question in enumerate(questions):
-            question_url = question.find_all("td")[0].find_all("a")[2].get("href")
-            question_text = question.find_all("td")[1].text
-            question_correct = "green" in question.find_all("td")[2].img.get("src")
-            question_history[category_name][i + 1] = DotMap(
-                question=question_text,
-                correct=question_correct,
-                url=BASE_URL + question_url,
+        for question in questions:
+            q_id = (
+                question.find_all("td")[0].find_all("a")[2].get("href").split("?")[-1]
+            )
+            q_id = f'S{q_id.split("&")[0]}D{q_id.split("&")[1]}Q{q_id.split("&")[2]}'
+            correct = "green" in question.find_all("td")[2].img.get("src")
+            category_metrics[category_name].total += 1
+
+            if correct:
+                category_metrics[category_name].correct += 1
+            else:
+                category_metrics[category_name].correct += 0
+
+            question_history[q_id] = DotMap(
+                question_category=category_name,
+                correct=correct,
+                url=BASE_URL + question.find_all("td")[0].find_all("a")[2].get("href"),
             )
 
+        category_metrics[category_name].percent = (
+            category_metrics[category_name].correct
+            / category_metrics[category_name].total
+        )
+    user_data.category_metrics = category_metrics
     user_data.question_history = question_history
     user_data.ok = response.ok
+    if save:
+        save_user(user_data)
+
     return user_data
 
 
-def get_user_stats(sess, user_data=None):
+def get_user_stats(sess=None, username=None, user_data=None, save=False):
+    if not sess:
+        sess = login()
+
     if not user_data:
         user_data = DotMap()
-    response = sess.get("https://learnedleague.com/profiles.php?75344&2")
+
+    if not username and not user_data:
+        username = sess.headers.get("profile")
+    elif not username and user_data:
+        username = user_data.username
+    else:
+        username = username.lower()
+
+    if not user_data.username:
+        user_data.username = username
+
+    profile_id = sess.get(
+        f"https://learnedleague.com/profiles.php?{username}"
+    ).url.split("?")[-1]
+    response = sess.get(f"https://learnedleague.com/profiles.php?{profile_id}&2")
     page = bs(response.content, "html.parser")
+    if (
+        "This is not an active player account."
+        in page.find("div", {"class": "inner"}).text
+    ):
+        return user_data
+
     header = [
         val.text
         for val in page.find("table", {"class": "std std_bord stats"})
@@ -122,4 +216,107 @@ def get_user_stats(sess, user_data=None):
     user_data["stats"] = DotMap()
     for i, header_value in enumerate(header):
         user_data["stats"][header_value] = body[i]
+
+    if save:
+        save_user(user_data)
+
     return user_data
+
+
+def load_user_data(username):
+    if os.path.isfile(USER_DATA_DIR + username + ".json"):
+        with open(USER_DATA_DIR + username + ".json") as fp:
+            user_data = get_question_history(
+                login(),
+                username=username,
+                user_data=DotMap(json.load(fp)),
+            )
+    else:
+        user_data = get_question_history(login(), username=username)
+
+    return user_data
+
+
+def display_category_metrics(user_data):
+    sorted_categories = sorted(
+        list(user_data.category_metrics.keys()),
+        key=lambda x: (user_data.category_metrics[x]["percent"]),
+        reverse=True,
+    )
+    cat_metrics = sg.Window(
+        f"Category Metrics - {user_data.username}",
+        layout=[
+            [
+                [
+                    sg.Text(
+                        (
+                            f"{category}: "
+                            + f"({user_data.category_metrics[category].correct}"
+                            + f"/{user_data.category_metrics[category].total})"
+                        ),
+                        expand_x=True,
+                        justification="l",
+                        font=DEFAULT_FONT,
+                    ),
+                    sg.Text(
+                        f"{user_data.category_metrics[category].percent*100:3.2f}%",
+                        font=DEFAULT_FONT,
+                        justification="r",
+                    ),
+                    sg.ProgressBar(
+                        max_value=user_data.category_metrics[category].get("total"),
+                        orientation="h",
+                        size_px=(100, 20),
+                        key=category,
+                    ),
+                ]
+                for category in sorted_categories
+            ]
+        ],
+        finalize=True,
+        modal=False,
+    )
+    [
+        cat_metrics[category].update(
+            current_count=user_data.category_metrics[category].get("correct")
+        )
+        for category in user_data.category_metrics.keys()
+    ]
+
+
+def calc_hun_score(user1_qhist_dict, user2_qhist_dict, save=False, debug=False):
+    raw = 0
+    total = 0
+
+    for key, values in user1_qhist_dict.question_history.items():
+        if key in user2_qhist_dict.question_history.keys():
+            total += 1
+            if values.correct == user2_qhist_dict.question_history[key].correct:
+                raw += 1
+
+    if not total:
+        hun_score = 0
+    else:
+        hun_score = raw / total
+
+    user1_qhist_dict.hun[user2_qhist_dict.username] = hun_score
+    user2_qhist_dict.hun[user1_qhist_dict.username] = hun_score
+
+    if save:
+        save_user(user1_qhist_dict)
+        save_user(user2_qhist_dict)
+
+    if debug:
+        print(raw, total)
+
+    return user1_qhist_dict, user2_qhist_dict
+
+
+def save_user(user_dict):
+    user_data_dir = os.path.expanduser("~") + "/.LearnedLeague/user_data"
+    if not os.path.isdir(user_data_dir):
+        os.mkdir(user_data_dir)
+
+    filename = user_data_dir + "/" + user_dict.username + ".json"
+    with open(filename, "w") as fp:
+        json.dump(user_dict, fp, indent=4, sort_keys=True)

@@ -12,18 +12,29 @@ import requests
 import wikipedia
 from bs4 import BeautifulSoup as bs
 from bs4 import SoupStrainer as ss
+from dotmap import DotMap
 from PyDictionary import PyDictionary
 
 from answer_correctness import combined_correctness
 from check_for_updates import check_for_update
 from layout import layout
-from logged_in_tools import get_question_history, get_user_stats, login
+from logged_in_tools import (
+    DEFAULT_FONT,
+    STATS_DEFINITION,
+    calc_hun_score,
+    display_category_metrics,
+    get_question_history,
+    get_user_stats,
+    load_user_data,
+    login,
+)
 from minileagues import minileague
 from onedays import oneday_main
 
 BASE_URL = "https://www.learnedleague.com"
 
 WD = os.getcwd()
+USER_DATA_DIR = os.path.expanduser("~") + "/.LearnedLeague/user_data/"
 
 restart = check_for_update()
 if restart:
@@ -41,7 +52,7 @@ def get_new_data(season_number):
         all_data: Data structure of all questions and answers (and metrics)
     """
     try:
-        with open(WD + "/resources/all_data.json", "r") as fp:
+        with open(os.path.expanduser("~") + "/.LearnedLeague/all_data.json", "r") as fp:
             all_data = json.load(fp)
     except Exception:
         all_data = {}
@@ -131,7 +142,7 @@ def get_new_data(season_number):
                 "R": [cell.text for cell in rundles[5]][2:-1][j],
             }
 
-    with open(WD + "/resources/all_data.json", "w+") as fp:
+    with open(os.path.expanduser("~") + "/.LearnedLeague/all_data.json", "w+") as fp:
         json.dump(all_data, fp, sort_keys=True, indent=4)
 
     return all_data
@@ -255,6 +266,41 @@ def update_question(questions, window, i):
     return question_object
 
 
+def add_stats_row(user_data):
+    row = (
+        [
+            sg.Column(
+                layout=[
+                    [
+                        sg.Text(
+                            user_data.username,
+                            font=DEFAULT_FONT,
+                            justification="c",
+                        ),
+                    ]
+                ],
+                element_justification="c",
+                size=(100, 30),
+            ),
+            sg.Column(
+                layout=[
+                    [
+                        sg.Text(
+                            user_data.stats.get(key),
+                            font=DEFAULT_FONT,
+                            size=(5, 1),
+                            justification="c",
+                        )
+                        for key in list(user_data.stats.keys())
+                        if key not in ["Season", "Rundle", "Rank"]
+                    ],
+                ]
+            ),
+        ],
+    )
+    return row
+
+
 try:
     latest_season = (
         bs(
@@ -266,26 +312,34 @@ try:
         .split("LL")[-1]
     )
 except Exception:
-    latest_season = 97
+    latest_season = 98
 
 available_seasons = [
     str(season) for season in list(range(60, int(latest_season) + 1, 1))
 ]
 
 
-datapath = WD + "/resources/all_data.json"
+datapath = os.path.expanduser("~") + "/.LearnedLeague/all_data.json"
 if os.path.isfile(datapath):
     with open(datapath, "r") as fp:
         all_data = json.load(fp)
 else:
     all_data = {}
 
-season_in_data = list(
-    set([val.split("D")[0].strip("S") for val in list(all_data.keys())])
+season_in_data = sorted(
+    list(set([val.split("D")[0].strip("S") for val in list(all_data.keys())]))
 )
 missing_seasons = sorted(
     list(set(available_seasons).symmetric_difference(set(season_in_data)))
 )
+
+for season in available_seasons:
+    season_questions = 0
+    for key in all_data.keys():
+        if season in key:
+            season_questions += 1
+    if season_questions < 150 and True:
+        missing_seasons += [season]
 
 if len(missing_seasons) > 0:
     icon_file = WD + "/resources/ll_app_logo.png"
@@ -365,7 +419,7 @@ window.bind("<Command-p>", "previous_key")
 window["question"].bind("<ButtonPress-2>", "press")
 window["question"].bind("<ButtonPress-1>", "click_here")
 window["answer_submission"].bind("<Return>", "_submit_answer_button")
-
+sess = None
 values = None
 i = choice(list(questions.keys()))
 question_object = update_question(questions, window, i)
@@ -380,6 +434,8 @@ while True:
 
     # If the window is closed, break the loop and close the application
     if event in (None, "Quit", sg.WIN_CLOSED):
+        if sess:
+            sess.close()
         window.close()
         break
 
@@ -683,20 +739,218 @@ while True:
         webbrowser.open(window["question"].metadata)
 
     if event == "login_button":
-        print(window["login_button"].get_text())
+        user_data = None
         if window["login_button"].get_text() == "Login":
             sess = login()
             if not sess:
                 continue
-            user_data = get_question_history(sess)
-            user_data = get_user_stats(sess, user_data)
+
+            if USER_DATA_DIR + f"{sess.headers.get('profile')}.json":
+                with open(USER_DATA_DIR + f"{sess.headers.get('profile')}.json") as fp:
+                    user_data = DotMap(json.load(fp))
+
+            user_data = get_question_history(sess, user_data=user_data)
+            user_data = get_user_stats(sess, user_data=user_data)
             if user_data.ok:
                 window["login_button"].update(text="Logout")
                 window["stats_button"].update(disabled=False)
 
         elif window["login_button"].get_text() == "Logout":
             window["login_button"].update(text="Login")
+            window["stats_button"].update(disabled=True)
             sess.close()
 
     if event == "stats_button":
-        user_data.pprint(pformat="json")
+        # user_data.pprint(pformat="json")
+        if user_data.get("stats"):
+            combo_values = [user_data.username]
+            stats_layout = [
+                [
+                    sg.Combo(
+                        combo_values,
+                        default_value=user_data.username,
+                        key="available_users",
+                        readonly=True,
+                    ),
+                    sg.Button("Category Metrics", size=(16, 1), key="category_button"),
+                    sg.Text(
+                        "Player Search:",
+                        font=("Arial", 14),
+                        justification="r",
+                    ),
+                    sg.Input(
+                        "",
+                        key="player_search",
+                        font=("Arial", 14),
+                        size=(15, 15),
+                        use_readonly_for_disable=True,
+                        enable_events=True,
+                    ),
+                    sg.Button(
+                        "Search",
+                        key="player_search_button",
+                        size=(10, 1),
+                    ),
+                    sg.Button(
+                        "Calc HUN",
+                        key="calc_hun",
+                        size=(10, 1),
+                        tooltip="HUN Similarity score - compare how similar two players are",
+                    ),
+                ],
+                [
+                    sg.Column(
+                        layout=[
+                            [
+                                sg.Text(
+                                    "User",
+                                    font=("Arial Bold", 14),
+                                    justification="c",
+                                ),
+                            ]
+                        ],
+                        element_justification="c",
+                        size=(100, 30),
+                    ),
+                    sg.Column(
+                        layout=[
+                            [
+                                sg.Text(
+                                    key,
+                                    font=("Arial Bold", 14),
+                                    size=(5, 1),
+                                    tooltip=STATS_DEFINITION.get(key),
+                                    justification="c",
+                                )
+                                for key in list(user_data.stats.keys())
+                                if key not in ["Season", "Rundle", "Rank"]
+                            ],
+                        ]
+                    ),
+                ],
+                [sg.Column(add_stats_row(user_data), key="stats_column")],
+            ]
+            stats_window = sg.Window(
+                "Learned League User Stats",
+                stats_layout,
+                finalize=True,
+                return_keyboard_events=True,
+            )
+            stats_window.bind("<Return>", "return_key")
+
+            while True:
+                stat_event, stat_values = stats_window.read()
+
+                if stat_event in (None, "Quit", sg.WIN_CLOSED):
+                    stats_window.close()
+                    break
+
+                if (
+                    "return_key" in stat_event
+                    and stats_window.find_element_with_focus().Key == "player_search"
+                    and stats_window["player_search"].get()
+                ) or (
+                    "player_search_button" in stat_event
+                    and stats_window["player_search"].get()
+                ):
+                    if not stats_window["player_search"].get():
+                        continue
+                    username = stats_window["player_search"].get()
+                    if os.path.isfile(USER_DATA_DIR + f"{username}.json"):
+                        with open(USER_DATA_DIR + f"{username}.json") as fp:
+                            searched_user_data = get_user_stats(
+                                sess, username=username, user_data=DotMap(json.load(fp))
+                            )
+                    else:
+                        searched_user_data = get_user_stats(
+                            sess, username=username, save=True
+                        )
+                    if not searched_user_data.get("stats"):
+                        stats_window["player_search"].update(value="")
+                        sg.popup_auto_close(
+                            "Player Not Found.", no_titlebar=True, modal=False
+                        )
+                        stats_window["player_search"].set_focus()
+                        continue
+
+                    stats_window["player_search"].update(value="")
+                    stats_window.extend_layout(
+                        stats_window["stats_column"], add_stats_row(searched_user_data)
+                    )
+                    combo_values.append(searched_user_data.username)
+                    stats_window["available_users"].update(
+                        values=combo_values, value=combo_values[0]
+                    )
+
+                if "category_button" in stat_event:
+                    display_category_metrics(
+                        load_user_data(stats_window["available_users"].get())
+                    )
+
+                if "calc_hun" in stat_event:
+                    hun_window = sg.Window(
+                        "Calculate HUN Similarity",
+                        [
+                            [
+                                sg.Text(
+                                    "Player 1: ", font=("Arial", 16), expand_x=True
+                                ),
+                                sg.Input(
+                                    user_data.username,
+                                    font=DEFAULT_FONT,
+                                    key="player_1",
+                                    size=(10, 1),
+                                ),
+                            ],
+                            [
+                                sg.Text(
+                                    "Player 2: ", font=("Arial", 16), expand_x=True
+                                ),
+                                sg.Input(
+                                    "",
+                                    font=DEFAULT_FONT,
+                                    key="player_2",
+                                    size=(10, 1),
+                                ),
+                            ],
+                            [
+                                sg.Button("Submit", bind_return_key=True),
+                                sg.Button("Cancel"),
+                                sg.Button("Clear"),
+                            ],
+                            [sg.HorizontalSeparator()],
+                            [
+                                sg.Text("HUN Similarity:", font=DEFAULT_FONT),
+                                sg.Text("", key="hun_score", font=DEFAULT_FONT),
+                            ],
+                        ],
+                        size=(300, 150),
+                        finalize=True,
+                    )
+                    while True:
+                        hun_event, player_names = hun_window.read()
+                        if hun_event in (None, "Quit", sg.WIN_CLOSED):
+                            hun_window.close()
+                            break
+
+                        if hun_event == "Cancel":
+                            hun_window["player_1"].update(value=user_data.username)
+                            hun_window["player_2"].update(value="")
+
+                        if hun_event == "Clear":
+                            hun_window["player_1"].update(value="")
+                            hun_window["player_2"].update(value="")
+
+                        if hun_event == "Submit":
+                            player_1 = load_user_data(player_names.get("player_1"))
+                            player_2 = load_user_data(player_names.get("player_2"))
+
+                            player_1, player_2 = calc_hun_score(
+                                player_1,
+                                player_2,
+                                save=True,
+                            )
+                            hun_score = player_1.hun.get(player_2.username)
+                            hun_window["hun_score"].update(value=round(hun_score, 3))
+                            hun_window["player_1"].update(value=user_data.username)
+                            hun_window["player_2"].update(value="")
