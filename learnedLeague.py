@@ -22,8 +22,10 @@ from logged_in_tools import (
     DEFAULT_FONT,
     STATS_DEFINITION,
     calc_hun_score,
+    display_category_metrics,
     get_question_history,
     get_user_stats,
+    load_user_data,
     login,
 )
 from minileagues import minileague
@@ -761,8 +763,16 @@ while True:
     if event == "stats_button":
         # user_data.pprint(pformat="json")
         if user_data.get("stats"):
+            combo_values = [user_data.username]
             stats_layout = [
                 [
+                    sg.Combo(
+                        combo_values,
+                        default_value=user_data.username,
+                        key="available_users",
+                        readonly=True,
+                    ),
+                    sg.Button("Category Metrics", size=(16, 1), key="category_button"),
                     sg.Text(
                         "Player Search:",
                         font=("Arial", 14),
@@ -855,9 +865,26 @@ while True:
                         searched_user_data = get_user_stats(
                             sess, username=username, save=True
                         )
+                    if not searched_user_data.get("stats"):
+                        stats_window["player_search"].update(value="")
+                        sg.popup_auto_close(
+                            "Player Not Found.", no_titlebar=True, modal=False
+                        )
+                        stats_window["player_search"].set_focus()
+                        continue
+
                     stats_window["player_search"].update(value="")
                     stats_window.extend_layout(
                         stats_window["stats_column"], add_stats_row(searched_user_data)
+                    )
+                    combo_values.append(searched_user_data.username)
+                    stats_window["available_users"].update(
+                        values=combo_values, value=combo_values[0]
+                    )
+
+                if "category_button" in stat_event:
+                    display_category_metrics(
+                        load_user_data(stats_window["available_users"].get())
                     )
 
                 if "calc_hun" in stat_event:
@@ -915,40 +942,8 @@ while True:
                             hun_window["player_2"].update(value="")
 
                         if hun_event == "Submit":
-                            if os.path.isfile(
-                                USER_DATA_DIR + player_names.get("player_1") + ".json"
-                            ):
-                                with open(
-                                    USER_DATA_DIR
-                                    + player_names.get("player_1")
-                                    + ".json"
-                                ) as fp:
-                                    player_1 = get_question_history(
-                                        sess,
-                                        username=player_names.get("player_1"),
-                                        user_data=DotMap(json.load(fp)),
-                                    )
-                            else:
-                                player_1 = get_question_history(
-                                    sess, username=player_names.get("player_1")
-                                )
-                            if os.path.isfile(
-                                USER_DATA_DIR + player_names.get("player_2") + ".json"
-                            ):
-                                with open(
-                                    USER_DATA_DIR
-                                    + player_names.get("player_2")
-                                    + ".json"
-                                ) as fp:
-                                    player_2 = get_question_history(
-                                        sess,
-                                        username=player_names.get("player_2"),
-                                        user_data=DotMap(json.load(fp)),
-                                    )
-                            else:
-                                player_2 = get_question_history(
-                                    sess, username=player_names.get("player_2")
-                                )
+                            player_1 = load_user_data(player_names.get("player_1"))
+                            player_2 = load_user_data(player_names.get("player_2"))
 
                             player_1, player_2 = calc_hun_score(
                                 player_1,

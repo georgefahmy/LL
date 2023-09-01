@@ -7,6 +7,7 @@ import requests
 from bs4 import BeautifulSoup as bs
 from dotmap import DotMap
 
+USER_DATA_DIR = os.path.expanduser("~") + "/.LearnedLeague/user_data/"
 DEFAULT_FONT = ("Arial", 14)
 BASE_URL = "https://www.learnedleague.com"
 LOGIN_URL = BASE_URL + "/ucp.php?mode=login"
@@ -102,7 +103,9 @@ class UserData:
         self.username = username
 
 
-def get_question_history(sess=None, username=None, user_data=None, save=False):
+def get_question_history(
+    sess=None, username=None, user_data=None, save=False, display=True
+):
     if not sess:
         sess = login()
 
@@ -131,6 +134,7 @@ def get_question_history(sess=None, username=None, user_data=None, save=False):
     page = bs(response.content, "html.parser")
     all_categories = page.find_all("ul", {"class": "mktree"})
     question_history = DotMap()
+    category_metrics = DotMap()
     for category in all_categories:
         category_name = re.sub(
             " ", "_", category.find("span", {"class": "catname"}).text
@@ -141,15 +145,27 @@ def get_question_history(sess=None, username=None, user_data=None, save=False):
                 question.find_all("td")[0].find_all("a")[2].get("href").split("?")[-1]
             )
             q_id = f'S{q_id.split("&")[0]}D{q_id.split("&")[1]}Q{q_id.split("&")[2]}'
+            correct = "green" in question.find_all("td")[2].img.get("src")
+            category_metrics[category_name].total += 1
+
+            if correct:
+                category_metrics[category_name].correct += 1
+            else:
+                category_metrics[category_name].correct += 0
+
             question_history[q_id] = DotMap(
                 question_category=category_name,
-                correct="green" in question.find_all("td")[2].img.get("src"),
+                correct=correct,
                 url=BASE_URL + question.find_all("td")[0].find_all("a")[2].get("href"),
             )
 
+        category_metrics[category_name].percent = (
+            category_metrics[category_name].correct
+            / category_metrics[category_name].total
+        )
+    user_data.category_metrics = category_metrics
     user_data.question_history = question_history
     user_data.ok = response.ok
-
     if save:
         save_user(user_data)
 
@@ -178,6 +194,12 @@ def get_user_stats(sess=None, username=None, user_data=None, save=False):
     ).url.split("?")[-1]
     response = sess.get(f"https://learnedleague.com/profiles.php?{profile_id}&2")
     page = bs(response.content, "html.parser")
+    if (
+        "This is not an active player account."
+        in page.find("div", {"class": "inner"}).text
+    ):
+        return user_data
+
     header = [
         val.text
         for val in page.find("table", {"class": "std std_bord stats"})
@@ -201,22 +223,65 @@ def get_user_stats(sess=None, username=None, user_data=None, save=False):
     return user_data
 
 
-def calc_category_metrics(user_data):
-    qhist = user_data.question_history
-    category_metrics = DotMap()
-    for val in qhist.values():
-        category_metrics[val.question_category].total += 1
-        if val.correct:
-            category_metrics[val.question_category].correct += 1
-        else:
-            category_metrics[val.question_category].correct += 0
-        percent = (
-            category_metrics[val.question_category].correct
-            / category_metrics[val.question_category].total
-        )
-        category_metrics[val.question_category].percent = percent
-    user_data.category_metrics = category_metrics
+def load_user_data(username):
+    if os.path.isfile(USER_DATA_DIR + username + ".json"):
+        with open(USER_DATA_DIR + username + ".json") as fp:
+            user_data = get_question_history(
+                login(),
+                username=username,
+                user_data=DotMap(json.load(fp)),
+            )
+    else:
+        user_data = get_question_history(login(), username=username)
+
     return user_data
+
+
+def display_category_metrics(user_data):
+    sorted_categories = sorted(
+        list(user_data.category_metrics.keys()),
+        key=lambda x: (user_data.category_metrics[x]["percent"]),
+        reverse=True,
+    )
+    cat_metrics = sg.Window(
+        f"Category Metrics - {user_data.username}",
+        layout=[
+            [
+                [
+                    sg.Text(
+                        (
+                            f"{category}: "
+                            + f"({user_data.category_metrics[category].correct}"
+                            + f"/{user_data.category_metrics[category].total})"
+                        ),
+                        expand_x=True,
+                        justification="l",
+                        font=DEFAULT_FONT,
+                    ),
+                    sg.Text(
+                        f"{user_data.category_metrics[category].percent*100:3.2f}%",
+                        font=DEFAULT_FONT,
+                        justification="r",
+                    ),
+                    sg.ProgressBar(
+                        max_value=user_data.category_metrics[category].get("total"),
+                        orientation="h",
+                        size_px=(100, 20),
+                        key=category,
+                    ),
+                ]
+                for category in sorted_categories
+            ]
+        ],
+        finalize=True,
+        modal=False,
+    )
+    [
+        cat_metrics[category].update(
+            current_count=user_data.category_metrics[category].get("correct")
+        )
+        for category in user_data.category_metrics.keys()
+    ]
 
 
 def calc_hun_score(user1_qhist_dict, user2_qhist_dict, save=False, debug=False):
