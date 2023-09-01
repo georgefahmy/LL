@@ -6,7 +6,6 @@ import PySimpleGUI as sg
 import requests
 from bs4 import BeautifulSoup as bs
 from dotmap import DotMap
-from numpy import percentile
 
 DEFAULT_FONT = ("Arial", 14)
 BASE_URL = "https://www.learnedleague.com"

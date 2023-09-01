@@ -336,7 +336,7 @@ for season in available_seasons:
     for key in all_data.keys():
         if season in key:
             season_questions += 1
-    if season_questions < 150 and False:
+    if season_questions < 150 and True:
         missing_seasons += [season]
 
 if len(missing_seasons) > 0:
@@ -929,10 +929,8 @@ while True:
                                         user_data=DotMap(json.load(fp)),
                                     )
                             else:
-                                player_1 = (
-                                    get_question_history(
-                                        sess, username=player_names.get("player_1")
-                                    ),
+                                player_1 = get_question_history(
+                                    sess, username=player_names.get("player_1")
                                 )
                             if os.path.isfile(
                                 USER_DATA_DIR + player_names.get("player_2") + ".json"
@@ -948,11 +946,10 @@ while True:
                                         user_data=DotMap(json.load(fp)),
                                     )
                             else:
-                                player_2 = (
-                                    get_question_history(
-                                        sess, username=player_names.get("player_2")
-                                    ),
+                                player_2 = get_question_history(
+                                    sess, username=player_names.get("player_2")
                                 )
+
                             player_1, player_2 = calc_hun_score(
                                 player_1,
                                 player_2,
