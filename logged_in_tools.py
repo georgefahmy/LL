@@ -24,8 +24,7 @@ STATS_DEFINITION = {
     "CAA": "Correct Answers Against",
     "PCAA": "Points Per Correct Answer Against",
     "UfPA": """Unforced Points Allowed
-        Num correct - perfect defensive points (0, 1, 1, 2, 2, 3)
-        """,
+    Num correct - perfect defensive points (0, 1, 1, 2, 2, 3)""",
     "DE": "Defensive Efficiency",
     "FW": "Forfeit Wins",
     "FL": "Forfeit Losses",
@@ -36,13 +35,14 @@ STATS_DEFINITION = {
 }
 
 
-def login():
+def login(logout=False):
     if os.path.isfile(os.path.expanduser("~") + "/.LearnedLeague/login_info.json"):
         login_info = json.load(
             open(os.path.expanduser("~") + "/.LearnedLeague/login_info.json")
         )
     else:
         login_info = {}
+    if not login_info.get("auto_login_check"):
         event, login_info = sg.Window(
             "Learned League Login",
             [
@@ -70,6 +70,10 @@ def login():
                     ),
                 ],
                 [
+                    sg.Checkbox(
+                        "Auto-Login",
+                        key="auto_login_check",
+                    ),
                     sg.Text(expand_x=True),
                     sg.Button("Submit", key="submit"),
                     sg.Button("Cancel", key="cancel"),
@@ -80,22 +84,26 @@ def login():
 
         if event == "cancel":
             return False
+
+    if logout:
+        login_info["auto_login_check"] = False
+
     json.dump(
         login_info,
         open(os.path.expanduser("~") + "/.LearnedLeague/login_info.json", "w"),
         indent=4,
         sort_keys=False,
     )
-
-    payload = {
-        "login": "Login",
-        "username": login_info.get("username"),
-        "password": login_info.get("password"),
-    }
-    sess = requests.Session()
-    sess.post(LOGIN_URL, data=payload)
-    sess.headers["profile"] = login_info.get("username").lower()
-    return sess
+    if not logout:
+        payload = {
+            "login": "Login",
+            "username": login_info.get("username"),
+            "password": login_info.get("password"),
+        }
+        sess = requests.Session()
+        sess.post(LOGIN_URL, data=payload)
+        sess.headers["profile"] = login_info.get("username").lower()
+        return sess
 
 
 class UserData:

@@ -18,9 +18,16 @@ from PyDictionary import PyDictionary
 from answer_correctness import combined_correctness
 from check_for_updates import check_for_update
 from layout import layout
-from logged_in_tools import (DEFAULT_FONT, STATS_DEFINITION, calc_hun_score,
-                             display_category_metrics, get_question_history,
-                             get_user_stats, load_user_data, login)
+from logged_in_tools import (
+    DEFAULT_FONT,
+    STATS_DEFINITION,
+    calc_hun_score,
+    display_category_metrics,
+    get_question_history,
+    get_user_stats,
+    load_user_data,
+    login,
+)
 from minileagues import minileague
 from onedays import oneday_main
 
@@ -783,6 +790,7 @@ while True:
                 window["stats_button"].update(disabled=False)
 
         elif window["login_button"].get_text() == "Logout":
+            login(logout=True)
             window["login_button"].update(text="Login")
             window["stats_button"].update(disabled=True)
             sess.close()
