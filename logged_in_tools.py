@@ -206,16 +206,33 @@ def get_user_stats(sess=None, username=None, user_data=None, save=False):
         .find("thead")
         .find_all("td")
     ]
-    body = [
+    total = [
         val.text
         for val in page.find("table", {"class": "std std_bord stats"})
         .find("tbody")
         .find("tr", {"class": "grandtotal-row"})
         .find_all("td")
     ]
+    current_season = [
+        val.text
+        for val in page.find("table", {"class": "std std_bord stats"})
+        .find("tbody")
+        .find("tr", {"class": ""})
+        .find_all("td")
+    ]
     user_data["stats"] = DotMap()
+    user_data["stats"]["total"] = DotMap()
+    user_data["stats"]["current_season"] = DotMap()
     for i, header_value in enumerate(header):
-        user_data["stats"][header_value] = body[i]
+        if header_value == "Season":
+            header_value = "Seas."
+        if i == 0:
+            user_data["stats"]["total"][header_value] = "Total"
+            continue
+        user_data["stats"]["total"][header_value] = total[i]
+
+    for i, header_value in enumerate(header):
+        user_data["stats"]["current_season"][header_value] = current_season[i]
 
     if save:
         save_user(user_data)
@@ -226,13 +243,37 @@ def get_user_stats(sess=None, username=None, user_data=None, save=False):
 def load_user_data(username):
     if os.path.isfile(USER_DATA_DIR + username + ".json"):
         with open(USER_DATA_DIR + username + ".json") as fp:
-            user_data = get_question_history(
-                login(),
-                username=username,
-                user_data=DotMap(json.load(fp)),
-            )
+            user_data = DotMap(json.load(fp))
+            if not user_data.get("question_history"):
+                user_data = get_question_history(
+                    login(),
+                    username=username,
+                    save=True,
+                    user_data=user_data,
+                )
+
+            if user_data.get("stats"):
+                if not user_data.get("stats").get("total"):
+                    user_data = get_user_stats(
+                        login(), username=username, save=True, user_data=user_data
+                    )
+            if not user_data.get("stats"):
+                user_data = get_user_stats(
+                    login(), username=username, save=True, user_data=user_data
+                )
+            if not user_data.get("category_metrics"):
+                user_data = get_question_history(
+                    login(),
+                    username=username,
+                    save=True,
+                    user_data=user_data,
+                )
+
     else:
         user_data = get_question_history(login(), username=username)
+        user_data = get_user_stats(
+            login(), username=username, user_data=user_data, save=True
+        )
 
     return user_data
 
@@ -319,4 +360,4 @@ def save_user(user_dict):
 
     filename = user_data_dir + "/" + user_dict.username + ".json"
     with open(filename, "w") as fp:
-        json.dump(user_dict, fp, indent=4, sort_keys=True)
+        json.dump(user_dict, fp, indent=4)

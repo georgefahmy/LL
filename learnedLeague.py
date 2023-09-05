@@ -18,16 +18,9 @@ from PyDictionary import PyDictionary
 from answer_correctness import combined_correctness
 from check_for_updates import check_for_update
 from layout import layout
-from logged_in_tools import (
-    DEFAULT_FONT,
-    STATS_DEFINITION,
-    calc_hun_score,
-    display_category_metrics,
-    get_question_history,
-    get_user_stats,
-    load_user_data,
-    login,
-)
+from logged_in_tools import (DEFAULT_FONT, STATS_DEFINITION, calc_hun_score,
+                             display_category_metrics, get_question_history,
+                             get_user_stats, load_user_data, login)
 from minileagues import minileague
 from onedays import oneday_main
 
@@ -277,7 +270,7 @@ def add_stats_row(user_data):
                             font=DEFAULT_FONT,
                             justification="c",
                         ),
-                    ]
+                    ],
                 ],
                 element_justification="c",
                 size=(100, 30),
@@ -286,17 +279,28 @@ def add_stats_row(user_data):
                 layout=[
                     [
                         sg.Text(
-                            user_data.stats.get(key),
+                            user_data.stats.total.get(key),
                             font=DEFAULT_FONT,
                             size=(5, 1),
                             justification="c",
                         )
-                        for key in list(user_data.stats.keys())
-                        if key not in ["Season", "Rundle", "Rank"]
+                        for key in list(user_data.stats.total.keys())
+                        if key not in ["Rundle", "Rank"]
+                    ],
+                    [
+                        sg.Text(
+                            user_data.stats.current_season.get(key),
+                            font=DEFAULT_FONT,
+                            size=(5, 1),
+                            justification="c",
+                        )
+                        for key in list(user_data.stats.current_season.keys())
+                        if key not in ["Rundle", "Rank"]
                     ],
                 ]
             ),
         ],
+        [sg.HorizontalSeparator()],
     )
     return row
 
@@ -333,12 +337,35 @@ missing_seasons = sorted(
     list(set(available_seasons).symmetric_difference(set(season_in_data)))
 )
 
+current_day = int(
+    bs(
+        requests.get("https://www.learnedleague.com/allrundles.php").content,
+        "html.parser",
+        parse_only=ss("h3"),
+    ).h3.text.split()[-1]
+)
+
+total_players = sum(
+    [
+        int(row.find_all("td")[1].text)
+        for row in (
+            bs(
+                requests.get("https://www.learnedleague.com/allrundles.php").content,
+                "html.parser",
+                parse_only=ss("table"),
+            )
+            .find_all("table")[2]
+            .find_all("tr")[1:]
+        )
+    ]
+)
+
 for season in available_seasons:
     season_questions = 0
     for key in all_data.keys():
         if season in key:
             season_questions += 1
-    if season_questions < 150 and True:
+    if season_questions < (current_day * 6) and True:
         missing_seasons += [season]
 
 if len(missing_seasons) > 0:
@@ -822,8 +849,8 @@ while True:
                                     tooltip=STATS_DEFINITION.get(key),
                                     justification="c",
                                 )
-                                for key in list(user_data.stats.keys())
-                                if key not in ["Season", "Rundle", "Rank"]
+                                for key in list(user_data.stats.total.keys())
+                                if key not in ["Rundle", "Rank"]
                             ],
                         ]
                     ),
@@ -856,15 +883,7 @@ while True:
                     if not stats_window["player_search"].get():
                         continue
                     username = stats_window["player_search"].get()
-                    if os.path.isfile(USER_DATA_DIR + f"{username}.json"):
-                        with open(USER_DATA_DIR + f"{username}.json") as fp:
-                            searched_user_data = get_user_stats(
-                                sess, username=username, user_data=DotMap(json.load(fp))
-                            )
-                    else:
-                        searched_user_data = get_user_stats(
-                            sess, username=username, save=True
-                        )
+                    searched_user_data = load_user_data(username)
                     if not searched_user_data.get("stats"):
                         stats_window["player_search"].update(value="")
                         sg.popup_auto_close(
