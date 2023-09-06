@@ -986,7 +986,6 @@ while True:
                         font=DEFAULT_FONT,
                         key="opponent",
                         size=(10, 1),
-                        readonly=True,
                     ),
                 ],
                 [sg.HorizontalSeparator()],
