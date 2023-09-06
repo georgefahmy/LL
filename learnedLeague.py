@@ -1007,7 +1007,7 @@ while True:
         category_values = list(user_data.category_metrics.keys())
         defense_window = sg.Window(
             "Head to Head Defense Strategy",
-            [
+            layout=[
                 [
                     sg.Text("Opponent: ", font=("Arial Bold", 16), expand_x=True),
                     sg.Combo(
@@ -1025,37 +1025,88 @@ while True:
                 ],
                 [sg.HorizontalSeparator()],
                 [
-                    sg.Text("Defense Strategy", font=DEFAULT_FONT),
-                    sg.Text(expand_x=True),
-                    sg.Text("Suggested Points", font=DEFAULT_FONT),
+                    sg.Frame(
+                        title="Defense Strategy",
+                        expand_x=True,
+                        layout=[
+                            [
+                                sg.Text("Defense Strategy", font=DEFAULT_FONT),
+                                sg.Text(expand_x=True),
+                                sg.Text("Suggested Points", font=DEFAULT_FONT),
+                            ],
+                            [
+                                sg.Column(
+                                    layout=[
+                                        [
+                                            sg.Text(
+                                                f"Question {i}:", font=DEFAULT_FONT
+                                            ),
+                                            sg.Combo(
+                                                category_values,
+                                                key=f"defense_strat_{i}",
+                                                font=DEFAULT_FONT,
+                                                readonly=True,
+                                                auto_size_text=True,
+                                            ),
+                                            sg.Text(key=f"space{i}", expand_x=True),
+                                            sg.Text(
+                                                "",
+                                                key=f"defense_suggestion_{i}",
+                                                font=DEFAULT_FONT,
+                                                justification="r",
+                                            ),
+                                        ]
+                                        for i in range(1, 7)
+                                    ]
+                                )
+                            ],
+                            [
+                                sg.Button("Submit", key="submit_defense"),
+                                sg.Button("Clear", key="defense_clear"),
+                            ],
+                        ],
+                    )
                 ],
-                (
-                    [
-                        sg.Text(f"Question {i}:", font=DEFAULT_FONT),
-                        sg.Combo(
-                            category_values,
-                            key=f"defense_strat_{i}",
-                            font=DEFAULT_FONT,
-                            readonly=True,
-                            auto_size_text=True,
-                        ),
-                        sg.Text(key=f"space{i}", expand_x=True),
-                        sg.Text(
-                            "",
-                            key=f"defense_suggestion_{i}",
-                            font=DEFAULT_FONT,
-                            justification="r",
-                        ),
-                    ]
-                    for i in range(1, 7)
-                ),
                 [
-                    sg.Button("Submit", key="submit_defense"),
-                    sg.Button("Clear", key="defense_clear"),
+                    sg.Frame(
+                        title="Question History Search",
+                        expand_x=True,
+                        expand_y=True,
+                        layout=[
+                            [
+                                sg.Text("Search Text:", font=DEFAULT_FONT),
+                                sg.Input(
+                                    "",
+                                    font=DEFAULT_FONT,
+                                    key="defense_question_search_term",
+                                    size=(15, 1),
+                                    expand_x=True,
+                                ),
+                                sg.Button("Search", key="search_questions_button"),
+                            ],
+                            [
+                                sg.Text("Output:", font=DEFAULT_FONT),
+                            ],
+                            [
+                                sg.Text("", key="filtered_metrics", font=DEFAULT_FONT),
+                            ],
+                            [
+                                sg.Multiline(
+                                    "",
+                                    font=DEFAULT_FONT,
+                                    key="output_questions",
+                                    expand_y=True,
+                                    expand_x=True,
+                                    disabled=True,
+                                    size=(25, 5),
+                                ),
+                            ],
+                        ],
+                    )
                 ],
             ],
             finalize=True,
-            size=(375, 300),
+            size=(375, 500),
             resizable=True,
         )
         player_1 = user_data
@@ -1120,3 +1171,33 @@ while True:
                     defense_window[f"defense_strat_{i}"].update(value="")
                     for i in range(1, 7)
                 ]
+
+            if defense_event == "search_questions_button":
+                player_2 = load_user_data(
+                    defense_values.get("opponent"), current_day=season_day
+                )
+
+                search_term = defense_values["defense_question_search_term"]
+                filtered_dict = DotMap(
+                    {
+                        k: v
+                        for k, v in player_2.question_history.iteritems()
+                        if search_term.lower() in v.question.lower()
+                    }
+                )
+                total_filtered_questions = len(list(filtered_dict.keys()))
+                total_filtered_correct = len(
+                    [key for key, value in filtered_dict.items() if value.correct]
+                )
+                # filtered_dict.pprint(pformat="json")
+                result = "\n".join(
+                    [
+                        f"key: {key} - {filtered_dict[key].question_category}"
+                        + f" - Correct: {filtered_dict[key].correct}"
+                        for key in sorted(list(filtered_dict.keys()), reverse=True)
+                    ]
+                )
+                defense_window["filtered_metrics"].update(
+                    value=f"Total Correct: {total_filtered_correct}/{total_filtered_questions}"
+                )
+                defense_window["output_questions"].update(value=result)

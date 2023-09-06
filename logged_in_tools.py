@@ -154,6 +154,7 @@ def get_question_history(
             )
             q_id = f'S{q_id.split("&")[0]}D{q_id.split("&")[1]}Q{q_id.split("&")[2]}'
             correct = "green" in question.find_all("td")[2].img.get("src")
+            question_text = question.find_all("td")[1].text
             category_metrics[category_name].total += 1
 
             if correct:
@@ -164,6 +165,7 @@ def get_question_history(
             question_history[q_id] = DotMap(
                 question_category=category_name,
                 correct=correct,
+                question=question_text,
                 url=BASE_URL + question.find_all("td")[0].find_all("a")[2].get("href"),
             )
 
@@ -255,6 +257,16 @@ def load_user_data(username, current_day=None):
     if os.path.isfile(USER_DATA_DIR + username + ".json"):
         with open(USER_DATA_DIR + username + ".json") as fp:
             user_data = DotMap(json.load(fp))
+
+            if user_data.get("question_history"):
+                if not user_data.question_history.get("question"):
+                    print("Loaded existing data - Question text misssing")
+                    user_data = get_question_history(
+                        login(),
+                        username=username,
+                        save=True,
+                        user_data=user_data,
+                    )
 
             if not user_data.get("question_history"):
                 print("Loaded existing data - No question History")
