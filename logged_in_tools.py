@@ -249,6 +249,8 @@ def get_user_stats(sess=None, username=None, user_data=None, save=False):
 
 
 def load_user_data(username, refresh=False):
+    # TODO update load user data to take into account the current match day
+    # so its not constantly trying to download new data
     if os.path.isfile(USER_DATA_DIR + username + ".json"):
         with open(USER_DATA_DIR + username + ".json") as fp:
             user_data = DotMap(json.load(fp))
