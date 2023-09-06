@@ -28,6 +28,14 @@ layout = [
                         disabled_button_color=("black", "gray"),
                     ),
                     sg.Button(
+                        "Defense",
+                        key="defense_button",
+                        disabled=True,
+                        size=(7, 1),
+                        disabled_button_color=("black", "gray"),
+                        tooltip="Defensive Tactics",
+                    ),
+                    sg.Button(
                         "Login",
                         key="login_button",
                         size=(7, 1),
