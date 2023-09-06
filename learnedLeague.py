@@ -904,23 +904,20 @@ while True:
                     break
 
                 if (
-                    "return_key" in stat_event
+                    stat_event in ["player_search_button", "return_key"]
                     and stats_window.find_element_with_focus().Key == "player_search"
                     and stats_window["player_search"].get()
-                ) or (
-                    "player_search_button" in stat_event
-                    and stats_window["player_search"].get()
                 ):
-                    if not stats_window["player_search"].get():
-                        continue
                     if (
                         f"row_name_{stats_window['available_users'].get()}"
                         in stats_window.AllKeysDict
                     ):
                         continue
+
                     searched_user_data = load_user_data(
-                        stats_window["player_search"].get()
+                        stats_window["player_search"].get(), refresh=True
                     )
+
                     if not searched_user_data.get("stats"):
                         stats_window["player_search"].update(value="")
                         sg.popup_auto_close(
@@ -947,7 +944,8 @@ while True:
                         continue
 
                     searched_user_data = load_user_data(
-                        stats_window["available_users"].get()
+                        stats_window["available_users"].get(),
+                        refresh=True,
                     )
                     stats_window.extend_layout(
                         stats_window["stats_column"],
@@ -956,7 +954,10 @@ while True:
 
                 if "category_button" in stat_event:
                     display_category_metrics(
-                        load_user_data(stats_window["available_users"].get())
+                        load_user_data(
+                            stats_window["available_users"].get(),
+                            refresh=True,
+                        )
                     )
 
     if "defense_button" in event:
@@ -982,7 +983,7 @@ while True:
                     sg.Text("Opponent: ", font=("Arial Bold", 16), expand_x=True),
                     sg.Combo(
                         opponents,
-                        default_value=opponents[current_day + 1],
+                        default_value=opponents[current_day],
                         font=DEFAULT_FONT,
                         key="opponent",
                         size=(10, 1),
@@ -1036,7 +1037,7 @@ while True:
                 break
 
             if defense_event == "submit_defense":
-                player_2 = load_user_data(defense_values.get("opponent"))
+                player_2 = load_user_data(defense_values.get("opponent"), refresh=True)
 
                 player_1, player_2 = calc_hun_score(
                     player_1,
@@ -1081,10 +1082,10 @@ while True:
 
             if defense_event == "defense_clear":
                 [
-                    defense_window[f"defense_suggestion_{i+1}"].update(value="")
-                    for i in range(0, 6)
+                    defense_window[f"defense_suggestion_{i}"].update(value="")
+                    for i in range(1, 7)
                 ]
                 [
-                    defense_window[f"defense_strat_{i+1}"].update(value="")
-                    for i in range(0, 6)
+                    defense_window[f"defense_strat_{i}"].update(value="")
+                    for i in range(1, 7)
                 ]

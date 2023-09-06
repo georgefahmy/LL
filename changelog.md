@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v4.0.1] - 2023-09-05
+### [v4.0.2] - 2023-09-05
 
-Minor bug fix, added ability to type in opponent name beyond the current seasons' list of opponents.
+Fixed bug with outdated data, also fixed a bug with the default opponent in the defense calculator window.

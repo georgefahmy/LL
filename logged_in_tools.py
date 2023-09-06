@@ -248,7 +248,7 @@ def get_user_stats(sess=None, username=None, user_data=None, save=False):
     return user_data
 
 
-def load_user_data(username):
+def load_user_data(username, refresh=False):
     if os.path.isfile(USER_DATA_DIR + username + ".json"):
         with open(USER_DATA_DIR + username + ".json") as fp:
             user_data = DotMap(json.load(fp))
@@ -275,6 +275,16 @@ def load_user_data(username):
                     username=username,
                     save=True,
                     user_data=user_data,
+                )
+            if refresh:
+                user_data = get_question_history(
+                    login(),
+                    username=username,
+                    save=True,
+                    user_data=user_data,
+                )
+                user_data = get_user_stats(
+                    login(), username=username, save=True, user_data=user_data
                 )
 
     else:
