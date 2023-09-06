@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v3.2.0] - 2023-08-29
+### [v4.0.0] - 2023-09-05
 
-Fixed a bug with current season data being unavailable. Also beginning to allow logged in data to be accessed
+Added ability to login with your credentials, this allows you to view statistics for yourself, as well as searched players. Additionally, use the Defense button in order to generate a HUN similarity score as well as best point assignment based on your opponents stats.
