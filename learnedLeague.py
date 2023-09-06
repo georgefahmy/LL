@@ -322,6 +322,16 @@ def add_stats_row(user_data, logged_in_user):
                         ],
                     ]
                 ),
+                sg.Column(
+                    layout=[
+                        [
+                            sg.Button(
+                                "Remove",
+                                key=f"remove_{user_data.username}",
+                            )
+                        ]
+                    ]
+                ),
             ],
         ],
         key=f"row_name_{user_data.username}",
@@ -971,6 +981,13 @@ while True:
                             current_day=season_day,
                         )
                     )
+
+                if "remove_" in stat_event:
+                    row = re.sub("[0-9]+", "", f"row_name_{stat_event.split('_')[-1]}")
+                    stats_window[row].update(visible=False)
+                    stats_window[row].Widget.master.pack_forget()
+                    stats_window["stats_column"].Widget.update()
+                    stats_window.AllKeysDict.pop(row)
 
     if "defense_button" in event:
         page = bs(
