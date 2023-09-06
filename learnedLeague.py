@@ -268,7 +268,8 @@ def update_question(questions, window, i):
 
 def add_stats_row(user_data, logged_in_user):
     hun_score = user_data.hun.get(logged_in_user) or 1
-    row = sg.Column(
+    row = sg.Frame(
+        title="",
         layout=[
             [
                 sg.Column(
@@ -276,7 +277,7 @@ def add_stats_row(user_data, logged_in_user):
                         [
                             sg.Text(
                                 user_data.username,
-                                font=DEFAULT_FONT,
+                                font=("Arial Bold", 14),
                                 justification="c",
                                 expand_x=True,
                             ),
@@ -284,39 +285,44 @@ def add_stats_row(user_data, logged_in_user):
                             sg.Text(
                                 round(hun_score, 3),
                                 font=DEFAULT_FONT,
-                                justification="r",
+                                justification="c",
+                                expand_x=True,
                             ),
                         ],
                     ],
-                    element_justification="c",
+                    expand_x=True,
                     size=(150, 30),
                 ),
                 sg.Column(
                     layout=[
                         [
+                            # Overall Stats across all seasons
                             sg.Text(
                                 user_data.stats.total.get(key),
                                 font=DEFAULT_FONT,
                                 size=(5, 1),
                                 justification="c",
+                                tooltip=STATS_DEFINITION.get(key),
                             )
                             for key in list(user_data.stats.total.keys())
-                            if key not in ["Rundle", "Rank"]
+                            if key not in ["Rundle"]
                         ],
+                        [sg.HorizontalSeparator()],
                         [
+                            # Current Season stats
                             sg.Text(
                                 user_data.stats.current_season.get(key),
                                 font=DEFAULT_FONT,
                                 size=(5, 1),
                                 justification="c",
+                                tooltip=STATS_DEFINITION.get(key),
                             )
                             for key in list(user_data.stats.current_season.keys())
-                            if key not in ["Rundle", "Rank"]
+                            if key not in ["Rundle"]
                         ],
                     ]
                 ),
             ],
-            [sg.HorizontalSeparator()],
         ],
         key=f"row_name_{user_data.username}",
     )
@@ -785,6 +791,7 @@ while True:
 
     if event == "login_button":
         user_data = None
+        season_day = f"S{latest_season}D{current_day}Q6"
         if window["login_button"].get_text() == "Login":
             sess = login()
             if not sess:
@@ -843,51 +850,54 @@ while True:
                     ),
                 ],
                 [
-                    sg.Column(
-                        layout=[
-                            [
-                                sg.Text(
-                                    "User",
-                                    font=("Arial Bold", 14),
-                                    justification="c",
-                                    expand_x=True,
-                                ),
-                                sg.Text(expand_x=True),
-                                sg.Text(
-                                    "HUN",
-                                    font=("Arial Bold", 14),
-                                    justification="r",
-                                    tooltip="HUN Similarity Score",
-                                ),
+                    [
+                        sg.Column(
+                            layout=[
+                                [
+                                    sg.Text(
+                                        "User",
+                                        font=("Arial Bold", 14),
+                                        justification="c",
+                                        expand_x=True,
+                                    ),
+                                    sg.Text(expand_x=True),
+                                    sg.Text(
+                                        "HUN",
+                                        font=("Arial Bold", 14),
+                                        justification="r",
+                                        tooltip="HUN Similarity Score",
+                                    ),
+                                ],
                             ],
-                        ],
-                        element_justification="c",
-                        size=(150, 30),
-                    ),
-                    sg.Column(
-                        layout=[
-                            [
-                                sg.Text(
-                                    key,
-                                    font=("Arial Bold", 14),
-                                    size=(5, 1),
-                                    tooltip=STATS_DEFINITION.get(key),
-                                    justification="r",
-                                )
-                                for key in list(user_data.stats.total.keys())
-                                if key not in ["Rundle", "Rank"]
+                            element_justification="c",
+                            size=(150, 30),
+                        ),
+                        sg.Column(
+                            layout=[
+                                [
+                                    sg.Text(
+                                        key,
+                                        font=("Arial Bold", 14),
+                                        size=(5, 1),
+                                        tooltip=STATS_DEFINITION.get(key),
+                                        justification="r",
+                                    )
+                                    for key in list(user_data.stats.total.keys())
+                                    if key not in ["Rundle"]
+                                ],
                             ],
-                        ],
-                        element_justification="r",
-                    ),
-                ],
-                [
-                    sg.Column(
-                        add_stats_row(user_data, logged_in_user),
-                        key="stats_column",
-                    )
+                            element_justification="c",
+                        ),
+                    ],
+                    [
+                        sg.Column(
+                            add_stats_row(user_data, logged_in_user),
+                            key="stats_column",
+                        )
+                    ],
                 ],
             ]
+
             stats_window = sg.Window(
                 "Learned League User Stats",
                 stats_layout,
@@ -899,23 +909,26 @@ while True:
             while True:
                 stat_event, stat_values = stats_window.read()
 
+                if stat_event and False:
+                    print(stat_event, stat_values)
+
                 if stat_event in (None, "Quit", sg.WIN_CLOSED):
                     stats_window.close()
                     break
 
                 if (
                     stat_event in ["player_search_button", "return_key"]
-                    and stats_window.find_element_with_focus().Key == "player_search"
-                    and stats_window["player_search"].get()
+                    and stat_values["player_search"]
                 ):
                     if (
-                        f"row_name_{stats_window['available_users'].get()}"
+                        f"row_name_{stat_values['player_search']}"
                         in stats_window.AllKeysDict
                     ):
+                        stats_window["player_search"].update(value="")
                         continue
 
                     searched_user_data = load_user_data(
-                        stats_window["player_search"].get(), refresh=True
+                        stats_window["player_search"].get(), current_day=season_day
                     )
 
                     if not searched_user_data.get("stats"):
@@ -944,8 +957,7 @@ while True:
                         continue
 
                     searched_user_data = load_user_data(
-                        stats_window["available_users"].get(),
-                        refresh=True,
+                        stats_window["available_users"].get(), current_day=season_day
                     )
                     stats_window.extend_layout(
                         stats_window["stats_column"],
@@ -956,14 +968,14 @@ while True:
                     display_category_metrics(
                         load_user_data(
                             stats_window["available_users"].get(),
-                            refresh=True,
+                            current_day=season_day,
                         )
                     )
 
     if "defense_button" in event:
         page = bs(
             sess.get(
-                f"https://learnedleague.com/profiles.php?{user_data.username}&2"
+                f"https://learnedleague.com/profiles.php?{user_data.username}"
             ).content,
             "html.parser",
             parse_only=ss("table"),
@@ -1037,7 +1049,9 @@ while True:
                 break
 
             if defense_event == "submit_defense":
-                player_2 = load_user_data(defense_values.get("opponent"), refresh=True)
+                player_2 = load_user_data(
+                    defense_values.get("opponent"), current_day=season_day
+                )
 
                 player_1, player_2 = calc_hun_score(
                     player_1,

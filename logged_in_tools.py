@@ -248,13 +248,16 @@ def get_user_stats(sess=None, username=None, user_data=None, save=False):
     return user_data
 
 
-def load_user_data(username, refresh=False):
+def load_user_data(username, current_day=None):
     # TODO update load user data to take into account the current match day
     # so its not constantly trying to download new data
+
     if os.path.isfile(USER_DATA_DIR + username + ".json"):
         with open(USER_DATA_DIR + username + ".json") as fp:
             user_data = DotMap(json.load(fp))
+
             if not user_data.get("question_history"):
+                print("Loaded existing data - No question History")
                 user_data = get_question_history(
                     login(),
                     username=username,
@@ -264,37 +267,47 @@ def load_user_data(username, refresh=False):
 
             if user_data.get("stats"):
                 if not user_data.get("stats").get("total"):
+                    print("Loaded existing data - Old Stats format")
                     user_data = get_user_stats(
                         login(), username=username, save=True, user_data=user_data
                     )
+
             if not user_data.get("stats"):
+                print("Loaded existing data - No Stats available")
                 user_data = get_user_stats(
                     login(), username=username, save=True, user_data=user_data
                 )
+
             if not user_data.get("category_metrics"):
+                print("Loaded existing data - No Category Metrics")
                 user_data = get_question_history(
                     login(),
                     username=username,
                     save=True,
                     user_data=user_data,
                 )
-            if refresh:
+            if current_day not in user_data.question_history.keys():
+                print("Loaded existing data - Missing current day")
+                sess = login()
                 user_data = get_question_history(
-                    login(),
+                    sess,
                     username=username,
                     save=True,
                     user_data=user_data,
                 )
                 user_data = get_user_stats(
-                    login(), username=username, save=True, user_data=user_data
+                    sess, username=username, save=True, user_data=user_data
                 )
+                sess.close()
 
     else:
-        user_data = get_question_history(login(), username=username)
+        print("No existing data - downloading new data")
+        sess = login()
+        user_data = get_question_history(sess, username=username)
         user_data = get_user_stats(
-            login(), username=username, user_data=user_data, save=True
+            sess, username=username, user_data=user_data, save=True
         )
-
+        sess.close()
     return user_data
 
 
