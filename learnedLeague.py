@@ -266,7 +266,8 @@ def update_question(questions, window, i):
     return question_object
 
 
-def add_stats_row(user_data):
+def add_stats_row(user_data, logged_in_user):
+    hun_score = user_data.hun.get(logged_in_user) or 1
     row = (
         [
             sg.Column(
@@ -277,10 +278,15 @@ def add_stats_row(user_data):
                             font=DEFAULT_FONT,
                             justification="c",
                         ),
+                        sg.Text(
+                            round(hun_score, 3),
+                            font=DEFAULT_FONT,
+                            justification="c",
+                        ),
                     ],
                 ],
                 element_justification="c",
-                size=(100, 30),
+                size=(150, 30),
             ),
             sg.Column(
                 layout=[
@@ -788,6 +794,7 @@ while True:
             if user_data.ok:
                 window["login_button"].update(text="Logout")
                 window["stats_button"].update(disabled=False)
+                logged_in_user = user_data.username
 
         elif window["login_button"].get_text() == "Logout":
             login(logout=True)
@@ -797,8 +804,9 @@ while True:
 
     if event == "stats_button":
         # user_data.pprint(pformat="json")
+        available_players = [name.split(".")[0] for name in os.listdir(USER_DATA_DIR)]
         if user_data.get("stats"):
-            combo_values = [user_data.username]
+            combo_values = sorted(available_players)
             stats_layout = [
                 [
                     sg.Combo(
@@ -806,6 +814,7 @@ while True:
                         default_value=user_data.username,
                         key="available_users",
                         readonly=True,
+                        enable_events=True,
                     ),
                     sg.Button("Category Metrics", size=(16, 1), key="category_button"),
                     sg.Text(
@@ -827,8 +836,8 @@ while True:
                         size=(10, 1),
                     ),
                     sg.Button(
-                        "Calc HUN",
-                        key="calc_hun",
+                        "Defense",
+                        key="defense",
                         size=(10, 1),
                         tooltip="HUN Similarity score - compare how similar two players are",
                     ),
@@ -842,10 +851,16 @@ while True:
                                     font=("Arial Bold", 14),
                                     justification="c",
                                 ),
-                            ]
+                                sg.Text(
+                                    "HUN",
+                                    font=("Arial Bold", 14),
+                                    justification="c",
+                                    tooltip="HUN Similarity Score",
+                                ),
+                            ],
                         ],
                         element_justification="c",
-                        size=(100, 30),
+                        size=(150, 30),
                     ),
                     sg.Column(
                         layout=[
@@ -863,7 +878,12 @@ while True:
                         ]
                     ),
                 ],
-                [sg.Column(add_stats_row(user_data), key="stats_column")],
+                [
+                    sg.Column(
+                        add_stats_row(user_data, logged_in_user),
+                        key="stats_column",
+                    )
+                ],
             ]
             stats_window = sg.Window(
                 "Learned League User Stats",
@@ -890,8 +910,9 @@ while True:
                 ):
                     if not stats_window["player_search"].get():
                         continue
-                    username = stats_window["player_search"].get()
-                    searched_user_data = load_user_data(username)
+                    searched_user_data = load_user_data(
+                        stats_window["player_search"].get()
+                    )
                     if not searched_user_data.get("stats"):
                         stats_window["player_search"].update(value="")
                         sg.popup_auto_close(
@@ -902,11 +923,21 @@ while True:
 
                     stats_window["player_search"].update(value="")
                     stats_window.extend_layout(
-                        stats_window["stats_column"], add_stats_row(searched_user_data)
+                        stats_window["stats_column"],
+                        add_stats_row(searched_user_data, logged_in_user),
                     )
                     combo_values.append(searched_user_data.username)
                     stats_window["available_users"].update(
                         values=combo_values, value=combo_values[0]
+                    )
+
+                if stat_event == "available_users":
+                    searched_user_data = load_user_data(
+                        stats_window["available_users"].get()
+                    )
+                    stats_window.extend_layout(
+                        stats_window["stats_column"],
+                        add_stats_row(searched_user_data, logged_in_user),
                     )
 
                 if "category_button" in stat_event:
@@ -914,9 +945,10 @@ while True:
                         load_user_data(stats_window["available_users"].get())
                     )
 
-                if "calc_hun" in stat_event:
-                    hun_window = sg.Window(
-                        "Calculate HUN Similarity",
+                if "defense" in stat_event:
+                    category_values = list(user_data.category_metrics.keys())
+                    defense_window = sg.Window(
+                        "Head to Head Defense Strategy",
                         [
                             [
                                 sg.Text(
@@ -950,27 +982,54 @@ while True:
                                 sg.Text("HUN Similarity:", font=DEFAULT_FONT),
                                 sg.Text("", key="hun_score", font=DEFAULT_FONT),
                             ],
+                            [sg.HorizontalSeparator()],
+                            [
+                                sg.Text("Defense Strategy", font=DEFAULT_FONT),
+                                sg.Text(expand_x=True),
+                                sg.Text("Suggested Points", font=DEFAULT_FONT),
+                            ],
+                            (
+                                [
+                                    sg.Text(f"Question {i}:", font=DEFAULT_FONT),
+                                    sg.Combo(
+                                        category_values,
+                                        key=f"defense_strat_{i}",
+                                        font=DEFAULT_FONT,
+                                    ),
+                                    sg.Text(
+                                        "",
+                                        key=f"defense_suggestion_{i}",
+                                        font=DEFAULT_FONT,
+                                    ),
+                                ]
+                                for i in range(1, 7)
+                            ),
+                            [
+                                sg.Button("Submit", key="submit_defense"),
+                                sg.Button("Cancel"),
+                                sg.Button("Clear"),
+                            ],
                         ],
-                        size=(300, 150),
                         finalize=True,
+                        resizable=True,
                     )
                     while True:
-                        hun_event, player_names = hun_window.read()
-                        if hun_event in (None, "Quit", sg.WIN_CLOSED):
-                            hun_window.close()
+                        defense_event, defense_values = defense_window.read()
+                        if defense_event in (None, "Quit", sg.WIN_CLOSED):
+                            defense_window.close()
                             break
 
-                        if hun_event == "Cancel":
-                            hun_window["player_1"].update(value=user_data.username)
-                            hun_window["player_2"].update(value="")
+                        if defense_event == "Cancel":
+                            defense_window["player_1"].update(value=user_data.username)
+                            defense_window["player_2"].update(value="")
 
-                        if hun_event == "Clear":
-                            hun_window["player_1"].update(value="")
-                            hun_window["player_2"].update(value="")
+                        if defense_event == "Clear":
+                            defense_window["player_1"].update(value="")
+                            defense_window["player_2"].update(value="")
 
-                        if hun_event == "Submit":
-                            player_1 = load_user_data(player_names.get("player_1"))
-                            player_2 = load_user_data(player_names.get("player_2"))
+                        if defense_event == "Submit":
+                            player_1 = load_user_data(defense_values.get("player_1"))
+                            player_2 = load_user_data(defense_values.get("player_2"))
 
                             player_1, player_2 = calc_hun_score(
                                 player_1,
@@ -978,6 +1037,33 @@ while True:
                                 save=True,
                             )
                             hun_score = player_1.hun.get(player_2.username)
-                            hun_window["hun_score"].update(value=round(hun_score, 3))
-                            hun_window["player_1"].update(value=user_data.username)
-                            hun_window["player_2"].update(value="")
+                            defense_window["hun_score"].update(
+                                value=round(hun_score, 3)
+                            )
+                            defense_window["player_1"].update(value=user_data.username)
+                            # defense_window["player_2"].update(value="")
+
+                        if defense_event == "submit_defense":
+                            player_1 = load_user_data(defense_values.get("player_1"))
+                            player_2 = load_user_data(defense_values.get("player_2"))
+                            question_categories = [
+                                defense_values.get(key)
+                                for key in defense_values.keys()
+                                if "strat" in key
+                            ]
+                            raw_scores = [3, 2, 2, 1, 1, 0]
+                            percents = [
+                                player_2.category_metrics.get(key).percent
+                                for key in question_categories
+                            ]
+                            score_index = [
+                                percents.index(sorted(percents)[i]) for i in range(0, 6)
+                            ]
+                            for i, value in enumerate(score_index):
+                                percents[value] = raw_scores[i]
+                            [
+                                defense_window[f"defense_suggestion_{i+1}"].update(
+                                    value=value
+                                )
+                                for i, value in enumerate(percents)
+                            ]
