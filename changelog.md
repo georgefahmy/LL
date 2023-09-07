@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v4.1.0] - 2023-09-06
+### [v4.1.1] - 2023-09-06
 
-Added the ability to view plotly charts (and save them) to compare to players. also added question lookup to the Defense window to help optimize alloting defense points.
+Fixed minor bug with point suggestions for players when they don't have some category metrics (due to not many questions answered).
