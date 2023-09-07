@@ -13,6 +13,7 @@ import wikipedia
 from bs4 import BeautifulSoup as bs
 from bs4 import SoupStrainer as ss
 from dotmap import DotMap
+from plotly.graph_objects import Figure, Scatterpolar
 from PyDictionary import PyDictionary
 
 from answer_correctness import combined_correctness
@@ -1023,6 +1024,7 @@ while True:
                     sg.Text("HUN Similarity:", font=DEFAULT_FONT),
                     sg.Text("", key="hun_score", font=DEFAULT_FONT),
                 ],
+                [sg.Button("Show Similarity", key="similarity_chart")],
                 [sg.HorizontalSeparator()],
                 [
                     sg.Frame(
@@ -1201,3 +1203,58 @@ while True:
                     value=f"Total Correct: {total_filtered_correct}/{total_filtered_questions}"
                 )
                 defense_window["output_questions"].update(value=result)
+
+            if defense_event == "similarity_chart":
+                player_2 = load_user_data(
+                    defense_values.get("opponent"), current_day=season_day
+                )
+                player_1, player_2 = calc_hun_score(
+                    player_1,
+                    player_2,
+                    save=True,
+                )
+                hun_score = player_1.hun.get(player_2.username)
+                defense_window["hun_score"].update(value=round(hun_score, 3))
+
+                fig = Figure()
+                config = {
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": f"{player_1.username}_{player_2.username}_similarity",
+                    },
+                }
+                fig.add_trace(
+                    Scatterpolar(
+                        r=[
+                            category.percent
+                            for category in player_1.category_metrics.values()
+                        ],
+                        theta=[
+                            category for category in player_1.category_metrics.keys()
+                        ],
+                        fill="toself",
+                        name=player_1.username,
+                    )
+                )
+                fig.add_trace(
+                    Scatterpolar(
+                        r=[
+                            category.percent
+                            for category in player_2.category_metrics.values()
+                        ],
+                        theta=[
+                            category for category in player_2.category_metrics.keys()
+                        ],
+                        fill="toself",
+                        name=player_2.username,
+                    )
+                )
+                fig.update_layout(
+                    title_text="Learned League Similarity",
+                    polar=dict(
+                        radialaxis=dict(visible=True, range=[0, 1]),
+                    ),
+                    showlegend=True,
+                )
+
+                fig.show(config=config)
