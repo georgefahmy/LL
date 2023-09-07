@@ -12,7 +12,28 @@ DEFAULT_FONT = ("Arial", 14)
 BASE_URL = "https://www.learnedleague.com"
 LOGIN_URL = BASE_URL + "/ucp.php?mode=login"
 USER_QHIST = BASE_URL + "/profiles.php?%s&9"
+CATEGORIES = [
+    "AMER_HIST",
+    "ART",
+    "BUS/ECON",
+    "CLASS_MUSIC",
+    "CURR_EVENTS",
+    "FILM",
+    "FOOD/DRINK",
+    "GAMES/SPORT",
+    "GEOGRAPHY",
+    "LANGUAGE",
+    "LIFESTYLE",
+    "LITERATURE",
+    "MATH",
+    "POP_MUSIC",
+    "SCIENCE",
+    "TELEVISION",
+    "THEATRE",
+    "WORLD_HIST",
+]
 STATS_DEFINITION = {
+    "Seas.": "",
     "W": "Wins",
     "L": "Losses",
     "T": "Ties",

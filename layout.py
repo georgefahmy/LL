@@ -1,50 +1,9 @@
 import PySimpleGUI as sg
 
+from logged_in_tools import CATEGORIES, DEFAULT_FONT, STATS_DEFINITION
+
 sg.theme("Reddit")
 layout = [
-    [
-        sg.Frame(
-            "Main",
-            expand_x=True,
-            expand_y=True,
-            layout=[
-                [
-                    sg.Button(
-                        "OneDays",
-                        key="onedays_button",
-                        tooltip="OneDay trivia (opens new window)",
-                    ),
-                    sg.Button(
-                        "Mini Leagues",
-                        key="minileague_button",
-                        tooltip="Mini League trivia (opens new window)",
-                    ),
-                    sg.Text(expand_x=True),
-                    sg.Button(
-                        "Stats",
-                        key="stats_button",
-                        disabled=True,
-                        size=(7, 1),
-                        disabled_button_color=("black", "gray"),
-                    ),
-                    sg.Button(
-                        "Defense",
-                        key="defense_button",
-                        disabled=True,
-                        size=(7, 1),
-                        disabled_button_color=("black", "gray"),
-                        tooltip="Defensive Tactics",
-                    ),
-                    sg.Button(
-                        "Login",
-                        key="login_button",
-                        size=(7, 1),
-                        tooltip="Login to see details from your personal data",
-                    ),
-                ],
-            ],
-        )
-    ],
     [
         sg.Column(
             pad=(0, 0),
@@ -373,5 +332,203 @@ layout = [
                 ],
             ],
         )
+    ],
+]
+stats_layout = [
+    [
+        sg.Combo(
+            [],
+            key="available_users",
+            readonly=True,
+            enable_events=True,
+            size=(10, 1),
+        ),
+        sg.Button("Category Metrics", size=(16, 1), key="category_button_stats"),
+        sg.Text(
+            "Player Search:",
+            font=("Arial", 14),
+            justification="r",
+        ),
+        sg.Input(
+            "",
+            key="player_search",
+            font=("Arial", 14),
+            size=(15, 15),
+            use_readonly_for_disable=True,
+            enable_events=True,
+        ),
+        sg.Button(
+            "Search",
+            key="player_search_button",
+            size=(10, 1),
+        ),
+    ],
+    [
+        sg.Column(
+            layout=[[]],
+            key="stats_column",
+        )
+    ],
+]
+
+defense_layout = [
+    [
+        sg.Text("You: ", font=("Arial Bold", 16), expand_x=True),
+        sg.Combo(
+            [],
+            font=DEFAULT_FONT,
+            key="player_1",
+            size=(10, 1),
+        ),
+    ],
+    [
+        sg.Text("Opponent: ", font=("Arial Bold", 16), expand_x=True),
+        sg.Combo(
+            [],
+            font=DEFAULT_FONT,
+            key="opponent",
+            size=(10, 1),
+        ),
+    ],
+    [sg.HorizontalSeparator()],
+    [
+        sg.Text("HUN Similarity:", font=DEFAULT_FONT),
+        sg.Text("", key="hun_score", font=DEFAULT_FONT),
+    ],
+    [
+        sg.Button("Calculate HUN", key="calc_hun"),
+        sg.Button("Show Similarity", key="similarity_chart"),
+        sg.Button("Category Metrics", key="category_button_defense"),
+    ],
+    [sg.HorizontalSeparator()],
+    [
+        sg.Frame(
+            title="Defense Strategy",
+            expand_x=True,
+            layout=[
+                [
+                    sg.Text("Defense Strategy", font=DEFAULT_FONT),
+                    sg.Text(expand_x=True),
+                    sg.Text("Suggested Points", font=DEFAULT_FONT),
+                ],
+                [
+                    sg.Column(
+                        layout=[
+                            [
+                                sg.Text(f"Question {i}:", font=DEFAULT_FONT),
+                                sg.Combo(
+                                    CATEGORIES,
+                                    key=f"defense_strat_{i}",
+                                    font=DEFAULT_FONT,
+                                    readonly=True,
+                                    auto_size_text=True,
+                                ),
+                                sg.Text(key=f"space{i}", expand_x=True),
+                                sg.Text(
+                                    "",
+                                    key=f"defense_suggestion_{i}",
+                                    font=DEFAULT_FONT,
+                                    justification="r",
+                                ),
+                            ]
+                            for i in range(1, 7)
+                        ]
+                    )
+                ],
+                [
+                    sg.Button("Submit", key="submit_defense"),
+                    sg.Button("Clear", key="defense_clear"),
+                ],
+            ],
+        ),
+        sg.Frame(
+            title="Question History Search",
+            expand_x=True,
+            expand_y=True,
+            layout=[
+                [
+                    sg.Text("Search Text:", font=DEFAULT_FONT),
+                    sg.Input(
+                        "",
+                        font=DEFAULT_FONT,
+                        key="defense_question_search_term",
+                        size=(15, 1),
+                        expand_x=True,
+                    ),
+                    sg.Button("Search", key="search_questions_button"),
+                ],
+                [
+                    sg.Text("", key="filtered_metrics", font=DEFAULT_FONT),
+                ],
+                [
+                    sg.Multiline(
+                        "",
+                        font=DEFAULT_FONT,
+                        key="output_questions",
+                        expand_y=True,
+                        expand_x=True,
+                        disabled=True,
+                        size=(25, 5),
+                    ),
+                ],
+            ],
+        ),
+    ],
+]
+
+super_layout = [
+    [
+        sg.Frame(
+            "Main",
+            expand_x=True,
+            expand_y=True,
+            layout=[
+                [
+                    sg.Button(
+                        "OneDays",
+                        key="onedays_button",
+                        tooltip="OneDay trivia (opens new window)",
+                    ),
+                    sg.Button(
+                        "Mini Leagues",
+                        key="minileague_button",
+                        tooltip="Mini League trivia (opens new window)",
+                    ),
+                    sg.Text(expand_x=True),
+                    sg.Button(
+                        "Login",
+                        key="login_button",
+                        size=(7, 1),
+                        tooltip="Login to see details from your personal data",
+                    ),
+                ],
+            ],
+        )
+    ],
+    [
+        sg.Column(
+            expand_y=True,
+            layout=[
+                [
+                    sg.Frame(title="Practice", layout=layout),
+                    sg.Frame(
+                        title="Defense",
+                        layout=defense_layout,
+                        expand_y=True,
+                        key="defense_frame",
+                        visible=False,
+                    ),
+                ],
+                [
+                    sg.Frame(
+                        title="Stats",
+                        layout=stats_layout,
+                        expand_x=True,
+                        key="stats_frame",
+                        visible=False,
+                    )
+                ],
+            ],
+        ),
     ],
 ]
