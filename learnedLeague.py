@@ -1043,6 +1043,7 @@ while True:
                 [
                     sg.Button("Calculate HUN", key="calc_hun"),
                     sg.Button("Show Similarity", key="similarity_chart"),
+                    sg.Button("Category Metrics", key="category_button"),
                 ],
                 [sg.HorizontalSeparator()],
                 [
@@ -1191,6 +1192,14 @@ while True:
                     defense_window[f"defense_strat_{i}"].update(value="")
                     for i in range(1, 7)
                 ]
+
+            if "category_button" in defense_event:
+                display_category_metrics(
+                    load_user_data(
+                        defense_values.get("opponent"),
+                        current_day=season_day,
+                    )
+                )
 
             if defense_event == "search_questions_button":
                 player_1 = load_user_data(
