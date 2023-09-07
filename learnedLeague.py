@@ -1104,9 +1104,6 @@ while True:
                                 sg.Button("Search", key="search_questions_button"),
                             ],
                             [
-                                sg.Text("Output:", font=DEFAULT_FONT),
-                            ],
-                            [
                                 sg.Text("", key="filtered_metrics", font=DEFAULT_FONT),
                             ],
                             [
