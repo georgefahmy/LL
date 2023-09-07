@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v4.0.2] - 2023-09-05
+### [v4.1.0] - 2023-09-06
 
-Fixed bug with outdated data, also fixed a bug with the default opponent in the defense calculator window.
+Added the ability to view plotly charts (and save them) to compare to players. also added question lookup to the Defense window to help optimize alloting defense points.

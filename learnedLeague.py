@@ -1010,6 +1010,16 @@ while True:
             "Head to Head Defense Strategy",
             layout=[
                 [
+                    sg.Text("You: ", font=("Arial Bold", 16), expand_x=True),
+                    sg.Combo(
+                        opponents,
+                        default_value=user_data.username,
+                        font=DEFAULT_FONT,
+                        key="player_1",
+                        size=(10, 1),
+                    ),
+                ],
+                [
                     sg.Text("Opponent: ", font=("Arial Bold", 16), expand_x=True),
                     sg.Combo(
                         opponents,
@@ -1067,9 +1077,7 @@ while True:
                                 sg.Button("Clear", key="defense_clear"),
                             ],
                         ],
-                    )
-                ],
-                [
+                    ),
                     sg.Frame(
                         title="Question History Search",
                         expand_x=True,
@@ -1104,14 +1112,13 @@ while True:
                                 ),
                             ],
                         ],
-                    )
+                    ),
                 ],
             ],
             finalize=True,
-            size=(375, 500),
             resizable=True,
         )
-        player_1 = user_data
+
         while True:
             defense_event, defense_values = defense_window.read()
             if defense_event in (None, "Quit", sg.WIN_CLOSED):
@@ -1119,6 +1126,9 @@ while True:
                 break
 
             if defense_event == "submit_defense":
+                player_1 = load_user_data(
+                    defense_values.get("player_1"), current_day=season_day
+                )
                 player_2 = load_user_data(
                     defense_values.get("opponent"), current_day=season_day
                 )
@@ -1175,6 +1185,9 @@ while True:
                 ]
 
             if defense_event == "search_questions_button":
+                player_1 = load_user_data(
+                    defense_values.get("player_1"), current_day=season_day
+                )
                 player_2 = load_user_data(
                     defense_values.get("opponent"), current_day=season_day
                 )
@@ -1205,6 +1218,9 @@ while True:
                 defense_window["output_questions"].update(value=result)
 
             if defense_event == "similarity_chart":
+                player_1 = load_user_data(
+                    defense_values.get("player_1"), current_day=season_day
+                )
                 player_2 = load_user_data(
                     defense_values.get("opponent"), current_day=season_day
                 )

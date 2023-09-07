@@ -259,7 +259,10 @@ def load_user_data(username, current_day=None):
             user_data = DotMap(json.load(fp))
 
             if user_data.get("question_history"):
-                if not user_data.question_history.get("question"):
+                if (
+                    "question"
+                    not in list(user_data.question_history.values())[0].keys()
+                ):
                     print("Loaded existing data - Question text misssing")
                     user_data = get_question_history(
                         login(),
