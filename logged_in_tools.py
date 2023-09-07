@@ -408,4 +408,4 @@ def save_user(user_dict):
 
     filename = user_data_dir + "/" + user_dict.username + ".json"
     with open(filename, "w") as fp:
-        json.dump(user_dict, fp, indent=4)
+        json.dump(user_dict, fp, indent=4, sort_keys=True)

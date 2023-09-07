@@ -268,7 +268,11 @@ def update_question(questions, window, i):
 
 
 def add_stats_row(user_data, logged_in_user):
-    hun_score = user_data.hun.get(logged_in_user) or 1
+    hun_score = (
+        round(user_data.hun.get(logged_in_user), 3)
+        if user_data.hun.get(logged_in_user)
+        else "--"
+    )
     row = sg.Frame(
         title="",
         layout=[
@@ -284,15 +288,17 @@ def add_stats_row(user_data, logged_in_user):
                             ),
                             sg.Text(expand_x=True),
                             sg.Text(
-                                round(hun_score, 3),
+                                hun_score,
                                 font=DEFAULT_FONT,
                                 justification="c",
                                 expand_x=True,
                             ),
                         ],
                     ],
+                    justification="l",
+                    element_justification="l",
                     expand_x=True,
-                    size=(150, 30),
+                    size=(160, 30),
                 ),
                 sg.Column(
                     layout=[
@@ -335,7 +341,7 @@ def add_stats_row(user_data, logged_in_user):
                 ),
             ],
         ],
-        key=f"row_name_{user_data.username}",
+        key=re.sub("[0-9]+", "", f"row_name_{user_data.username}"),
     )
     return [[row]]
 
@@ -808,7 +814,7 @@ while True:
             if not sess:
                 continue
 
-            if USER_DATA_DIR + f"{sess.headers.get('profile')}.json":
+            if os.path.isfile(USER_DATA_DIR + f"{sess.headers.get('profile')}.json"):
                 with open(USER_DATA_DIR + f"{sess.headers.get('profile')}.json") as fp:
                     user_data = DotMap(json.load(fp))
 
@@ -881,7 +887,7 @@ while True:
                                 ],
                             ],
                             element_justification="c",
-                            size=(150, 30),
+                            size=(160, 30),
                         ),
                         sg.Column(
                             layout=[
@@ -1034,7 +1040,10 @@ while True:
                     sg.Text("HUN Similarity:", font=DEFAULT_FONT),
                     sg.Text("", key="hun_score", font=DEFAULT_FONT),
                 ],
-                [sg.Button("Show Similarity", key="similarity_chart")],
+                [
+                    sg.Button("Calculate HUN", key="calc_hun"),
+                    sg.Button("Show Similarity", key="similarity_chart"),
+                ],
                 [sg.HorizontalSeparator()],
                 [
                     sg.Frame(
@@ -1155,6 +1164,8 @@ while True:
                     {
                         f"question_{i+1}": {
                             "percent": player_2.category_metrics.get(key).percent
+                            if player_2.category_metrics.get(key)
+                            else 0
                         }
                         for i, key in enumerate(question_categories)
                     }
@@ -1217,6 +1228,21 @@ while True:
                 )
                 defense_window["output_questions"].update(value=result)
 
+            if defense_event == "calc_hun":
+                player_1 = load_user_data(
+                    defense_values.get("player_1"), current_day=season_day
+                )
+                player_2 = load_user_data(
+                    defense_values.get("opponent"), current_day=season_day
+                )
+                player_1, player_2 = calc_hun_score(
+                    player_1,
+                    player_2,
+                    save=True,
+                )
+                hun_score = player_1.hun.get(player_2.username)
+                defense_window["hun_score"].update(value=round(hun_score, 3))
+
             if defense_event == "similarity_chart":
                 player_1 = load_user_data(
                     defense_values.get("player_1"), current_day=season_day
@@ -1234,6 +1260,9 @@ while True:
 
                 fig = Figure()
                 config = {
+                    "displaylogo": False,
+                    "displayModeBar": True,
+                    "modeBarButtonsToRemove": ["lasso2d", "select2d"],
                     "toImageButtonOptions": {
                         "format": "png",
                         "filename": f"{player_1.username}_{player_2.username}_similarity",
