@@ -5,6 +5,7 @@ import re
 import PySimpleGUI as sg
 import requests
 from bs4 import BeautifulSoup as bs
+from bs4 import SoupStrainer as ss
 from dotmap import DotMap
 
 USER_DATA_DIR = os.path.expanduser("~") + "/.LearnedLeague/user_data/"
@@ -12,24 +13,47 @@ DEFAULT_FONT = ("Arial", 14)
 BASE_URL = "https://www.learnedleague.com"
 LOGIN_URL = BASE_URL + "/ucp.php?mode=login"
 USER_QHIST = BASE_URL + "/profiles.php?%s&9"
+CATEGORIES = [
+    "AMER_HIST",
+    "ART",
+    "BUS/ECON",
+    "CLASS_MUSIC",
+    "CURR_EVENTS",
+    "FILM",
+    "FOOD/DRINK",
+    "GAMES/SPORT",
+    "GEOGRAPHY",
+    "LANGUAGE",
+    "LIFESTYLE",
+    "LITERATURE",
+    "MATH",
+    "POP_MUSIC",
+    "SCIENCE",
+    "TELEVISION",
+    "THEATRE",
+    "WORLD_HIST",
+]
 STATS_DEFINITION = {
+    "Seas.": "Season",
     "W": "Wins",
     "L": "Losses",
     "T": "Ties",
-    "PTS": "Points (in standings)",
-    "MPD": "Match Points Differential",
-    "TMP": "Total Match Points",
+    "PTS": "Points (in standings) - This determines the order of the standings. Two points for a win, one for a tie, -1 for a forfeit loss",
+    "MPD": "Match Points Differential - The difference between Match Points scored and Match Points allowed (TMP-TPA)",
+    "TMP": "Total Match Points - Sum of points scored in all matches",
     "TCA": "Total Correct Answers",
     "TPA": "Total Points Allowed",
-    "CAA": "Correct Answers Against",
-    "PCAA": "Points Per Correct Answer Against",
-    "UfPA": """Unforced Points Allowed
-    Num correct - perfect defensive points (0, 1, 1, 2, 2, 3)""",
-    "DE": "Defensive Efficiency",
+    "CAA": "Correct Answers Against - Total number of questions answered correctly by one's opponents in all matches",
+    "PCAA": "Points Per Correct Answer Against - The average value allowed per correct answer of one's opponent",
+    "UfPA": """Unforced Points Allowed -
+The total number of points allowed above that which would have been allowed with perfect defense
+(i.e. if one's opponent answered four correct and scored 7, he gave up 3 UfPA [7-4]).
+Perfect defensive points - (1: 0, 2: 1, 3: 2, 4: 4, 5: 6, 6: 9)""",
+    "DE": "Defensive Efficiency -\nThe total number of UfPA you could have but did not allow\ndivided by the total number you could have allowed. The higher the number the better",
     "FW": "Forfeit Wins",
     "FL": "Forfeit Losses",
     "3PT": "3-Pointers",
-    "MCW": "Most Common Wrong Answers",
+    "MCW": "Most Common Wrong Answers -\nNumber of answers submitted\nwhich were the Most Common Wrong Answer for its question",
     "STR": "Streak",
     "QPct": "Percent of correct answers",
 }
@@ -106,14 +130,7 @@ def login(logout=False):
         return sess
 
 
-class UserData:
-    def __init__(self, username=None):
-        self.username = username
-
-
-def get_question_history(
-    sess=None, username=None, user_data=None, save=False, display=True
-):
+def get_question_history(sess=None, username=None, user_data=None, save=False):
     if not sess:
         sess = login()
 
@@ -130,9 +147,8 @@ def get_question_history(
     if not user_data.username:
         user_data.username = username
 
-    profile_id = sess.get(
-        f"https://learnedleague.com/profiles.php?{username}"
-    ).url.split("?")[-1]
+    profile_id_page = sess.get(f"https://learnedleague.com/profiles.php?{username}")
+    profile_id = profile_id_page.url.split("?")[-1]
     try:
         response = sess.get(f"https://learnedleague.com/profiles.php?{profile_id}&9")
     except Exception as e:
@@ -242,6 +258,8 @@ def get_user_stats(sess=None, username=None, user_data=None, save=False):
         user_data["stats"]["total"][header_value] = total[i]
 
     for i, header_value in enumerate(header):
+        if header_value == "Season":
+            header_value = "Seas."
         user_data["stats"]["current_season"][header_value] = current_season[i]
 
     if save:
@@ -251,9 +269,6 @@ def get_user_stats(sess=None, username=None, user_data=None, save=False):
 
 
 def load_user_data(username, current_day=None):
-    # TODO update load user data to take into account the current match day
-    # so its not constantly trying to download new data
-
     if os.path.isfile(USER_DATA_DIR + username + ".json"):
         with open(USER_DATA_DIR + username + ".json") as fp:
             user_data = DotMap(json.load(fp))
@@ -302,18 +317,34 @@ def load_user_data(username, current_day=None):
                     user_data=user_data,
                 )
             if current_day not in user_data.question_history.keys():
-                print("Loaded existing data - Missing current day")
+                print(f"Loaded existing data - Missing current day {current_day}")
                 sess = login()
-                user_data = get_question_history(
-                    sess,
-                    username=username,
-                    save=True,
-                    user_data=user_data,
+                profile_id_page = sess.get(
+                    f"https://learnedleague.com/profiles.php?{username}"
                 )
-                user_data = get_user_stats(
-                    sess, username=username, save=True, user_data=user_data
+                previous_day = bs(
+                    profile_id_page.content, "html.parser", parse_only=ss("table")
                 )
-                sess.close()
+                rows = previous_day.find(
+                    "table", {"summary": "Data table for LL results"}
+                ).find_all("tr")[1:]
+                win_loss = []
+                for row in rows:
+                    win_loss_text = row.find_all("td")[2].text
+                    if win_loss_text == "\xa0":
+                        continue
+                    win_loss.append(win_loss_text)
+                if not win_loss[-1] == "F":
+                    user_data = get_question_history(
+                        sess,
+                        username=username,
+                        save=True,
+                        user_data=user_data,
+                    )
+                    user_data = get_user_stats(
+                        sess, username=username, save=True, user_data=user_data
+                    )
+                    sess.close()
 
     else:
         print("No existing data - downloading new data")

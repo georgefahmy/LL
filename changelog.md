@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v4.1.1] - 2023-09-06
+### [v5.0.0] - 2023-09-07
 
-Fixed minor bug with point suggestions for players when they don't have some category metrics (due to not many questions answered).
+Created a unified UI for when a person is logged in. This allows for a nicer user experience with all the available tools.
