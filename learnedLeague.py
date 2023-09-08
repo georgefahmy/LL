@@ -4,6 +4,7 @@ import json
 import os
 import re
 import sys
+import tkinter as tk
 import webbrowser
 from random import choice
 
@@ -267,9 +268,9 @@ def update_question(questions, window, i):
 
 def add_stats_row(user_data, logged_in_user):
     hun_score = (
-        round(user_data.hun.get(logged_in_user), 3)
+        f"HUN: {round(user_data.hun.get(logged_in_user), 3)}"
         if user_data.hun.get(logged_in_user)
-        else "--"
+        else "HUN: --"
     )
     row = sg.Frame(
         title="",
@@ -299,6 +300,7 @@ def add_stats_row(user_data, logged_in_user):
                     size=(160, 30),
                 ),
                 sg.Column(
+                    expand_x=True,
                     layout=[
                         [
                             sg.Text(
@@ -311,6 +313,7 @@ def add_stats_row(user_data, logged_in_user):
                             for key in list(STATS_DEFINITION.keys())
                             if key not in ["Rundle"]
                         ],
+                        [sg.HorizontalSeparator()],
                         [
                             # Overall Stats across all seasons
                             sg.Text(
@@ -320,10 +323,9 @@ def add_stats_row(user_data, logged_in_user):
                                 justification="c",
                                 tooltip=STATS_DEFINITION.get(key),
                             )
-                            for key in list(user_data.stats.total.keys())
+                            for key in list(STATS_DEFINITION)
                             if key not in ["Rundle"]
                         ],
-                        [sg.HorizontalSeparator()],
                         [
                             # Current Season stats
                             sg.Text(
@@ -333,10 +335,10 @@ def add_stats_row(user_data, logged_in_user):
                                 justification="c",
                                 tooltip=STATS_DEFINITION.get(key),
                             )
-                            for key in list(user_data.stats.current_season.keys())
+                            for key in list(STATS_DEFINITION)
                             if key not in ["Rundle"]
                         ],
-                    ]
+                    ],
                 ),
                 sg.Column(
                     layout=[
@@ -346,10 +348,11 @@ def add_stats_row(user_data, logged_in_user):
                                 key=f"remove_{user_data.username}",
                             )
                         ]
-                    ]
+                    ],
                 ),
             ],
         ],
+        expand_x=True,
         key=re.sub("[0-9]+", "", f"row_name_{user_data.username}"),
     )
     return [[row]]
@@ -394,6 +397,7 @@ current_day = int(
         parse_only=ss("h3"),
     ).h3.text.split()[-1]
 )
+season_day = f"S{latest_season}D{current_day}Q6"
 
 total_players = sum(
     [
@@ -474,7 +478,7 @@ window = sg.Window(
     "Learned League Practice Tool",
     layout=super_layout,
     finalize=True,
-    resizable=False,
+    resizable=True,
     element_justification="center",
     return_keyboard_events=True,
 )
@@ -497,6 +501,7 @@ window["question"].bind("<ButtonPress-1>", "click_here")
 window["answer_submission"].bind("<Return>", "_submit_answer_button")
 sess = None
 values = None
+logged_in = False
 i = choice(list(questions.keys()))
 question_object = update_question(questions, window, i)
 if i > 1:
@@ -816,21 +821,21 @@ while True:
 
     if event == "login_button":
         user_data = None
-        season_day = f"S{latest_season}D{current_day}Q6"
         if window["login_button"].get_text() == "Login":
             sess = login()
             if not sess:
                 continue
 
-            user_data = load_user_data(username=sess.headers.get("profile"))
+            user_data = load_user_data(
+                username=sess.headers.get("profile"), current_day=season_day
+            )
 
             if user_data.ok:
+                logged_in = True
                 logged_in_user = user_data.username
                 window["login_button"].update(text="Logout")
                 window["defense_frame"].update(visible=True)
                 window["stats_frame"].update(visible=True)
-                window.refresh()
-                window.move_to_center()
                 combo_values = sorted(
                     [name.split(".")[0] for name in os.listdir(USER_DATA_DIR)]
                 )
@@ -842,6 +847,8 @@ while True:
                     window["stats_column"],
                     add_stats_row(user_data, logged_in_user),
                 )
+                window.move_to_center()
+                max_stats = 1
 
                 profile_page = bs(
                     sess.get(
@@ -864,19 +871,25 @@ while True:
 
         elif window["login_button"].get_text() == "Logout":
             login(logout=True)
-            window["login_button"].update(text="Login")
-            window["stats_button"].update(disabled=True)
-            window["defense_button"].update(disabled=True)
             sess.close()
+            window.close()
+            break
 
-    if event in ["player_search_button", "return_key"] and event["player_search"]:
-        if f"row_name_{event['player_search']}" in window.AllKeysDict:
+    if event in ["player_search_button", "return_key"] and values["player_search"]:
+        if not logged_in:
+            continue
+        max_stats = len(
+            [key for key in list(window.AllKeysDict.keys()) if "row_name_" in str(key)]
+        )
+        if f"row_name_{values['player_search']}" in window.AllKeysDict:
             window["player_search"].update(value="")
             continue
 
         searched_user_data = load_user_data(
             window["player_search"].get(), current_day=season_day
         )
+        if max_stats >= 3:
+            continue
 
         if not searched_user_data.get("stats"):
             window["player_search"].update(value="")
@@ -889,11 +902,21 @@ while True:
             window["stats_column"],
             add_stats_row(searched_user_data, logged_in_user),
         )
+        window.move_to_center()
+
         combo_values.append(searched_user_data.username)
         window["available_users"].update(values=combo_values, value=combo_values[0])
 
     if event == "available_users":
+        if not logged_in:
+            continue
+        max_stats = len(
+            [key for key in list(window.AllKeysDict.keys()) if "row_name_" in str(key)]
+        )
         if f"row_name_{window['available_users'].get()}" in window.AllKeysDict:
+            continue
+
+        if max_stats >= 3:
             continue
 
         searched_user_data = load_user_data(
@@ -903,8 +926,11 @@ while True:
             window["stats_column"],
             add_stats_row(searched_user_data, logged_in_user),
         )
+        window.move_to_center()
 
     if "category_button" in event:
+        if not logged_in:
+            continue
         if "defense" in event:
             opponent = window["opponent"].get()
         else:
@@ -917,13 +943,20 @@ while True:
         )
 
     if "remove_" in event:
+        if not logged_in:
+            continue
         row = re.sub("[0-9]+", "", f"row_name_{event.split('_')[-1]}")
         window[row].update(visible=False)
         window[row].Widget.master.pack_forget()
         window["stats_column"].Widget.update()
         window.AllKeysDict.pop(row)
+        max_stats = len(
+            [key for key in list(window.AllKeysDict.keys()) if "row_name_" in str(key)]
+        )
 
     if event == "submit_defense":
+        if not logged_in:
+            continue
         player_1 = load_user_data(values.get("player_1"), current_day=season_day)
         player_2 = load_user_data(values.get("opponent"), current_day=season_day)
 
@@ -971,6 +1004,8 @@ while True:
         [window[f"defense_strat_{i}"].update(value="") for i in range(1, 7)]
 
     if event == "search_questions_button":
+        if not logged_in:
+            continue
         player_1 = load_user_data(values.get("player_1"), current_day=season_day)
         player_2 = load_user_data(values.get("opponent"), current_day=season_day)
 
@@ -1000,6 +1035,8 @@ while True:
         window["output_questions"].update(value=result)
 
     if event == "calc_hun":
+        if not logged_in:
+            continue
         player_1 = load_user_data(values.get("player_1"), current_day=season_day)
         player_2 = load_user_data(values.get("opponent"), current_day=season_day)
         player_1, player_2 = calc_hun_score(
@@ -1011,6 +1048,8 @@ while True:
         window["hun_score"].update(value=round(hun_score, 3))
 
     if event == "similarity_chart":
+        if not logged_in:
+            continue
         player_1 = load_user_data(values.get("player_1"), current_day=season_day)
         player_2 = load_user_data(values.get("opponent"), current_day=season_day)
         player_1, player_2 = calc_hun_score(
