@@ -165,20 +165,17 @@ main_layout = [
                     sg.Text(
                         "% Correct: ",
                         font=("Arial", 14),
-                        tooltip="""
-                                    Percentage of people who got the answer correct""",
+                        tooltip="Percentage of people who got the answer correct",
                     ),
                     sg.Text(
                         expand_x=True,
-                        tooltip="""
-                                    Percentage of people who got the answer correct""",
+                        tooltip="Percentage of people who got the answer correct",
                     ),
                     sg.Text(
                         "",
                         key="%_correct",
                         font=("Arial", 14),
-                        tooltip="""
-                                    Percentage of people who got the answer correct""",
+                        tooltip="Percentage of people who got the answer correct",
                     ),
                 ],
                 [
@@ -497,7 +494,7 @@ super_layout = [
             expand_x=True,
             expand_y=True,
             key="defense_frame",
-            visible=True,
+            visible=False,
         ),
     ],
     [
@@ -508,7 +505,7 @@ super_layout = [
             expand_y=True,
             element_justification="l",
             key="stats_frame",
-            visible=True,
+            visible=False,
         )
     ],
 ]
