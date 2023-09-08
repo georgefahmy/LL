@@ -888,6 +888,9 @@ while True:
         searched_user_data = load_user_data(
             window["player_search"].get(), current_day=season_day
         )
+        combo_values.append(searched_user_data.username)
+        window["available_users"].update(values=combo_values, value=combo_values[0])
+
         if max_stats >= 3:
             continue
 
@@ -903,9 +906,6 @@ while True:
             add_stats_row(searched_user_data, logged_in_user),
         )
         window.move_to_center()
-
-        combo_values.append(searched_user_data.username)
-        window["available_users"].update(values=combo_values, value=combo_values[0])
 
     if event == "available_users":
         if not logged_in:
