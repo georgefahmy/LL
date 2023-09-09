@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v5.0.0] - 2023-09-07
+### [v5.0.1] - 2023-09-08
 
-Created a unified UI for when a person is logged in. This allows for a nicer user experience with all the available tools.
+Added Open LL button to take you to the LearnedLeague.com home page.
