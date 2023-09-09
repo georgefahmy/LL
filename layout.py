@@ -472,6 +472,11 @@ super_layout = [
                     ),
                     sg.Text(expand_x=True),
                     sg.Button(
+                        "Open LL",
+                        key="open_ll",
+                        tooltip="Click this button to open the LearnedLeague.com wbsite",
+                    ),
+                    sg.Button(
                         "Login",
                         key="login_button",
                         size=(7, 1),

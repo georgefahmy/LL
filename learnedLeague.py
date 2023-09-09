@@ -818,6 +818,8 @@ while True:
 
     if "click_here" in event:
         webbrowser.open(window["question"].metadata)
+    if event == "open_ll":
+        webbrowser.open("https://www.learnedleague.com")
 
     if event == "login_button":
         user_data = None
