@@ -41,8 +41,8 @@ STATS_DEFINITION = {
     "PTS": "Points (in standings) - This determines the order of the standings. Two points for a win, one for a tie, -1 for a forfeit loss",
     "MPD": "Match Points Differential - The difference between Match Points scored and Match Points allowed (TMP-TPA)",
     "TMP": "Total Match Points - Sum of points scored in all matches",
-    "TCA": "Total Correct Answers",
     "TPA": "Total Points Allowed",
+    "TCA": "Total Correct Answers",
     "CAA": "Correct Answers Against - Total number of questions answered correctly by one's opponents in all matches",
     "PCAA": "Points Per Correct Answer Against - The average value allowed per correct answer of one's opponent",
     "UfPA": """Unforced Points Allowed -
@@ -54,7 +54,6 @@ Perfect defensive points - (1: 0, 2: 1, 3: 2, 4: 4, 5: 6, 6: 9)""",
     "FL": "Forfeit Losses",
     "3PT": "3-Pointers",
     "MCW": "Most Common Wrong Answers -\nNumber of answers submitted\nwhich were the Most Common Wrong Answer for its question",
-    "STR": "Streak",
     "QPct": "Percent of correct answers",
     "Rank": "Overall Rank in the Season",
 }

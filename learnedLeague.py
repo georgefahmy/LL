@@ -375,7 +375,6 @@ available_seasons = [
     str(season) for season in list(range(60, int(latest_season) + 1, 1))
 ]
 
-
 datapath = os.path.expanduser("~") + "/.LearnedLeague/all_data.json"
 if os.path.isfile(datapath):
     with open(datapath, "r") as fp:
@@ -386,6 +385,7 @@ else:
 season_in_data = sorted(
     list(set([val.split("D")[0].strip("S") for val in list(all_data.keys())]))
 )
+
 missing_seasons = sorted(
     list(set(available_seasons).symmetric_difference(set(season_in_data)))
 )
@@ -397,6 +397,7 @@ current_day = int(
         parse_only=ss("h3"),
     ).h3.text.split()[-1]
 )
+
 season_day = f"S{latest_season}D{current_day}Q6"
 
 total_players = sum(
@@ -504,6 +505,7 @@ values = None
 logged_in = False
 i = choice(list(questions.keys()))
 question_object = update_question(questions, window, i)
+
 if i > 1:
     window["previous"].update(disabled=False)
 
@@ -818,6 +820,7 @@ while True:
 
     if "click_here" in event:
         webbrowser.open(window["question"].metadata)
+
     if event == "open_ll":
         webbrowser.open("https://www.learnedleague.com")
 
