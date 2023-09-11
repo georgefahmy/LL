@@ -520,6 +520,7 @@ while True:
         window.close()
         break
 
+    # Clear search box via esc key
     if "Escape" in event:
         if (
             window.find_element_with_focus()
@@ -528,6 +529,7 @@ while True:
             window["search_criteria"].update(value="")
             window["filter"].set_focus()
 
+    # Trigger the right click menu for searching text within a question
     if event == "questionpress":
         question_widget = window["question"].Widget
         selection_ranges = question_widget.tag_ranges(sg.tk.SEL)
@@ -538,6 +540,7 @@ while True:
             window["question"].set_right_click_menu(["&Right", ["!Lookup Selection"]])
             continue
 
+    # Use the Dictionary library to display the definition of the selection in a popup window
     if event == "Lookup Selection":
         if len(selected_text.split()) == 1:
             # selected text is a single word, so just do a lookup
@@ -569,11 +572,13 @@ while True:
 
             sg.popup_ok(result, title="Wiki Summary", font=("Arial", 16))
 
+    # Filter the questions to a specific season
     if event == "season":
         window.write_event_value("filter", "")
         question_object = update_question(questions, window, i)
         answer = question_object.get("answer")
 
+    # Choose a random question to display
     if event in ("random_choice", "random_key"):
         if (
             window.find_element_with_focus()
@@ -591,7 +596,7 @@ while True:
         window["submit_answer_button"].update(disabled=False)
         window["correct_override"].update(disabled=True)
 
-    # if the category dropdown is changed from ALL, or the filter button is pressed
+    # If the category dropdown is changed from ALL, or the filter button is pressed
     # display the new questions
     if event in ["filter", "category_selection"]:
         if int(values["min_%"]) > int(values["max_%"]):
@@ -635,7 +640,7 @@ while True:
             window["next"].update(disabled=True)
             window["previous"].update(disabled=True)
 
-    # display or hide the answer for the currently displayed question
+    # Display or hide the answer for the currently displayed question
     if event in ("show/hide", "show_key"):
         if (
             window.find_element_with_focus()
@@ -722,6 +727,7 @@ while True:
         else:
             window["previous"].update(disabled=False)
 
+    # Check the submitted answer against the correct answer for the specific question
     if "submit_answer_button" in event:
         if not values["answer_submission"]:
             continue
@@ -774,6 +780,8 @@ while True:
             json.dump(all_data, fp, sort_keys=True, indent=4)
         correct = []
 
+    # If the checking algorithm is wrong, the check box can be used to overwrite the 'correctness'
+    # of the answer being submitted
     if "correct_override" in event:
         if right_answer:
             right_answer = False
@@ -802,11 +810,13 @@ while True:
         ) as fp:
             json.dump(all_data, fp, sort_keys=True, indent=4)
 
+    # Open the One Day Specials Interface (and hide the main interface)
     if event == "onedays_button":
         window.hide()
         unhide = oneday_main()
         window.un_hide()
 
+    # Open the MiniLeague interface (and hide the main interface)
     if event == "minileague_button":
         window.hide()
         unhide = minileague()
@@ -816,12 +826,16 @@ while True:
     if event == "question_number":
         webbrowser.open(window["question_number"].metadata)
 
+    # Open the question item in your browser
     if "click_here" in event:
         webbrowser.open(window["question"].metadata)
 
+    # Open the LL homepage
     if event == "open_ll":
         webbrowser.open("https://www.learnedleague.com")
 
+    # Login to the LL website with provided credentials. This will expand the interface
+    # to include significantly more data and capabilities
     if event == "login_button":
         user_data = None
         if window["login_button"].get_text() == "Login":
@@ -864,6 +878,7 @@ while True:
             window.close()
             break
 
+    # Search for players via their username and return their stats (and save their data)
     if event in ["player_search_button", "return_key"] and values["player_search"]:
         if not logged_in:
             continue
@@ -896,6 +911,7 @@ while True:
         )
         window.move_to_center()
 
+    # Select a user from the dropdown and display their stats
     if event == "available_users":
         if not logged_in:
             continue
@@ -915,6 +931,8 @@ while True:
         )
         window.move_to_center()
 
+    # Display the selected users category metrics. Depending on which button is pressed
+    # the appropriate user will be displayed
     if "category_button" in event:
         if not logged_in:
             continue
@@ -924,6 +942,7 @@ while True:
             opponent = window["available_users"].get()
         display_category_metrics(load(opponent, sess=sess))
 
+    # Remove the statistics row from the interface
     if "remove_" in event:
         if not logged_in:
             continue
@@ -936,6 +955,8 @@ while True:
             [key for key in list(window.AllKeysDict.keys()) if "row_name_" in str(key)]
         )
 
+    # Submit the category selections and compare against the opponent's metrics for
+    # suggested point assignment
     if event == "submit_defense":
         if not logged_in:
             continue
@@ -992,10 +1013,13 @@ while True:
             for i, key in enumerate(list(percents.keys()))
         ]
 
+    # Clear the categories and points from the window
     if event == "defense_clear":
         [window[f"defense_suggestion_{i}"].update(value="") for i in range(1, 7)]
         [window[f"defense_strat_{i}"].update(value="") for i in range(1, 7)]
 
+    # Search through the opponents quesiton history for key words and display
+    # whether they got the question right or wrong
     if event == "search_questions_button":
         if not logged_in:
             continue
@@ -1042,6 +1066,7 @@ while True:
         )
         window["output_questions"].update(value=result)
 
+    # Calculate the HUN similarity between the two players (player 1 and opponent)
     if event == "calc_hun":
         if not logged_in:
             continue
@@ -1066,6 +1091,7 @@ while True:
             combo_values = list(set(combo_values))
             window["available_users"].update(values=combo_values, value=combo_values[0])
 
+    # Open a plotly web chart showing the similarity in metrics between the two players
     if event == "similarity_chart":
         if not logged_in:
             continue
