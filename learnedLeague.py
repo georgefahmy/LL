@@ -22,7 +22,6 @@ from layout import super_layout
 from logged_in_tools import (
     DEFAULT_FONT,
     STATS_DEFINITION,
-    calc_hun_score,
     display_category_metrics,
     login,
 )
@@ -829,8 +828,9 @@ while True:
             sess = login()
             if not sess:
                 continue
-
-            user_data = UserData(sess.headers.get("profile"))
+            username = sess.headers.get("profile")
+            print(username)
+            user_data = UserData(username)
 
             if user_data.ok:
                 logged_in = True
@@ -948,11 +948,8 @@ while True:
             continue
         player_1 = UserData.load_user(values.get("player_1"))
         player_2 = UserData.load_user(values.get("opponent"))
+        player_1.calc_hun(player_2)
 
-        player_1, player_2 = calc_hun_score(
-            player_1,
-            player_2,
-        )
         hun_score = player_1.hun.get(player_2.username)
         window["hun_score"].update(value=round(hun_score, 3))
 
@@ -1038,10 +1035,8 @@ while True:
             continue
         player_1 = UserData.load_user(values.get("player_1"))
         player_2 = UserData.load_user(values.get("opponent"))
-        player_1, player_2 = calc_hun_score(
-            player_1,
-            player_2,
-        )
+        player_1.calc_hun(player_2)
+
         hun_score = player_1.hun.get(player_2.username)
         window["hun_score"].update(value=round(hun_score, 3))
 

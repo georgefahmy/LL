@@ -59,26 +59,23 @@ Perfect defensive points - (1: 0, 2: 1, 3: 2, 4: 4, 5: 6, 6: 9)""",
     "Rank": "Overall Rank in the Season",
 }
 
-sess = login()
-
 
 class UserData(DotMap):
-    def __new__(cls, username=None):
-        filename = USER_DATA_DIR + f"/{username}.pkl"
-        if os.path.isfile(filename):
-            with open(filename, "rb") as fp:
-                inst = pickle.load(fp)
-            if not isinstance(inst, cls):
-                raise TypeError("Unpickled object is not of type {}".format(cls))
-            return inst
-        # TODO fix this
-
     def __init__(self, username=None, **kwargs):
+        sess = login()
         super().__init__(**kwargs)
         self.username = username
+        self.sess = sess
         self.profile_id = sess.get(
             f"https://learnedleague.com/profiles.php?{self.username}"
         ).url.split("?")[-1]
+        self.load()
+
+    def _load(self):
+        filename = USER_DATA_DIR + f"/{self.username}.pkl"
+        if os.path.isfile(filename):
+            with open(filename, "rb") as fp:
+                tmp = pickle.load(fp)
 
     def _save(self):
         with open(USER_DATA_DIR + f"/{self.username}.pkl", "wb") as fp:
@@ -86,7 +83,7 @@ class UserData(DotMap):
 
     def _get_full_data(self):
         question_page = bs(
-            sess.get(
+            self.sess.get(
                 f"https://learnedleague.com/profiles.php?{self.profile_id}&9"
             ).content,
             "html.parser",
@@ -136,7 +133,7 @@ class UserData(DotMap):
         self.ok = True
 
         stats_page = bs(
-            sess.get(
+            self.sess.get(
                 f"https://learnedleague.com/profiles.php?{self.profile_id}&2"
             ).content,
             "html.parser",
@@ -177,7 +174,7 @@ class UserData(DotMap):
         self.stats = stats
 
         latest_page = bs(
-            sess.get(
+            self.sess.get(
                 f"https://learnedleague.com/profiles.php?{self.profile_id}"
             ).content,
             "html.parser",
@@ -192,7 +189,7 @@ class UserData(DotMap):
         ]
 
     def update_data(self):
-        profile_id_page = sess.get(
+        profile_id_page = self.sess.get(
             f"https://learnedleague.com/profiles.php?{self.profile_id}"
         )
         previous_day = bs(
