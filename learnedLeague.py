@@ -27,7 +27,7 @@ from logged_in_tools import (
 )
 from minileagues import minileague
 from onedays import oneday_main
-from userdata import UserData
+from userdata import load
 
 BASE_URL = "https://www.learnedleague.com"
 
@@ -829,7 +829,7 @@ while True:
             if not sess:
                 continue
             username = sess.headers.get("profile")
-            user_data = UserData(sess=sess).load(username)
+            user_data = load(username=username, sess=sess)
 
             if user_data.ok:
                 logged_in = True
@@ -874,9 +874,11 @@ while True:
             window["player_search"].update(value="")
             continue
 
-        searched_user_data = UserData(sess=sess).load(window["player_search"].get())
-        combo_values.append(searched_user_data.username)
-        window["available_users"].update(values=combo_values, value=combo_values[0])
+        searched_user_data = load(window["player_search"].get(), sess=sess)
+        if searched_user_data.username not in window["available_users"].get():
+            combo_values.append(searched_user_data.username)
+            combo_values = list(set(combo_values))
+            window["available_users"].update(values=combo_values, value=combo_values[0])
 
         if max_stats >= 3:
             continue
@@ -906,7 +908,7 @@ while True:
         if max_stats >= 3:
             continue
 
-        searched_user_data = UserData(sess=sess).load(window["available_users"].get())
+        searched_user_data = load(window["available_users"].get(), sess=sess)
         window.extend_layout(
             window["stats_column"],
             add_stats_row(searched_user_data, logged_in_user),
@@ -920,7 +922,7 @@ while True:
             opponent = window["opponent"].get()
         else:
             opponent = window["available_users"].get()
-        display_category_metrics(UserData(sess=sess).load(opponent))
+        display_category_metrics(load(opponent, sess=sess))
 
     if "remove_" in event:
         if not logged_in:
@@ -937,9 +939,24 @@ while True:
     if event == "submit_defense":
         if not logged_in:
             continue
-        player_1 = UserData(sess=sess).load(values.get("player_1"))
-        player_2 = UserData(sess=sess).load(values.get("opponent"))
+
+        if "player_1" not in locals():
+            player_1 = load(values.get("player_1"), sess=sess)
+        else:
+            if values.get("player_1").lower() != player_1.username:
+                player_1 = load(values.get("player_1"), sess=sess)
+        if "player_2" not in locals():
+            player_2 = load(values.get("opponent"), sess=sess)
+        else:
+            if values.get("opponent").lower() != player_2.username:
+                player_2 = load(values.get("opponent"), sess=sess)
+
         player_1.calc_hun(player_2)
+
+        if player_2.username not in window["available_users"].get():
+            combo_values.append(player_2.username)
+            combo_values = list(set(combo_values))
+            window["available_users"].update(values=combo_values, value=combo_values[0])
 
         hun_score = player_1.hun.get(player_2.username)
         window["hun_score"].update(value=round(hun_score, 3))
@@ -983,8 +1000,22 @@ while True:
         if not logged_in:
             continue
 
-        player_1 = UserData(sess=sess).load(values.get("player_1"))
-        player_2 = UserData(sess=sess).load(values.get("opponent"))
+        if "player_1" not in locals():
+            player_1 = load(values.get("player_1"), sess=sess)
+        else:
+            if values.get("player_1").lower() != player_1.username:
+                player_1 = load(values.get("player_1"), sess=sess)
+
+        if "player_2" not in locals():
+            player_2 = load(values.get("opponent"), sess=sess)
+        else:
+            if values.get("opponent").lower() != player_2.username:
+                player_2 = load(values.get("opponent"), sess=sess)
+
+        if player_2.username not in window["available_users"].get():
+            combo_values.append(player_2.username)
+            combo_values = list(set(combo_values))
+            window["available_users"].update(values=combo_values, value=combo_values[0])
 
         search_term = values["defense_question_search_term"]
         filtered_dict = DotMap(
@@ -1014,23 +1045,50 @@ while True:
     if event == "calc_hun":
         if not logged_in:
             continue
-        player_1 = UserData(sess=sess).load(values.get("player_1"))
-        player_2 = UserData(sess=sess).load(window["opponent"].get())
+
+        if "player_1" not in locals():
+            player_1 = load(values.get("player_1"), sess=sess)
+        else:
+            if values.get("player_1").lower() != player_1.username:
+                player_1 = load(values.get("player_1"), sess=sess)
+        if "player_2" not in locals():
+            player_2 = load(values.get("opponent"), sess=sess)
+        else:
+            if values.get("opponent").lower() != player_2.username:
+                player_2 = load(values.get("opponent"), sess=sess)
 
         player_1.calc_hun(player_2)
 
         hun_score = player_1.hun.get(player_2.username)
         window["hun_score"].update(value=round(hun_score, 3))
+        if player_2.username not in window["available_users"].get():
+            combo_values.append(player_2.username)
+            combo_values = list(set(combo_values))
+            window["available_users"].update(values=combo_values, value=combo_values[0])
 
     if event == "similarity_chart":
         if not logged_in:
             continue
-        player_1 = UserData(sess=sess).load(values.get("player_1"))
-        player_2 = UserData(sess=sess).load(values.get("opponent"))
+
+        if "player_1" not in locals():
+            player_1 = load(values.get("player_1"), sess=sess)
+        else:
+            if values.get("player_1").lower() != player_1.username:
+                player_1 = load(values.get("player_1"), sess=sess)
+        if "player_2" not in locals():
+            player_2 = load(values.get("opponent"), sess=sess)
+        else:
+            if values.get("opponent").lower() != player_2.username:
+                player_2 = load(values.get("opponent"), sess=sess)
+
         player_1.calc_hun(player_2)
 
         hun_score = player_1.hun.get(player_2.username)
         window["hun_score"].update(value=round(hun_score, 3))
+        if player_2.username not in window["available_users"].get():
+            combo_values.append(player_2.username)
+            combo_values = list(set(combo_values))
+            window["available_users"].update(values=combo_values, value=combo_values[0])
 
         fig = Figure()
         config = {

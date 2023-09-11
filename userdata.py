@@ -1,5 +1,5 @@
+import json
 import os
-import pickle
 import re
 
 from bs4 import BeautifulSoup as bs
@@ -14,82 +14,44 @@ USER_QHIST = BASE_URL + "/profiles.php?%s&9"
 USER_DATA_DIR = os.path.expanduser("~") + "/.LearnedLeague/user_data"
 if not os.path.isdir(USER_DATA_DIR):
     os.mkdir(USER_DATA_DIR)
-CATEGORIES = [
-    "AMER_HIST",
-    "ART",
-    "BUS/ECON",
-    "CLASS_MUSIC",
-    "CURR_EVENTS",
-    "FILM",
-    "FOOD/DRINK",
-    "GAMES/SPORT",
-    "GEOGRAPHY",
-    "LANGUAGE",
-    "LIFESTYLE",
-    "LITERATURE",
-    "MATH",
-    "POP_MUSIC",
-    "SCIENCE",
-    "TELEVISION",
-    "THEATRE",
-    "WORLD_HIST",
-]
-STATS_DEFINITION = {
-    "Seas.": "Season",
-    "W": "Wins",
-    "L": "Losses",
-    "T": "Ties",
-    "PTS": "Points (in standings) - This determines the order of the standings. Two points for a win, one for a tie, -1 for a forfeit loss",
-    "TMP": "Total Match Points - Sum of points scored in all matches",
-    "TPA": "Total Points Allowed",
-    "MPD": "Match Points Differential - The difference between Match Points scored and Match Points allowed (TMP-TPA)",
-    "TCA": "Total Correct Answers",
-    "CAA": "Correct Answers Against - Total number of questions answered correctly by one's opponents in all matches",
-    "PCAA": "Points Per Correct Answer Against - The average value allowed per correct answer of one's opponent",
-    "UfPA": """Unforced Points Allowed -
-The total number of points allowed above that which would have been allowed with perfect defense
-(i.e. if one's opponent answered four correct and scored 7, he gave up 3 UfPA [7-4]).
-Perfect defensive points - (1: 0, 2: 1, 3: 2, 4: 4, 5: 6, 6: 9)""",
-    "DE": "Defensive Efficiency -\nThe total number of UfPA you could have but did not allow\ndivided by the total number you could have allowed. The higher the number the better",
-    "FW": "Forfeit Wins",
-    "FL": "Forfeit Losses",
-    "3PT": "3-Pointers",
-    "MCW": "Most Common Wrong Answers -\nNumber of answers submitted\nwhich were the Most Common Wrong Answer for its question",
-    "QPct": "Percent of correct answers",
-    "Rank": "Overall Rank in the Season",
-}
+
+
+def load(username, sess=None):
+    if not sess:
+        print("Sess not provided, creating new session...")
+        sess = login()
+    username = username.lower()
+    filename = USER_DATA_DIR + f"/{username}.json"
+    if os.path.isfile(filename):
+        with open(filename, "r") as fp:
+            # print(f"Loaded user {username} from file")
+            user_data = UserData(username=username, sess=sess, load=False)
+            user_data._map.update(DotMap(json.load(fp)))
+            user_data._update_data()
+            return user_data
+    else:
+        return UserData(username=username, sess=sess, load=True)
 
 
 class UserData(DotMap):
-    def __init__(self, sess=None, username=None, *args, **kwargs):
+    def __init__(self, username=None, sess=None, load=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not sess:
-            self.sess = login()
-        else:
-            self.sess = sess
+        self.sess = sess
         self.username = username
         self.profile_id = self.sess.get(
             f"https://learnedleague.com/profiles.php?{self.username}"
         ).url.split("?")[-1]
-
-    @classmethod
-    def load(cls, username):
-        filename = USER_DATA_DIR + f"/{username}.pkl"
-        if os.path.isfile(filename):
-            with open(filename, "rb") as fp:
-                print(f"Loaded user {username} from file")
-                user_data = pickle.load(fp)
-                user_data._update_data()
-                return user_data
-        else:
-            user_data = cls(username=username.lower())
-            user_data._get_full_data()
-            user_data._save()
-            return user_data
+        if load:
+            self._get_full_data()
+            self._save()
 
     def _save(self):
-        with open(USER_DATA_DIR + f"/{self.username}.pkl", "wb") as fp:
-            pickle.dump(self, fp)
+        with open(USER_DATA_DIR + f"/{self.username}.json", "w") as fp:
+            try:
+                del self.sess
+            except KeyError:
+                pass
+            json.dump(self._map, fp, indent=4)
 
     def _get_full_data(self):
         question_page = bs(
@@ -198,6 +160,8 @@ class UserData(DotMap):
             ).find_all("tr")[1:]
         ]
 
+        self.hun = DotMap()
+
     def _update_data(self):
         profile_id_page = self.sess.get(
             f"https://learnedleague.com/profiles.php?{self.profile_id}"
@@ -237,13 +201,19 @@ class UserData(DotMap):
         for key, values in self.question_history.items():
             if key in opponent.question_history.keys():
                 total += 1
-                if values.correct == opponent.question_history[key].correct:
+                if values.get("correct") == opponent.question_history[key].get(
+                    "correct"
+                ):
                     raw += 1
 
         if not total:
             hun_score = 0
         else:
             hun_score = raw / total
+        if "hun" not in self.keys():
+            self.hun = DotMap()
+        if "hun" not in opponent.keys():
+            opponent.hun = DotMap()
 
         self.hun[opponent.username] = hun_score
         opponent.hun[self.username] = hun_score
