@@ -4,7 +4,6 @@ import json
 import os
 import re
 import sys
-import tkinter as tk
 import webbrowser
 from random import choice
 
@@ -25,11 +24,11 @@ from logged_in_tools import (
     STATS_DEFINITION,
     calc_hun_score,
     display_category_metrics,
-    load_user_data,
     login,
 )
 from minileagues import minileague
 from onedays import oneday_main
+from userdata import UserData
 
 BASE_URL = "https://www.learnedleague.com"
 
@@ -831,9 +830,7 @@ while True:
             if not sess:
                 continue
 
-            user_data = load_user_data(
-                username=sess.headers.get("profile"), current_day=season_day
-            )
+            user_data = UserData(sess.headers.get("profile"))
 
             if user_data.ok:
                 logged_in = True
@@ -863,15 +860,11 @@ while True:
                     parse_only=ss("table"),
                 )
 
-                opponents = [
-                    val.img.get("title")
-                    for val in profile_page.find(
-                        "table", {"summary": "Data table for LL results"}
-                    ).find_all("tr")[1:]
-                ]
-                window["player_1"].update(values=opponents, value=user_data.username)
+                window["player_1"].update(
+                    values=user_data.opponents, value=user_data.username
+                )
                 window["opponent"].update(
-                    values=opponents, value=opponents[current_day]
+                    values=user_data.opponents, value=user_data.opponents[current_day]
                 )
 
         elif window["login_button"].get_text() == "Logout":
@@ -890,9 +883,7 @@ while True:
             window["player_search"].update(value="")
             continue
 
-        searched_user_data = load_user_data(
-            window["player_search"].get(), current_day=season_day
-        )
+        searched_user_data = UserData(window["player_search"].get())
         combo_values.append(searched_user_data.username)
         window["available_users"].update(values=combo_values, value=combo_values[0])
 
@@ -924,9 +915,7 @@ while True:
         if max_stats >= 3:
             continue
 
-        searched_user_data = load_user_data(
-            window["available_users"].get(), current_day=season_day
-        )
+        searched_user_data = UserData.load_user(window["available_users"].get())
         window.extend_layout(
             window["stats_column"],
             add_stats_row(searched_user_data, logged_in_user),
@@ -940,12 +929,7 @@ while True:
             opponent = window["opponent"].get()
         else:
             opponent = window["available_users"].get()
-        display_category_metrics(
-            load_user_data(
-                opponent,
-                current_day=season_day,
-            )
-        )
+        display_category_metrics(UserData.load_user(opponent))
 
     if "remove_" in event:
         if not logged_in:
@@ -962,13 +946,12 @@ while True:
     if event == "submit_defense":
         if not logged_in:
             continue
-        player_1 = load_user_data(values.get("player_1"), current_day=season_day)
-        player_2 = load_user_data(values.get("opponent"), current_day=season_day)
+        player_1 = UserData.load_user(values.get("player_1"))
+        player_2 = UserData.load_user(values.get("opponent"))
 
         player_1, player_2 = calc_hun_score(
             player_1,
             player_2,
-            save=True,
         )
         hun_score = player_1.hun.get(player_2.username)
         window["hun_score"].update(value=round(hun_score, 3))
@@ -1011,8 +994,9 @@ while True:
     if event == "search_questions_button":
         if not logged_in:
             continue
-        player_1 = load_user_data(values.get("player_1"), current_day=season_day)
-        player_2 = load_user_data(values.get("opponent"), current_day=season_day)
+
+        player_1 = UserData.load_user(values.get("player_1"))
+        player_2 = UserData.load_user(values.get("opponent"))
 
         search_term = values["defense_question_search_term"]
         filtered_dict = DotMap(
@@ -1042,25 +1026,21 @@ while True:
     if event == "calc_hun":
         if not logged_in:
             continue
-        player_1 = load_user_data(values.get("player_1"), current_day=season_day)
-        player_2 = load_user_data(values.get("opponent"), current_day=season_day)
-        player_1, player_2 = calc_hun_score(
-            player_1,
-            player_2,
-            save=True,
-        )
+        player_1 = UserData(values.get("player_1"))
+        player_2 = UserData(window["opponent"].get())
+        player_1.calc_hun(player_2)
+
         hun_score = player_1.hun.get(player_2.username)
         window["hun_score"].update(value=round(hun_score, 3))
 
     if event == "similarity_chart":
         if not logged_in:
             continue
-        player_1 = load_user_data(values.get("player_1"), current_day=season_day)
-        player_2 = load_user_data(values.get("opponent"), current_day=season_day)
+        player_1 = UserData.load_user(values.get("player_1"))
+        player_2 = UserData.load_user(values.get("opponent"))
         player_1, player_2 = calc_hun_score(
             player_1,
             player_2,
-            save=True,
         )
         hun_score = player_1.hun.get(player_2.username)
         window["hun_score"].update(value=round(hun_score, 3))
