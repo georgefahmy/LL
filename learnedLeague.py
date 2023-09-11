@@ -829,8 +829,7 @@ while True:
             if not sess:
                 continue
             username = sess.headers.get("profile")
-            print(username)
-            user_data = UserData(username)
+            user_data = UserData(sess=sess).load(username)
 
             if user_data.ok:
                 logged_in = True
@@ -851,14 +850,6 @@ while True:
                 )
                 window.move_to_center()
                 max_stats = 1
-
-                profile_page = bs(
-                    sess.get(
-                        f"https://learnedleague.com/profiles.php?{user_data.username}"
-                    ).content,
-                    "html.parser",
-                    parse_only=ss("table"),
-                )
 
                 window["player_1"].update(
                     values=user_data.opponents, value=user_data.username
@@ -883,7 +874,7 @@ while True:
             window["player_search"].update(value="")
             continue
 
-        searched_user_data = UserData(window["player_search"].get())
+        searched_user_data = UserData(sess=sess).load(window["player_search"].get())
         combo_values.append(searched_user_data.username)
         window["available_users"].update(values=combo_values, value=combo_values[0])
 
@@ -915,7 +906,7 @@ while True:
         if max_stats >= 3:
             continue
 
-        searched_user_data = UserData.load_user(window["available_users"].get())
+        searched_user_data = UserData(sess=sess).load(window["available_users"].get())
         window.extend_layout(
             window["stats_column"],
             add_stats_row(searched_user_data, logged_in_user),
@@ -929,7 +920,7 @@ while True:
             opponent = window["opponent"].get()
         else:
             opponent = window["available_users"].get()
-        display_category_metrics(UserData.load_user(opponent))
+        display_category_metrics(UserData(sess=sess).load(opponent))
 
     if "remove_" in event:
         if not logged_in:
@@ -946,8 +937,8 @@ while True:
     if event == "submit_defense":
         if not logged_in:
             continue
-        player_1 = UserData.load_user(values.get("player_1"))
-        player_2 = UserData.load_user(values.get("opponent"))
+        player_1 = UserData(sess=sess).load(values.get("player_1"))
+        player_2 = UserData(sess=sess).load(values.get("opponent"))
         player_1.calc_hun(player_2)
 
         hun_score = player_1.hun.get(player_2.username)
@@ -992,8 +983,8 @@ while True:
         if not logged_in:
             continue
 
-        player_1 = UserData.load_user(values.get("player_1"))
-        player_2 = UserData.load_user(values.get("opponent"))
+        player_1 = UserData(sess=sess).load(values.get("player_1"))
+        player_2 = UserData(sess=sess).load(values.get("opponent"))
 
         search_term = values["defense_question_search_term"]
         filtered_dict = DotMap(
@@ -1023,8 +1014,9 @@ while True:
     if event == "calc_hun":
         if not logged_in:
             continue
-        player_1 = UserData(values.get("player_1"))
-        player_2 = UserData(window["opponent"].get())
+        player_1 = UserData(sess=sess).load(values.get("player_1"))
+        player_2 = UserData(sess=sess).load(window["opponent"].get())
+
         player_1.calc_hun(player_2)
 
         hun_score = player_1.hun.get(player_2.username)
@@ -1033,8 +1025,8 @@ while True:
     if event == "similarity_chart":
         if not logged_in:
             continue
-        player_1 = UserData.load_user(values.get("player_1"))
-        player_2 = UserData.load_user(values.get("opponent"))
+        player_1 = UserData(sess=sess).load(values.get("player_1"))
+        player_2 = UserData(sess=sess).load(values.get("opponent"))
         player_1.calc_hun(player_2)
 
         hun_score = player_1.hun.get(player_2.username)

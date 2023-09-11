@@ -40,9 +40,9 @@ STATS_DEFINITION = {
     "L": "Losses",
     "T": "Ties",
     "PTS": "Points (in standings) - This determines the order of the standings. Two points for a win, one for a tie, -1 for a forfeit loss",
-    "MPD": "Match Points Differential - The difference between Match Points scored and Match Points allowed (TMP-TPA)",
     "TMP": "Total Match Points - Sum of points scored in all matches",
     "TPA": "Total Points Allowed",
+    "MPD": "Match Points Differential - The difference between Match Points scored and Match Points allowed (TMP-TPA)",
     "TCA": "Total Correct Answers",
     "CAA": "Correct Answers Against - Total number of questions answered correctly by one's opponents in all matches",
     "PCAA": "Points Per Correct Answer Against - The average value allowed per correct answer of one's opponent",
@@ -61,21 +61,31 @@ Perfect defensive points - (1: 0, 2: 1, 3: 2, 4: 4, 5: 6, 6: 9)""",
 
 
 class UserData(DotMap):
-    def __init__(self, username=None, **kwargs):
-        sess = login()
-        super().__init__(**kwargs)
+    def __init__(self, sess=None, username=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not sess:
+            self.sess = login()
+        else:
+            self.sess = sess
         self.username = username
-        self.sess = sess
-        self.profile_id = sess.get(
+        self.profile_id = self.sess.get(
             f"https://learnedleague.com/profiles.php?{self.username}"
         ).url.split("?")[-1]
-        self.load()
 
-    def _load(self):
-        filename = USER_DATA_DIR + f"/{self.username}.pkl"
+    @classmethod
+    def load(cls, username):
+        filename = USER_DATA_DIR + f"/{username}.pkl"
         if os.path.isfile(filename):
             with open(filename, "rb") as fp:
-                tmp = pickle.load(fp)
+                print(f"Loaded user {username} from file")
+                user_data = pickle.load(fp)
+                user_data._update_data()
+                return user_data
+        else:
+            user_data = cls(username=username.lower())
+            user_data._get_full_data()
+            user_data._save()
+            return user_data
 
     def _save(self):
         with open(USER_DATA_DIR + f"/{self.username}.pkl", "wb") as fp:
@@ -188,7 +198,7 @@ class UserData(DotMap):
             ).find_all("tr")[1:]
         ]
 
-    def update_data(self):
+    def _update_data(self):
         profile_id_page = self.sess.get(
             f"https://learnedleague.com/profiles.php?{self.profile_id}"
         )
@@ -239,6 +249,6 @@ class UserData(DotMap):
         opponent.hun[self.username] = hun_score
         self._save()
         opponent._save()
-        print(
-            f"Hun Score for {self.username} and {opponent.username}: {hun_score: 0.3f}"
-        )
+        # print(
+        #     f"Hun Score for {self.username} and {opponent.username}: {hun_score: 0.3f}"
+        # )
