@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v5.0.1] - 2023-09-08
+### [v5.1.0] - 2023-09-11
 
-Added Open LL button to take you to the LearnedLeague.com home page.
+Improved handling of data and made changes to the hover labels for the similarity chart.
