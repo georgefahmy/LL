@@ -3,6 +3,7 @@ import PySimpleGUI as sg
 from logged_in_tools import CATEGORIES, DEFAULT_FONT
 
 sg.theme("Reddit")
+# TODO add link to stats window usernames to open that person's profile
 main_layout = [
     [
         sg.Frame(
