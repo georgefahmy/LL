@@ -1,6 +1,6 @@
 import PySimpleGUI as sg
 
-from logged_in_tools import CATEGORIES, DEFAULT_FONT, STATS_DEFINITION
+from logged_in_tools import CATEGORIES, DEFAULT_FONT
 
 sg.theme("Reddit")
 main_layout = [

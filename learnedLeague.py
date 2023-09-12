@@ -4,7 +4,6 @@ import json
 import os
 import re
 import sys
-import tkinter as tk
 import webbrowser
 from random import choice
 
@@ -23,13 +22,12 @@ from layout import super_layout
 from logged_in_tools import (
     DEFAULT_FONT,
     STATS_DEFINITION,
-    calc_hun_score,
     display_category_metrics,
-    load_user_data,
     login,
 )
 from minileagues import minileague
 from onedays import oneday_main
+from userdata import load
 
 BASE_URL = "https://www.learnedleague.com"
 
@@ -375,7 +373,6 @@ available_seasons = [
     str(season) for season in list(range(60, int(latest_season) + 1, 1))
 ]
 
-
 datapath = os.path.expanduser("~") + "/.LearnedLeague/all_data.json"
 if os.path.isfile(datapath):
     with open(datapath, "r") as fp:
@@ -386,6 +383,7 @@ else:
 season_in_data = sorted(
     list(set([val.split("D")[0].strip("S") for val in list(all_data.keys())]))
 )
+
 missing_seasons = sorted(
     list(set(available_seasons).symmetric_difference(set(season_in_data)))
 )
@@ -397,6 +395,7 @@ current_day = int(
         parse_only=ss("h3"),
     ).h3.text.split()[-1]
 )
+
 season_day = f"S{latest_season}D{current_day}Q6"
 
 total_players = sum(
@@ -504,6 +503,7 @@ values = None
 logged_in = False
 i = choice(list(questions.keys()))
 question_object = update_question(questions, window, i)
+
 if i > 1:
     window["previous"].update(disabled=False)
 
@@ -520,6 +520,7 @@ while True:
         window.close()
         break
 
+    # Clear search box via esc key
     if "Escape" in event:
         if (
             window.find_element_with_focus()
@@ -528,6 +529,7 @@ while True:
             window["search_criteria"].update(value="")
             window["filter"].set_focus()
 
+    # Trigger the right click menu for searching text within a question
     if event == "questionpress":
         question_widget = window["question"].Widget
         selection_ranges = question_widget.tag_ranges(sg.tk.SEL)
@@ -538,6 +540,7 @@ while True:
             window["question"].set_right_click_menu(["&Right", ["!Lookup Selection"]])
             continue
 
+    # Use the Dictionary library to display the definition of the selection in a popup window
     if event == "Lookup Selection":
         if len(selected_text.split()) == 1:
             # selected text is a single word, so just do a lookup
@@ -569,11 +572,13 @@ while True:
 
             sg.popup_ok(result, title="Wiki Summary", font=("Arial", 16))
 
+    # Filter the questions to a specific season
     if event == "season":
         window.write_event_value("filter", "")
         question_object = update_question(questions, window, i)
         answer = question_object.get("answer")
 
+    # Choose a random question to display
     if event in ("random_choice", "random_key"):
         if (
             window.find_element_with_focus()
@@ -591,7 +596,7 @@ while True:
         window["submit_answer_button"].update(disabled=False)
         window["correct_override"].update(disabled=True)
 
-    # if the category dropdown is changed from ALL, or the filter button is pressed
+    # If the category dropdown is changed from ALL, or the filter button is pressed
     # display the new questions
     if event in ["filter", "category_selection"]:
         if int(values["min_%"]) > int(values["max_%"]):
@@ -635,7 +640,7 @@ while True:
             window["next"].update(disabled=True)
             window["previous"].update(disabled=True)
 
-    # display or hide the answer for the currently displayed question
+    # Display or hide the answer for the currently displayed question
     if event in ("show/hide", "show_key"):
         if (
             window.find_element_with_focus()
@@ -722,6 +727,7 @@ while True:
         else:
             window["previous"].update(disabled=False)
 
+    # Check the submitted answer against the correct answer for the specific question
     if "submit_answer_button" in event:
         if not values["answer_submission"]:
             continue
@@ -774,6 +780,8 @@ while True:
             json.dump(all_data, fp, sort_keys=True, indent=4)
         correct = []
 
+    # If the checking algorithm is wrong, the check box can be used to overwrite the 'correctness'
+    # of the answer being submitted
     if "correct_override" in event:
         if right_answer:
             right_answer = False
@@ -802,11 +810,13 @@ while True:
         ) as fp:
             json.dump(all_data, fp, sort_keys=True, indent=4)
 
+    # Open the One Day Specials Interface (and hide the main interface)
     if event == "onedays_button":
         window.hide()
         unhide = oneday_main()
         window.un_hide()
 
+    # Open the MiniLeague interface (and hide the main interface)
     if event == "minileague_button":
         window.hide()
         unhide = minileague()
@@ -816,21 +826,24 @@ while True:
     if event == "question_number":
         webbrowser.open(window["question_number"].metadata)
 
+    # Open the question item in your browser
     if "click_here" in event:
         webbrowser.open(window["question"].metadata)
+
+    # Open the LL homepage
     if event == "open_ll":
         webbrowser.open("https://www.learnedleague.com")
 
+    # Login to the LL website with provided credentials. This will expand the interface
+    # to include significantly more data and capabilities
     if event == "login_button":
         user_data = None
         if window["login_button"].get_text() == "Login":
             sess = login()
             if not sess:
                 continue
-
-            user_data = load_user_data(
-                username=sess.headers.get("profile"), current_day=season_day
-            )
+            username = sess.headers.get("profile")
+            user_data = load(username=username, sess=sess)
 
             if user_data.ok:
                 logged_in = True
@@ -852,23 +865,11 @@ while True:
                 window.move_to_center()
                 max_stats = 1
 
-                profile_page = bs(
-                    sess.get(
-                        f"https://learnedleague.com/profiles.php?{user_data.username}"
-                    ).content,
-                    "html.parser",
-                    parse_only=ss("table"),
+                window["player_1"].update(
+                    values=user_data.opponents, value=user_data.username
                 )
-
-                opponents = [
-                    val.img.get("title")
-                    for val in profile_page.find(
-                        "table", {"summary": "Data table for LL results"}
-                    ).find_all("tr")[1:]
-                ]
-                window["player_1"].update(values=opponents, value=user_data.username)
                 window["opponent"].update(
-                    values=opponents, value=opponents[current_day]
+                    values=user_data.opponents, value=user_data.opponents[current_day]
                 )
 
         elif window["login_button"].get_text() == "Logout":
@@ -877,6 +878,7 @@ while True:
             window.close()
             break
 
+    # Search for players via their username and return their stats (and save their data)
     if event in ["player_search_button", "return_key"] and values["player_search"]:
         if not logged_in:
             continue
@@ -887,11 +889,11 @@ while True:
             window["player_search"].update(value="")
             continue
 
-        searched_user_data = load_user_data(
-            window["player_search"].get(), current_day=season_day
-        )
-        combo_values.append(searched_user_data.username)
-        window["available_users"].update(values=combo_values, value=combo_values[0])
+        searched_user_data = load(window["player_search"].get(), sess=sess)
+        if searched_user_data.username not in window["available_users"].get():
+            combo_values.append(searched_user_data.username)
+            combo_values = list(set(combo_values))
+            window["available_users"].update(values=combo_values, value=combo_values[0])
 
         if max_stats >= 3:
             continue
@@ -909,6 +911,7 @@ while True:
         )
         window.move_to_center()
 
+    # Select a user from the dropdown and display their stats
     if event == "available_users":
         if not logged_in:
             continue
@@ -921,15 +924,15 @@ while True:
         if max_stats >= 3:
             continue
 
-        searched_user_data = load_user_data(
-            window["available_users"].get(), current_day=season_day
-        )
+        searched_user_data = load(window["available_users"].get(), sess=sess)
         window.extend_layout(
             window["stats_column"],
             add_stats_row(searched_user_data, logged_in_user),
         )
         window.move_to_center()
 
+    # Display the selected users category metrics. Depending on which button is pressed
+    # the appropriate user will be displayed
     if "category_button" in event:
         if not logged_in:
             continue
@@ -937,13 +940,9 @@ while True:
             opponent = window["opponent"].get()
         else:
             opponent = window["available_users"].get()
-        display_category_metrics(
-            load_user_data(
-                opponent,
-                current_day=season_day,
-            )
-        )
+        display_category_metrics(load(opponent, sess=sess))
 
+    # Remove the statistics row from the interface
     if "remove_" in event:
         if not logged_in:
             continue
@@ -956,17 +955,30 @@ while True:
             [key for key in list(window.AllKeysDict.keys()) if "row_name_" in str(key)]
         )
 
+    # Submit the category selections and compare against the opponent's metrics for
+    # suggested point assignment
     if event == "submit_defense":
         if not logged_in:
             continue
-        player_1 = load_user_data(values.get("player_1"), current_day=season_day)
-        player_2 = load_user_data(values.get("opponent"), current_day=season_day)
 
-        player_1, player_2 = calc_hun_score(
-            player_1,
-            player_2,
-            save=True,
-        )
+        if "player_1" not in locals():
+            player_1 = load(values.get("player_1"), sess=sess)
+        else:
+            if values.get("player_1").lower() != player_1.username:
+                player_1 = load(values.get("player_1"), sess=sess)
+        if "player_2" not in locals():
+            player_2 = load(values.get("opponent"), sess=sess)
+        else:
+            if values.get("opponent").lower() != player_2.username:
+                player_2 = load(values.get("opponent"), sess=sess)
+
+        player_1.calc_hun(player_2)
+
+        if player_2.username not in window["available_users"].get():
+            combo_values.append(player_2.username)
+            combo_values = list(set(combo_values))
+            window["available_users"].update(values=combo_values, value=combo_values[0])
+
         hun_score = player_1.hun.get(player_2.username)
         window["hun_score"].update(value=round(hun_score, 3))
 
@@ -1001,15 +1013,33 @@ while True:
             for i, key in enumerate(list(percents.keys()))
         ]
 
+    # Clear the categories and points from the window
     if event == "defense_clear":
         [window[f"defense_suggestion_{i}"].update(value="") for i in range(1, 7)]
         [window[f"defense_strat_{i}"].update(value="") for i in range(1, 7)]
 
+    # Search through the opponents quesiton history for key words and display
+    # whether they got the question right or wrong
     if event == "search_questions_button":
         if not logged_in:
             continue
-        player_1 = load_user_data(values.get("player_1"), current_day=season_day)
-        player_2 = load_user_data(values.get("opponent"), current_day=season_day)
+
+        if "player_1" not in locals():
+            player_1 = load(values.get("player_1"), sess=sess)
+        else:
+            if values.get("player_1").lower() != player_1.username:
+                player_1 = load(values.get("player_1"), sess=sess)
+
+        if "player_2" not in locals():
+            player_2 = load(values.get("opponent"), sess=sess)
+        else:
+            if values.get("opponent").lower() != player_2.username:
+                player_2 = load(values.get("opponent"), sess=sess)
+
+        if player_2.username not in window["available_users"].get():
+            combo_values.append(player_2.username)
+            combo_values = list(set(combo_values))
+            window["available_users"].update(values=combo_values, value=combo_values[0])
 
         search_term = values["defense_question_search_term"]
         filtered_dict = DotMap(
@@ -1036,31 +1066,55 @@ while True:
         )
         window["output_questions"].update(value=result)
 
+    # Calculate the HUN similarity between the two players (player 1 and opponent)
     if event == "calc_hun":
         if not logged_in:
             continue
-        player_1 = load_user_data(values.get("player_1"), current_day=season_day)
-        player_2 = load_user_data(values.get("opponent"), current_day=season_day)
-        player_1, player_2 = calc_hun_score(
-            player_1,
-            player_2,
-            save=True,
-        )
+
+        if "player_1" not in locals():
+            player_1 = load(values.get("player_1"), sess=sess)
+        else:
+            if values.get("player_1").lower() != player_1.username:
+                player_1 = load(values.get("player_1"), sess=sess)
+        if "player_2" not in locals():
+            player_2 = load(values.get("opponent"), sess=sess)
+        else:
+            if values.get("opponent").lower() != player_2.username:
+                player_2 = load(values.get("opponent"), sess=sess)
+
+        player_1.calc_hun(player_2)
+
         hun_score = player_1.hun.get(player_2.username)
         window["hun_score"].update(value=round(hun_score, 3))
+        if player_2.username not in window["available_users"].get():
+            combo_values.append(player_2.username)
+            combo_values = list(set(combo_values))
+            window["available_users"].update(values=combo_values, value=combo_values[0])
 
+    # Open a plotly web chart showing the similarity in metrics between the two players
     if event == "similarity_chart":
         if not logged_in:
             continue
-        player_1 = load_user_data(values.get("player_1"), current_day=season_day)
-        player_2 = load_user_data(values.get("opponent"), current_day=season_day)
-        player_1, player_2 = calc_hun_score(
-            player_1,
-            player_2,
-            save=True,
-        )
+
+        if "player_1" not in locals():
+            player_1 = load(values.get("player_1"), sess=sess)
+        else:
+            if values.get("player_1").lower() != player_1.username:
+                player_1 = load(values.get("player_1"), sess=sess)
+        if "player_2" not in locals():
+            player_2 = load(values.get("opponent"), sess=sess)
+        else:
+            if values.get("opponent").lower() != player_2.username:
+                player_2 = load(values.get("opponent"), sess=sess)
+
+        player_1.calc_hun(player_2)
+
         hun_score = player_1.hun.get(player_2.username)
         window["hun_score"].update(value=round(hun_score, 3))
+        if player_2.username not in window["available_users"].get():
+            combo_values.append(player_2.username)
+            combo_values = list(set(combo_values))
+            window["available_users"].update(values=combo_values, value=combo_values[0])
 
         fig = Figure()
         config = {
@@ -1078,6 +1132,8 @@ while True:
                 theta=[category for category in player_1.category_metrics.keys()],
                 fill="toself",
                 name=player_1.username,
+                hovertemplate=("% Correct: %{r:.3f}%<br>Category: %{theta}"),
+                hoveron="points+fills",
             )
         )
         fig.add_trace(
@@ -1086,6 +1142,8 @@ while True:
                 theta=[category for category in player_2.category_metrics.keys()],
                 fill="toself",
                 name=player_2.username,
+                hovertemplate=("% Correct: %{r:.3f}%<br>Category: %{theta}"),
+                hoveron="points+fills",
             )
         )
         fig.update_layout(
