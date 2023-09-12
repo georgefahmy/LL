@@ -1132,6 +1132,7 @@ while True:
                 theta=[category for category in player_1.category_metrics.keys()],
                 fill="toself",
                 name=player_1.username,
+                hovertemplate=("<b>% Correct: %{r:.3f}% <br>Category: %{theta}</b>"),
             )
         )
         fig.add_trace(
@@ -1140,6 +1141,7 @@ while True:
                 theta=[category for category in player_2.category_metrics.keys()],
                 fill="toself",
                 name=player_2.username,
+                hovertemplate=("<b>% Correct: %{r:.3f}% <br>Category: %{theta}</b>"),
             )
         )
         fig.update_layout(
