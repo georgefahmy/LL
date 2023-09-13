@@ -19,13 +19,9 @@ from PyDictionary import PyDictionary
 from answer_correctness import combined_correctness
 from check_for_updates import check_for_update
 from layout import super_layout
-from logged_in_tools import (
-    DEFAULT_FONT,
-    STATS_DEFINITION,
-    display_category_metrics,
-    display_todays_questions,
-    login,
-)
+from logged_in_tools import (DEFAULT_FONT, STATS_DEFINITION,
+                             display_category_metrics,
+                             display_todays_questions, login)
 from minileagues import minileague
 from onedays import oneday_main
 from userdata import UserData, load
@@ -492,6 +488,7 @@ window = sg.Window(
     resizable=True,
     element_justification="center",
     return_keyboard_events=True,
+    relative_location=(0, -200),
 )
 
 categories = ["ALL"] + sorted(list(set([q["category"] for q in all_data.values()])))
@@ -876,7 +873,8 @@ while True:
                     window["stats_column"],
                     add_stats_row(user_data, logged_in_user),
                 )
-                window.move_to_center()
+                # window.move_to_center()
+
                 max_stats = 1
 
                 window["player_1"].update(
@@ -886,6 +884,13 @@ while True:
                 window["opponent"].update(
                     values=user_data.opponents, value=user_data.opponents[current_day]
                 )
+
+                window_width, window_height = window.size
+                screen_width, screen_height = window.get_screen_size()
+                x = (screen_width - window_width) / 2
+                y = (screen_height - window_height) / 2 - 200
+                window.move(int(x), int(y))
+                window.refresh()
 
         elif window["login_button"].get_text() == "Logout":
             login(logout=True)
@@ -931,7 +936,7 @@ while True:
             window["stats_column"],
             add_stats_row(searched_user_data, logged_in_user),
         )
-        window.move_to_center()
+        # window.move_to_center()
 
     # Select a user from the dropdown and display their stats
     if event == "available_users":
@@ -951,7 +956,7 @@ while True:
             window["stats_column"],
             add_stats_row(searched_user_data, logged_in_user),
         )
-        window.move_to_center()
+        # window.move_to_center()
 
     # Display the selected users category metrics. Depending on which button is pressed
     # the appropriate user will be displayed
