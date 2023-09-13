@@ -151,22 +151,23 @@ class UserData(DotMap):
         stats.current_season = current_season_stats
         self.stats = stats
 
-        latest_page = bs(
-            self.sess.get(
-                f"https://learnedleague.com/profiles.php?{self.profile_id}"
-            ).content,
-            "html.parser",
-            parse_only=ss("table"),
-        )
+        if not self.get("opponents"):
+            latest_page = bs(
+                self.sess.get(
+                    f"https://learnedleague.com/profiles.php?{self.profile_id}"
+                ).content,
+                "html.parser",
+                parse_only=ss("table"),
+            )
 
-        self.opponents = [
-            val.img.get("title")
-            for val in latest_page.find(
-                "table", {"summary": "Data table for LL results"}
-            ).find_all("tr")[1:]
-        ]
+            self.opponents = [
+                val.img.get("title")
+                for val in latest_page.find(
+                    "table", {"summary": "Data table for LL results"}
+                ).find_all("tr")[1:]
+            ]
 
-        self.hun = DotMap()
+        self.hun = self.hun if self.get("hun") else DotMap()
 
     def _update_data(self):
         profile_id_page = self.sess.get(

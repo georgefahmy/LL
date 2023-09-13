@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v5.2.2] - 2023-09-12
+### [v5.2.3] - 2023-09-12
 
-fixed a tiny issue with window position
+Fixed minor bug with overwriting HUN similarity when updating data. Also improved text ouput of searched questions.

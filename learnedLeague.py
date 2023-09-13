@@ -1110,8 +1110,8 @@ while True:
         # filtered_dict.pprint(pformat="json")
         result = "\n".join(
             [
-                f"key: {key} - {filtered_dict[key].question_category}"
-                + f" - Correct: {filtered_dict[key].correct}"
+                f"{key} - {filtered_dict[key].question_category}"
+                + f" - : {'Correct' if filtered_dict[key].correct else 'Incorrect'}"
                 for key in sorted(list(filtered_dict.keys()), reverse=True)
             ]
         )
