@@ -23,11 +23,12 @@ from logged_in_tools import (
     DEFAULT_FONT,
     STATS_DEFINITION,
     display_category_metrics,
+    display_todays_questions,
     login,
 )
 from minileagues import minileague
 from onedays import oneday_main
-from userdata import load
+from userdata import UserData, load
 
 BASE_URL = "https://www.learnedleague.com"
 
@@ -270,6 +271,12 @@ def add_stats_row(user_data, logged_in_user):
         if user_data.hun.get(logged_in_user)
         else "HUN: --"
     )
+
+    # formatted_name = (
+    #     re.sub("[0-9]+", "", user_data.username)[:-1].title()
+    #     + re.sub("[0-9]+", "", user_data.username)[-1].upper()
+    #     + re.sub("[^0-9]*", "", user_data.username)
+    # )
     row = sg.Frame(
         title="",
         layout=[
@@ -277,11 +284,15 @@ def add_stats_row(user_data, logged_in_user):
                 sg.Column(
                     layout=[
                         [
-                            sg.Text(
-                                user_data.username,
-                                font=("Arial Bold", 14),
-                                justification="c",
-                                expand_x=True,
+                            sg.Button(
+                                user_data.formatted_username,
+                                font=DEFAULT_FONT,
+                                enable_events=True,
+                                size=(12, 1),
+                                tooltip="Click to Open Player Profile",
+                                key=f"player_profile_page_{user_data.username}",
+                                metadata=BASE_URL
+                                + f"/profiles.php?{user_data.profile_id}",
                             ),
                             sg.Text(expand_x=True),
                             sg.Text(
@@ -293,7 +304,8 @@ def add_stats_row(user_data, logged_in_user):
                         ],
                     ],
                     justification="l",
-                    element_justification="l",
+                    element_justification="c",
+                    vertical_alignment="c",
                     expand_x=True,
                     size=(160, 30),
                 ),
@@ -852,11 +864,13 @@ while True:
                 window["defense_frame"].update(visible=True)
                 window["stats_frame"].update(visible=True)
                 combo_values = sorted(
-                    [name.split(".")[0] for name in os.listdir(USER_DATA_DIR)]
+                    [
+                        UserData.format_username(name.split(".")[0])
+                        for name in os.listdir(USER_DATA_DIR)
+                    ]
                 )
                 window["available_users"].update(
-                    values=combo_values,
-                    value=user_data.username,
+                    values=combo_values, value=user_data.formatted_username
                 )
                 window.extend_layout(
                     window["stats_column"],
@@ -866,7 +880,8 @@ while True:
                 max_stats = 1
 
                 window["player_1"].update(
-                    values=user_data.opponents, value=user_data.username
+                    values=user_data.opponents,
+                    value=user_data.formatted_username,
                 )
                 window["opponent"].update(
                     values=user_data.opponents, value=user_data.opponents[current_day]
@@ -877,6 +892,11 @@ while True:
             sess.close()
             window.close()
             break
+
+    # open player profile from the stats page
+    if "player_profile_page" in event:
+        key = event.split("click_here")[0]
+        webbrowser.open(window[key].metadata)
 
     # Search for players via their username and return their stats (and save their data)
     if event in ["player_search_button", "return_key"] and values["player_search"]:
@@ -890,10 +910,12 @@ while True:
             continue
 
         searched_user_data = load(window["player_search"].get(), sess=sess)
-        if searched_user_data.username not in window["available_users"].get():
-            combo_values.append(searched_user_data.username)
+        if searched_user_data.formatted_username not in window["available_users"].get():
+            combo_values.append(searched_user_data.formatted_username)
             combo_values = list(set(combo_values))
-            window["available_users"].update(values=combo_values, value=combo_values[0])
+            window["available_users"].update(
+                values=combo_values, value=searched_user_data.formatted_username
+            )
 
         if max_stats >= 3:
             continue
@@ -972,15 +994,13 @@ while True:
             if values.get("opponent").lower() != player_2.username:
                 player_2 = load(values.get("opponent"), sess=sess)
 
-        player_1.calc_hun(player_2)
+        if not player_1.profile_id.isnumeric():
+            sg.popup_auto_close("Player Not Found.", no_titlebar=True, modal=False)
+            continue
 
-        if player_2.username not in window["available_users"].get():
-            combo_values.append(player_2.username)
-            combo_values = list(set(combo_values))
-            window["available_users"].update(values=combo_values, value=combo_values[0])
-
-        hun_score = player_1.hun.get(player_2.username)
-        window["hun_score"].update(value=round(hun_score, 3))
+        if not player_2.profile_id.isnumeric():
+            sg.popup_auto_close("Player Not Found.", no_titlebar=True, modal=False)
+            continue
 
         question_categories = [
             values.get(key) for key in values.keys() if "strat" in key
@@ -988,6 +1008,17 @@ while True:
 
         if not all(question_categories):
             continue
+
+        player_1.calc_hun(player_2)
+
+        if player_2.formatted_username not in window["available_users"].get():
+            combo_values.append(player_2.formatted_username)
+            combo_values = list(set(combo_values))
+            window["available_users"].update(values=combo_values)
+
+        hun_score = player_1.hun.get(player_2.username)
+
+        window["hun_score"].update(value=round(hun_score, 3))
 
         raw_scores = [3, 2, 2, 1, 1, 0]
         percents = DotMap(
@@ -1018,6 +1049,12 @@ while True:
         [window[f"defense_suggestion_{i}"].update(value="") for i in range(1, 7)]
         [window[f"defense_strat_{i}"].update(value="") for i in range(1, 7)]
 
+    # Open a popup window to display the current match day's questions
+    if event == "todays_questions":
+        qevent, _ = display_todays_questions(latest_season, current_day + 1)
+        if qevent == "open_ll":
+            webbrowser.open(BASE_URL + f"/match.php?{latest_season}&{current_day+1}")
+
     # Search through the opponents quesiton history for key words and display
     # whether they got the question right or wrong
     if event == "search_questions_button":
@@ -1036,10 +1073,18 @@ while True:
             if values.get("opponent").lower() != player_2.username:
                 player_2 = load(values.get("opponent"), sess=sess)
 
-        if player_2.username not in window["available_users"].get():
-            combo_values.append(player_2.username)
+        if not player_1.profile_id.isnumeric():
+            sg.popup_auto_close("Player Not Found.", no_titlebar=True, modal=False)
+            continue
+
+        if not player_2.profile_id.isnumeric():
+            sg.popup_auto_close("Player Not Found.", no_titlebar=True, modal=False)
+            continue
+
+        if player_2.formatted_username not in window["available_users"].get():
+            combo_values.append(player_2.formatted_username)
             combo_values = list(set(combo_values))
-            window["available_users"].update(values=combo_values, value=combo_values[0])
+            window["available_users"].update(values=combo_values)
 
         search_term = values["defense_question_search_term"]
         filtered_dict = DotMap(
@@ -1082,14 +1127,23 @@ while True:
             if values.get("opponent").lower() != player_2.username:
                 player_2 = load(values.get("opponent"), sess=sess)
 
+        if not player_1.profile_id.isnumeric():
+            sg.popup_auto_close("Player Not Found.", no_titlebar=True, modal=False)
+            continue
+
+        if not player_2.profile_id.isnumeric():
+            sg.popup_auto_close("Player Not Found.", no_titlebar=True, modal=False)
+            continue
+
         player_1.calc_hun(player_2)
 
         hun_score = player_1.hun.get(player_2.username)
+
         window["hun_score"].update(value=round(hun_score, 3))
-        if player_2.username not in window["available_users"].get():
-            combo_values.append(player_2.username)
+        if player_2.formatted_username not in window["available_users"].get():
+            combo_values.append(player_2.formatted_username)
             combo_values = list(set(combo_values))
-            window["available_users"].update(values=combo_values, value=combo_values[0])
+            window["available_users"].update(values=combo_values)
 
     # Open a plotly web chart showing the similarity in metrics between the two players
     if event == "similarity_chart":
@@ -1107,14 +1161,23 @@ while True:
             if values.get("opponent").lower() != player_2.username:
                 player_2 = load(values.get("opponent"), sess=sess)
 
+        if not player_1.profile_id.isnumeric():
+            sg.popup_auto_close("Player Not Found.", no_titlebar=True, modal=False)
+            continue
+
+        if not player_2.profile_id.isnumeric():
+            sg.popup_auto_close("Player Not Found.", no_titlebar=True, modal=False)
+            continue
+
         player_1.calc_hun(player_2)
 
         hun_score = player_1.hun.get(player_2.username)
+
         window["hun_score"].update(value=round(hun_score, 3))
-        if player_2.username not in window["available_users"].get():
-            combo_values.append(player_2.username)
+        if player_2.formatted_username not in window["available_users"].get():
+            combo_values.append(player_2.formatted_username)
             combo_values = list(set(combo_values))
-            window["available_users"].update(values=combo_values, value=combo_values[0])
+            window["available_users"].update(values=combo_values)
 
         fig = Figure()
         config = {
@@ -1123,33 +1186,39 @@ while True:
             "modeBarButtonsToRemove": ["lasso2d", "select2d"],
             "toImageButtonOptions": {
                 "format": "png",
-                "filename": f"{player_1.username}_{player_2.username}_similarity",
+                "filename": f"{player_1.formatted_username}_{player_2.formatted_username}_similarity",
             },
         }
         fig.add_trace(
             Scatterpolar(
-                r=[category.percent for category in player_1.category_metrics.values()],
+                r=[
+                    category.percent * 100
+                    for category in player_1.category_metrics.values()
+                ],
                 theta=[category for category in player_1.category_metrics.keys()],
                 fill="toself",
-                name=player_1.username,
-                hovertemplate=("% Correct: %{r:.3f}%<br>Category: %{theta}"),
-                hoveron="points+fills",
+                name=player_1.formatted_username,
+                hovertemplate=("Category: %{theta}<br>% Correct: %{r:.1f}%"),
+                hoveron="points",
             )
         )
         fig.add_trace(
             Scatterpolar(
-                r=[category.percent for category in player_2.category_metrics.values()],
+                r=[
+                    category.percent * 100
+                    for category in player_2.category_metrics.values()
+                ],
                 theta=[category for category in player_2.category_metrics.keys()],
                 fill="toself",
-                name=player_2.username,
-                hovertemplate=("% Correct: %{r:.3f}%<br>Category: %{theta}"),
-                hoveron="points+fills",
+                name=player_2.formatted_username,
+                hovertemplate=("Category: %{theta}<br>% Correct: %{r:.1f}%"),
+                hoveron="points",
             )
         )
         fig.update_layout(
             title_text="Learned League Similarity",
             polar=dict(
-                radialaxis=dict(visible=True, range=[0, 1]),
+                radialaxis=dict(visible=True, range=[0, 100]),
             ),
             showlegend=True,
         )

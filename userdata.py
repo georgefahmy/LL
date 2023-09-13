@@ -37,10 +37,16 @@ class UserData(DotMap):
     def __init__(self, username=None, sess=None, load=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.sess = sess
-        self.username = username
+        self.username = username.lower() if username else None
+        self.formatted_username = (
+            self.format_username(self.username) if self.username else None
+        )
+
         self.profile_id = self.sess.get(
             f"https://learnedleague.com/profiles.php?{self.username}"
         ).url.split("?")[-1]
+        if not self.profile_id.isnumeric():
+            return None
         if load:
             self._get_full_data()
             self._save()
@@ -191,12 +197,17 @@ class UserData(DotMap):
             ]
         ):
             print("Retrieved Latest Data")
+            self.formatted_username = self.format_username(self.username)
             self._get_full_data()
             self._save()
 
     def calc_hun(self, opponent):
         raw = 0
         total = 0
+        if not self.profile_id.isnumeric():
+            return None
+        if not opponent.profile_id.isnumeric():
+            return None
 
         for key, values in self.question_history.items():
             if key in opponent.question_history.keys():
@@ -222,3 +233,11 @@ class UserData(DotMap):
         # print(
         #     f"Hun Score for {self.username} and {opponent.username}: {hun_score: 0.3f}"
         # )
+
+    @staticmethod
+    def format_username(username):
+        return (
+            re.sub("[0-9]+", "", username)[:-1].title()
+            + re.sub("[0-9]+", "", username)[-1].upper()
+            + re.sub("[^0-9]*", "", username)
+        )

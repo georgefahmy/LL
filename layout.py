@@ -376,6 +376,7 @@ defense_layout = [
         sg.Button("Calculate HUN", key="calc_hun"),
         sg.Button("Show Similarity", key="similarity_chart"),
         sg.Button("Category Metrics", key="category_button_defense"),
+        sg.Button("Today's Questions", key="todays_questions"),
     ],
     [sg.HorizontalSeparator()],
     [
