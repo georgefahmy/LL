@@ -1014,7 +1014,9 @@ while True:
         if player_2.formatted_username not in window["available_users"].get():
             combo_values.append(player_2.formatted_username)
             combo_values = list(set(combo_values))
-            window["available_users"].update(values=combo_values)
+            window["available_users"].update(
+                values=combo_values, value=player_2.formatted_username
+            )
 
         hun_score = player_1.hun.get(player_2.username)
 
@@ -1084,7 +1086,9 @@ while True:
         if player_2.formatted_username not in window["available_users"].get():
             combo_values.append(player_2.formatted_username)
             combo_values = list(set(combo_values))
-            window["available_users"].update(values=combo_values)
+            window["available_users"].update(
+                values=combo_values, value=player_2.formatted_username
+            )
 
         search_term = values["defense_question_search_term"]
         filtered_dict = DotMap(
@@ -1143,7 +1147,9 @@ while True:
         if player_2.formatted_username not in window["available_users"].get():
             combo_values.append(player_2.formatted_username)
             combo_values = list(set(combo_values))
-            window["available_users"].update(values=combo_values)
+            window["available_users"].update(
+                values=combo_values, value=player_2.formatted_username
+            )
 
     # Open a plotly web chart showing the similarity in metrics between the two players
     if event == "similarity_chart":
@@ -1177,7 +1183,9 @@ while True:
         if player_2.formatted_username not in window["available_users"].get():
             combo_values.append(player_2.formatted_username)
             combo_values = list(set(combo_values))
-            window["available_users"].update(values=combo_values)
+            window["available_users"].update(
+                values=combo_values, value=player_2.formatted_username
+            )
 
         fig = Figure()
         config = {

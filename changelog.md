@@ -12,8 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v5.2.0] - 2023-09-12
+### [v5.2.1] - 2023-09-12
 
-Added the ability to view the days' questions in the app directly after logging in.
-Also added robustness it handling of non-valid usernames. Also updated the formatting of
-usernames to be more true to the sites' formatting.
+Fixed minor bug with the stats dropdown names missing after calculating the HUN value
