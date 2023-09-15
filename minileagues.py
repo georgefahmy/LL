@@ -642,24 +642,6 @@ def minileague():
             window[f"correct_override_{i}"].update(disabled=False)
             window["score"].update(value=specific_mini.data.score)
 
-            # TODO Check back for this in the future
-            # c = window["questions_column"].Widget
-            # c.children["!canvas"].yview_moveto(
-            #     (
-            #         (
-            #             c.children["!canvas"].yview()[-1]
-            #             + c.children["!canvas"].yview()[0]
-            #         )
-            #         * (
-            #             list(
-            #                 list(list(c.children.values())[0].children.values())[
-            #                     0
-            #                 ].children.values()
-            #             )[int(i) - 1].winfo_height()
-            #             / c.winfo_height()
-            #         )
-            #     )
-            # )
             return window
 
         if "correct_override" in event:
