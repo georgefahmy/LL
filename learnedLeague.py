@@ -19,9 +19,13 @@ from PyDictionary import PyDictionary
 from answer_correctness import combined_correctness
 from check_for_updates import check_for_update
 from layout import super_layout
-from logged_in_tools import (DEFAULT_FONT, STATS_DEFINITION,
-                             display_category_metrics,
-                             display_todays_questions, login)
+from logged_in_tools import (
+    DEFAULT_FONT,
+    STATS_DEFINITION,
+    display_category_metrics,
+    display_todays_questions,
+    login,
+)
 from minileagues import minileague
 from onedays import oneday_main
 from userdata import UserData, load
@@ -917,7 +921,7 @@ while True:
         searched_user_data = load(window["player_search"].get(), sess=sess)
         if searched_user_data.formatted_username not in window["available_users"].get():
             combo_values.append(searched_user_data.formatted_username)
-            combo_values = list(set(combo_values))
+            combo_values = sorted(list(set(combo_values)))
             window["available_users"].update(
                 values=combo_values, value=searched_user_data.formatted_username
             )
@@ -1018,7 +1022,7 @@ while True:
 
         if player_2.formatted_username not in window["available_users"].get():
             combo_values.append(player_2.formatted_username)
-            combo_values = list(set(combo_values))
+            combo_values = sorted(list(set(combo_values)))
             window["available_users"].update(
                 values=combo_values, value=player_2.formatted_username
             )
@@ -1058,9 +1062,7 @@ while True:
 
     # Open a popup window to display the current match day's questions
     if event == "todays_questions":
-        qevent, _ = display_todays_questions(latest_season, current_day + 1)
-        if qevent == "open_ll":
-            webbrowser.open(BASE_URL + f"/match.php?{latest_season}&{current_day+1}")
+        display_todays_questions(latest_season, current_day + 1)
 
     # Search through the opponents quesiton history for key words and display
     # whether they got the question right or wrong
@@ -1090,7 +1092,7 @@ while True:
 
         if player_2.formatted_username not in window["available_users"].get():
             combo_values.append(player_2.formatted_username)
-            combo_values = list(set(combo_values))
+            combo_values = sorted(list(set(combo_values)))
             window["available_users"].update(
                 values=combo_values, value=player_2.formatted_username
             )
@@ -1151,7 +1153,7 @@ while True:
         window["hun_score"].update(value=round(hun_score, 3))
         if player_2.formatted_username not in window["available_users"].get():
             combo_values.append(player_2.formatted_username)
-            combo_values = list(set(combo_values))
+            combo_values = sorted(list(set(combo_values)))
             window["available_users"].update(
                 values=combo_values, value=player_2.formatted_username
             )
@@ -1187,7 +1189,7 @@ while True:
         window["hun_score"].update(value=round(hun_score, 3))
         if player_2.formatted_username not in window["available_users"].get():
             combo_values.append(player_2.formatted_username)
-            combo_values = list(set(combo_values))
+            combo_values = sorted(list(set(combo_values)))
             window["available_users"].update(
                 values=combo_values, value=player_2.formatted_username
             )

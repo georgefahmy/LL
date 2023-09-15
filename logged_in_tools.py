@@ -226,7 +226,6 @@ def display_todays_questions(season, day):
                     font=DEFAULT_FONT,
                 ),
                 sg.Text(expand_x=True),
-                sg.Button("Open LL", key="open_ll"),
             ],
             [
                 sg.Column(
@@ -315,4 +314,4 @@ def display_todays_questions(season, day):
         resizable=True,
         finalize=True,
         modal=False,
-    ).read()
+    )
