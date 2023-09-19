@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v5.2.3] - 2023-09-12
+### [v5.2.4] - 2023-09-18
 
-Fixed minor bug with overwriting HUN similarity when updating data. Also improved text ouput of searched questions.
+Added a checkbox to the defense window to show/hide submitted answers (if available)
