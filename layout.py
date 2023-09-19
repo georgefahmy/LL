@@ -377,6 +377,9 @@ defense_layout = [
         sg.Button("Show Similarity", key="similarity_chart"),
         sg.Button("Category Metrics", key="category_button_defense"),
         sg.Button("Today's Questions", key="todays_questions"),
+        sg.Checkbox(
+            "Display Submitted Answers", default=False, key="display_todays_answers"
+        ),
     ],
     [sg.HorizontalSeparator()],
     [

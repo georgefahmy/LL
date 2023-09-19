@@ -180,7 +180,7 @@ def display_category_metrics(user_data):
     ]
 
 
-def display_todays_questions(season, day):
+def display_todays_questions(season, day, display_answers=False):
     sess = login()
     current_match_day = BASE_URL + f"/match.php?{season}&{day}"
     match_day_page = bs(
@@ -208,10 +208,14 @@ def display_todays_questions(season, day):
         questions_ans[i + 1].id = i + 1
         questions_ans[i + 1].question = questions[i]
         questions_ans[i + 1].submitted_ans = (
-            submitted_answers[i] if submitted_answers else "--"
+            (submitted_answers[i] if submitted_answers else "--")
+            if display_answers
+            else "hidden"
         )
         questions_ans[i + 1].correct_ans = (
-            correct_answers[i] if submitted_answers else "--"
+            (correct_answers[i] if submitted_answers else "--")
+            if display_answers
+            else "hidden"
         )
         questions_ans[i + 1].points_assigned = (
             points_assigned[i] if submitted_answers else "--"

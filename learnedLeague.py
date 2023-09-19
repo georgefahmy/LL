@@ -1062,7 +1062,9 @@ while True:
 
     # Open a popup window to display the current match day's questions
     if event == "todays_questions":
-        display_todays_questions(latest_season, current_day + 1)
+        display_todays_questions(
+            latest_season, current_day + 1, values["display_todays_answers"]
+        )
 
     # Search through the opponents quesiton history for key words and display
     # whether they got the question right or wrong
