@@ -7,12 +7,8 @@ from random import choice
 
 import PySimpleGUI as sg
 import requests
-import wikipedia
 from bs4 import BeautifulSoup as bs
 from dotmap import DotMap
-from PyDictionary import PyDictionary
-
-from answer_correctness import combined_correctness
 
 BASE_URL = "https://www.learnedleague.com"
 WD = os.getcwd()
@@ -458,15 +454,24 @@ def minileague():
     ]
 
     data = get_full_list_of_mini_leagues()
+    filtered_results = search_minileagues(data)
+
     font = "Arial", 16
 
     icon_file = WD + "/resources/ll_app_logo.png"
     sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
     window = sg.Window(
-        "LL Mini Leagues", layout=layout, finalize=True, return_keyboard_events=True
+        "LL Mini Leagues",
+        layout=layout,
+        finalize=True,
+        return_keyboard_events=True,
+        metadata="minileague_window",
     )
 
-    window["mini_league_selection"].update(values=search_minileagues(data))
+    specific_mini = get_specific_minileague(data, choice(filtered_results))
+    specific_mini = load_questions(specific_mini, window)
+
+    window["mini_league_selection"].update(values=filtered_results)
     [window[f"question_{i}"].bind("<ButtonPress-2>", "press") for i in range(1, 67)]
     [
         window[f"question_{i}"].bind("<ButtonPress-1>", "click_here")
@@ -477,190 +482,4 @@ def minileague():
         for i in range(1, 67)
     ]
 
-    filtered_results = search_minileagues(data)
-    specific_mini = get_specific_minileague(data, choice(filtered_results))
-    specific_mini = load_questions(specific_mini, window)
-    while True:
-        event, values = window.read()
-
-        if event in (None, "Quit", sg.WIN_CLOSED):
-            window.close()
-            break
-
-        if "Escape" in event:
-            window["question_1"].set_focus()
-
-        if "press" in event:
-            i = int(event.split("_")[-1].split("press")[0])
-
-            question_widget = window[f"question_{i}"].Widget
-            selection_ranges = question_widget.tag_ranges(sg.tk.SEL)
-            if selection_ranges:
-                window[f"question_{i}"].set_right_click_menu(
-                    ["&Right", ["Lookup Selection"]]
-                )
-                selected_text = question_widget.get(*selection_ranges)
-            else:
-                window[f"question_{i}"].set_right_click_menu(
-                    ["&Right", ["!Lookup Selection"]]
-                )
-                continue
-
-        if event == "Lookup Selection":
-            if len(selected_text.split()) == 1:
-                # selected text is a single word, so just do a lookup
-                try:
-                    definition = PyDictionary().meaning(selected_text)
-
-                    result = (
-                        selected_text
-                        + "\n"
-                        + "\n".join(
-                            [
-                                key + ": " + ", ".join(value)
-                                for key, value in definition.items()
-                            ]
-                        )
-                    )
-                    print(result)
-                    sg.popup_ok(result, title="Dictionary Result", font=("Arial", 16))
-                    continue
-                except Exception:
-                    result = "No results available - Try another search."
-            else:
-                try:
-                    result = wikipedia.summary(
-                        selected_text, sentences=2, auto_suggest=True, redirect=True
-                    )
-                except:
-                    result = "No results available - Try another search."
-
-                sg.popup_ok(result, title="Wiki Summary", font=("Arial", 16))
-
-        if event == "random_mini_league":
-            specific_mini = get_specific_minileague(data, choice(filtered_results))
-            specific_mini = load_questions(specific_mini, window)
-
-        if event in ("mini_league_selection", "full_reset"):
-            if specific_mini.title != values["mini_league_selection"]:
-                window["pbar_spacer"].update(visible=False)
-                window["full_reset"].update(visible=False)
-                window["pbar_status"].update(visible=True)
-                window["pbar"].update(visible=True, current_count=0)
-                window["pbar_spacer"].update(visible=True)
-                window["full_reset"].update(visible=True)
-                window.refresh()
-                specific_mini = get_specific_minileague(
-                    data, values["mini_league_selection"]
-                )
-
-                window["mini_league_title"].update(value=specific_mini.title)
-                window["mini_league_date"].update(value=specific_mini.date)
-                window["mini_league_selection"].update(value=specific_mini.title)
-                window["number_of_players"].update(
-                    value=specific_mini.number_of_players
-                )
-                specific_mini = get_mini_data(specific_mini, window)
-                window["percent_correct"].update(
-                    value=str(specific_mini.overall_correct) + "%"
-                )
-
-            specific_mini = load_questions(specific_mini, window)
-
-        if "show/hide" in event:
-            if window.find_element_with_focus().Key in ("answer_submission"):
-                continue
-
-            i = event.split("_")[-1]
-
-            question_object = q_num_finder(specific_mini.data.match_days, i)
-            answer = question_object.answer
-
-            window[f"answer_submission_{i}"].update(disabled=True)
-            window[f"submit_answer_button_{i}"].update(disabled=True)
-            window[f"correct_override_{i}"].update(disabled=True)
-            window[f"question_percent_correct_{i}"].update(
-                value=question_object["%_correct"] + "%", font=font
-            )
-
-            if window[f"show/hide_{i}"].get_text() == "Show Answer":
-                try:
-                    window[f"show/hide_{i}"].update(text="Hide Answer")
-
-                    window[f"answer_{i}"].update(value=answer, font=("Arial", 16))
-                except:
-                    continue
-
-            elif window[f"show/hide_{i}"].get_text() == "Hide Answer":
-                window[f"show/hide_{i}"].update(text="Show Answer")
-                try:
-                    if answer:
-                        window[f"answer_{i}"].update(value="******")
-                    else:
-                        window[f"answer_{i}"].update(value="")
-                except:
-                    continue
-
-        if "submit_answer_button" in event:
-            i = event.split("_")[-1]
-            if not values[f"answer_submission_{i}"]:
-                continue
-
-            submitted_answer = values[f"answer_submission_{i}"].lower()
-            question_object = q_num_finder(specific_mini.data.match_days, i)
-            answer = question_object.answer
-            window[f"answer_{i}"].update(value=answer, font=("Arial", 16))
-            window[f"answer_submission_{i}"].update(disabled=True)
-            window[f"submit_answer_button_{i}"].update(disabled=True)
-            window[f"show/hide_{i}"].update(text="Show Answer", disabled=True)
-            window[f"question_percent_correct_{i}"].update(
-                value=question_object["%_correct"] + "%", font=font
-            )
-
-            answers = re.findall("([^/,()]+)", answer)
-            if len(answers) > 1:
-                correct = [
-                    combined_correctness(submitted_answer, answer.strip(), True)
-                    for answer in answers
-                ]
-            else:
-                correct = [combined_correctness(submitted_answer, answer.strip())]
-
-            if any(correct):
-                right_answer = True
-                window[f"answer_submission_{i}"].Widget.configure(
-                    readonlybackground="light green"
-                )
-                specific_mini.data.score += 1
-            else:
-                right_answer = False
-                window[f"answer_submission_{i}"].Widget.configure(
-                    readonlybackground="red"
-                )
-
-            window[f"question_{i}"].set_focus()
-            window[f"correct_override_{i}"].update(disabled=False)
-            window["score"].update(value=specific_mini.data.score)
-
-            return window
-
-        if "correct_override" in event:
-            if right_answer:
-                right_answer = False
-                specific_mini.data.score -= 1
-                window[f"answer_submission_{i}"].Widget.configure(
-                    readonlybackground="red"
-                )
-            else:
-                right_answer = True
-                window[f"answer_submission_{i}"].Widget.configure(
-                    readonlybackground="light green"
-                )
-                specific_mini.data.score += 1
-            window["score"].update(value=specific_mini.data.score)
-
-    return True
-
-
-if __name__ == "__main__":
-    window = minileague()
+    return window, data, filtered_results, specific_mini
