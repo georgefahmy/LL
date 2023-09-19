@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v5.2.4] - 2023-09-18
+### [v5.3.0] - 2023-09-19
 
-Added a checkbox to the defense window to show/hide submitted answers (if available)
+Fully multi-window support! No more needing to worry about which window is open. you can all have the windows open now.
