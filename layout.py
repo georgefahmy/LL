@@ -463,6 +463,8 @@ defense_layout = [
                         expand_x=True,
                         disabled=True,
                         size=(25, 5),
+                        tooltip="Highlight question and right click to open in browswer",
+                        right_click_menu=["&Right", ["!Open Question"]],
                     ),
                 ],
             ],
@@ -479,7 +481,7 @@ super_layout = [
             layout=[
                 [
                     sg.Button(
-                        "OneDays",
+                        "OneDay Specials",
                         key="onedays_button",
                         tooltip="OneDay trivia (opens new window)",
                     ),

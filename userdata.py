@@ -30,6 +30,7 @@ def load(username, sess=None):
             user_data._update_data()
             return user_data
     else:
+        print(f"User {username} not found, downloading new data")
         return UserData(username=username, sess=sess, load=True)
 
 

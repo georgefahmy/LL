@@ -392,11 +392,10 @@ available_seasons = [
 ]
 
 datapath = os.path.expanduser("~") + "/.LearnedLeague/all_data.json"
+all_data = {}
 if os.path.isfile(datapath):
     with open(datapath, "r") as fp:
         all_data = json.load(fp)
-else:
-    all_data = {}
 
 season_in_data = sorted(
     list(set([val.split("D")[0].strip("S") for val in list(all_data.keys())]))
@@ -518,6 +517,7 @@ window.bind("<Command-p>", "previous_key")
 window["question"].bind("<ButtonPress-2>", "press")
 window["question"].bind("<ButtonPress-1>", "click_here")
 window["answer_submission"].bind("<Return>", "_submit_answer_button")
+window["output_questions"].bind("<ButtonPress-2>", "press")
 sess = None
 values = None
 logged_in = False
@@ -1199,6 +1199,31 @@ while True:
                 )
                 window["output_questions"].update(value=result)
 
+            if event == "output_questionspress":
+                history_widget = window["output_questions"].Widget
+                history_selection_ranges = history_widget.tag_ranges(sg.tk.SEL)
+                if history_selection_ranges:
+                    pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
+                    selected_text = history_widget.get(*history_selection_ranges)
+                    if re.match(pattern, selected_text):
+                        window["output_questions"].set_right_click_menu(
+                            ["&Right", ["Open Question"]]
+                        )
+
+                else:
+                    window["output_questions"].set_right_click_menu(
+                        ["&Right", ["!Open Question"]]
+                    )
+                    continue
+
+            if event == "Open Question":
+                pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
+                match = re.match(pattern, selected_text)
+                if match:
+                    season, day, question = match.groups()
+                    url = f"https://www.learnedleague.com/question.php?{season}&{day}&{question}"
+                    webbrowser.open(url)
+
             # Calculate the HUN similarity between the two players (player 1 and opponent)
             if event in ["calc_hun", "Calculate HUN"]:
                 if not logged_in:
@@ -1503,6 +1528,7 @@ while True:
                     )
                     specific_mini.data.score += 1
                 window["score"].update(value=specific_mini.data.score)
+
         if window.metadata == "oneday_window":
             if "Escape" in event:
                 window["question_1"].set_focus()
