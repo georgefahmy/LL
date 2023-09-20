@@ -532,6 +532,7 @@ def oneday_main():
         window[f"answer_submission_{i}"].update(
             value="", disabled=False, background_color="white"
         )
+        window[f"answer_submission_{i}"].bind("<Return>", f"_submit_answer_button_{i}")
         window[f"submit_answer_button_{i}"].update(disabled=False)
         window[f"question_percent_correct_{i}"].update(
             value="Submit answer to see", font=("Arial Italic", 10)
@@ -539,32 +540,11 @@ def oneday_main():
         w = window[f"question_{i}"].Widget
         w.configure(yscrollcommand=False, state="disabled")
         height = w.tk.call(w._w, "count", "-displaylines", "1.0", "end")
-        window[f"question_{i}"].set_size((970, height + 1))
-        window[f"question_{i}"].expand(expand_x=True, expand_y=True, expand_row=False)
-
-        window.refresh()
-        window[f"frame_question_{i}"].set_size(
-            (
-                970,
-                (
-                    105
-                    + list(window[f"frame_question_{i}"].Widget.children.values())[
-                        0
-                    ].winfo_height()
-                ),
-            )
+        window[f"question_{i}"].set_size((970, min(10, height + 1)))
+        window[f"question_{i}"].expand(expand_x=True, expand_y=True, expand_row=True)
+        window[f"frame_question_{i}"].expand(
+            expand_x=True, expand_y=True, expand_row=True
         )
-    window["frame_question_12"].set_size(
-        (
-            970,
-            (
-                105
-                + list(window["frame_question_12"].Widget.children.values())[
-                    0
-                ].winfo_height()
-            ),
-        )
-    )
     window.refresh()
     window["questions_column"].contents_changed()
     return window, data, oneday, list_of_onedays
