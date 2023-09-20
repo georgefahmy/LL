@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v5.3.0] - 2023-09-19
+### [v5.3.1] - 2023-09-19
 
-Fully multi-window support! No more needing to worry about which window is open. you can all have the windows open now.
+Added Menu button options (File, Defense, Help). Also updated the source data for metrics-by-category to be more accurate.
