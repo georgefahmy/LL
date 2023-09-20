@@ -69,7 +69,6 @@ class UserData(DotMap):
 
         all_categories = question_page.find_all("ul", {"class": "mktree"})
         question_history = DotMap()
-        category_metrics = DotMap()
         for category in all_categories:
             category_name = re.sub(
                 " ", "_", category.find("span", {"class": "catname"}).text
@@ -87,12 +86,6 @@ class UserData(DotMap):
                 )
                 correct = "green" in question.find_all("td")[2].img.get("src")
                 question_text = question.find_all("td")[1].text
-                category_metrics[category_name].total += 1
-
-                if correct:
-                    category_metrics[category_name].correct += 1
-                else:
-                    category_metrics[category_name].correct += 0
 
                 question_history[q_id] = DotMap(
                     question_category=category_name,
@@ -101,12 +94,6 @@ class UserData(DotMap):
                     url=BASE_URL
                     + question.find_all("td")[0].find_all("a")[2].get("href"),
                 )
-
-            category_metrics[category_name].percent = (
-                category_metrics[category_name].correct
-                / category_metrics[category_name].total
-            )
-        self.category_metrics = category_metrics
         self.question_history = question_history
         self.ok = True
 
@@ -151,21 +138,34 @@ class UserData(DotMap):
         stats.current_season = current_season_stats
         self.stats = stats
 
-        if not self.get("opponents"):
-            latest_page = bs(
-                self.sess.get(
-                    f"https://learnedleague.com/profiles.php?{self.profile_id}"
-                ).content,
-                "html.parser",
-                parse_only=ss("table"),
-            )
+        category_metrics = DotMap()
 
-            self.opponents = [
-                val.img.get("title")
-                for val in latest_page.find(
-                    "table", {"summary": "Data table for LL results"}
-                ).find_all("tr")[1:]
-            ]
+        latest_page = bs(
+            self.sess.get(
+                f"https://learnedleague.com/profiles.php?{self.profile_id}"
+            ).content,
+            "html.parser",
+            parse_only=ss("table"),
+        )
+        categories = latest_page.find(
+            "table", {"class": "std sortable this_sea std_bord"}
+        ).tbody.find_all("tr")
+        for category in categories:
+            cells = category.find_all("td")
+            cat_name = cells[0].text
+            correct, total = cells[1].text.split("-")
+            category_metrics[cat_name].correct = int(correct)
+            category_metrics[cat_name].total = int(total)
+            category_metrics[cat_name].percent = int(correct) / int(total)
+
+        self.category_metrics = category_metrics
+
+        self.opponents = [
+            val.img.get("title")
+            for val in latest_page.find(
+                "table", {"summary": "Data table for LL results"}
+            ).find_all("tr")[1:]
+        ]
 
         self.hun = self.hun if self.get("hun") else DotMap()
 

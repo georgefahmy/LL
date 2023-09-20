@@ -1,8 +1,19 @@
+from unittest.mock import DEFAULT
+
 import PySimpleGUI as sg
 
 from logged_in_tools import CATEGORIES, DEFAULT_FONT
 
 sg.theme("Reddit")
+
+menu_bar_layout = [
+    [
+        "&File",
+        ["LearnedLeague.com", "One Day Specials", "Mini Leagues", "Login", "!Logout"],
+    ],
+    ["Defense", ["!Category Metrics", "!Show Similarity", "!Calculate HUN"]],
+    ["Help", ["!About", "!How To", "!Feedback"]],
+]
 
 main_layout = [
     [
@@ -308,6 +319,7 @@ main_layout = [
         )
     ],
 ]
+
 stats_layout = [
     [
         sg.Combo(
@@ -459,6 +471,7 @@ defense_layout = [
 ]
 
 super_layout = [
+    [sg.Menu(menu_bar_layout, font=DEFAULT, key="-MENU-")],
     [
         sg.Frame(
             "Main",

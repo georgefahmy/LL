@@ -552,7 +552,7 @@ while True:
             break
 
     if event:
-        print(window.metadata, event)
+        # print(window.metadata, event)
 
         if window.metadata == "main_window":
             # Trigger the right click menu for searching text within a question
@@ -851,11 +851,11 @@ while True:
                     json.dump(all_data, fp, sort_keys=True, indent=4)
 
             # Open the One Day Specials Interface (and hide the main interface)
-            if event == "onedays_button":
+            if event in ["onedays_button", "One Days Specials"]:
                 oneday_window, data, oneday, list_of_onedays = oneday_main()
 
             # Open the MiniLeague interface (and hide the main interface)
-            if event == "minileague_button":
+            if event in ["minileague_button", "Mini Leagues"]:
                 minileague_window, data, filtered_results, specific_mini = minileague()
 
             # if the question number is clicked, open the link
@@ -867,12 +867,12 @@ while True:
                 webbrowser.open(window["question"].metadata)
 
             # Open the LL homepage
-            if event == "open_ll":
+            if event in ["open_ll", "LearnedLeague.com"]:
                 webbrowser.open("https://www.learnedleague.com")
 
             # Login to the LL website with provided credentials. This will expand the interface
             # to include significantly more data and capabilities
-            if event == "login_button":
+            if event in ["login_button", "Login", "Logout"]:
                 user_data = None
                 if window["login_button"].get_text() == "Login":
                     sess = login()
@@ -880,6 +880,24 @@ while True:
                         continue
                     username = sess.headers.get("profile")
                     user_data = load(username=username, sess=sess)
+                    menu_bar_layout = [
+                        [
+                            "&File",
+                            [
+                                "LearnedLeague.com",
+                                "One Days Specials",
+                                "Mini Leagues",
+                                "!Login",
+                                "Logout",
+                            ],
+                        ],
+                        [
+                            "Defense",
+                            ["Category Metrics", "Show Similarity", "Calculate HUN"],
+                        ],
+                        ["Help", ["!About", "!How To", "!Feedback"]],
+                    ]
+                    window["-MENU-"].update(menu_definition=menu_bar_layout)
 
                     if user_data.ok:
                         logged_in = True
@@ -1004,7 +1022,7 @@ while True:
 
             # Display the selected users category metrics. Depending on which button is pressed
             # the appropriate user will be displayed
-            if "category_button" in event:
+            if "category_button" in event or event == "Category Metrics":
                 if not logged_in:
                     continue
                 if "defense" in event:
@@ -1182,7 +1200,7 @@ while True:
                 window["output_questions"].update(value=result)
 
             # Calculate the HUN similarity between the two players (player 1 and opponent)
-            if event == "calc_hun":
+            if event in ["calc_hun", "Calculate HUN"]:
                 if not logged_in:
                     continue
 
@@ -1222,7 +1240,7 @@ while True:
                     )
 
             # Open a plotly web chart showing the similarity in metrics between the two players
-            if event == "similarity_chart":
+            if event in ["similarity_chart", "Show Similarity"]:
                 if not logged_in:
                     continue
 
@@ -1310,6 +1328,7 @@ while True:
                 )
 
                 fig.show(config=config)
+
         if window.metadata == "minileague_window":
             if "Escape" in event:
                 window["question_1"].set_focus()
