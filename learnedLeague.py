@@ -5,6 +5,7 @@ import os
 import re
 import sys
 import webbrowser
+from collections import OrderedDict
 from random import choice
 
 import PySimpleGUI as sg
@@ -19,21 +20,13 @@ from PyDictionary import PyDictionary
 from answer_correctness import combined_correctness
 from check_for_updates import check_for_update
 from layout import super_layout
-from logged_in_tools import (
-    DEFAULT_FONT,
-    STATS_DEFINITION,
-    display_category_metrics,
-    display_todays_questions,
-    login,
-)
-from minileagues import (
-    get_mini_data,
-    get_specific_minileague,
-    load_questions,
-    minileague,
-    q_num_finder,
-)
-from onedays import get_oneday_data, get_specific_oneday, oneday_main, search_onedays
+from logged_in_tools import (DEFAULT_FONT, STATS_DEFINITION,
+                             display_category_metrics,
+                             display_todays_questions, login)
+from minileagues import (get_mini_data, get_specific_minileague,
+                         load_questions, minileague, q_num_finder)
+from onedays import (get_oneday_data, get_specific_oneday, oneday_main,
+                     search_onedays)
 from userdata import UserData, load
 
 BASE_URL = "https://www.learnedleague.com"
@@ -1313,15 +1306,20 @@ while True:
                         "filename": f"{player_1.formatted_username}_{player_2.formatted_username}_similarity",
                     },
                 }
+                player_1_categories = OrderedDict(
+                    sorted(player_1.category_metrics.items())
+                )
+                player_2_categories = OrderedDict(
+                    sorted(player_2.category_metrics.items())
+                )
+
                 fig.add_trace(
                     Scatterpolar(
                         r=[
                             category.percent * 100
-                            for category in player_1.category_metrics.values()
+                            for category in player_1_categories.values()
                         ],
-                        theta=[
-                            category for category in player_1.category_metrics.keys()
-                        ],
+                        theta=[category for category in player_1_categories.keys()],
                         fill="toself",
                         name=player_1.formatted_username,
                         hovertemplate=("Category: %{theta}<br>% Correct: %{r:.1f}%"),
@@ -1332,11 +1330,9 @@ while True:
                     Scatterpolar(
                         r=[
                             category.percent * 100
-                            for category in player_2.category_metrics.values()
+                            for category in player_2_categories.values()
                         ],
-                        theta=[
-                            category for category in player_2.category_metrics.keys()
-                        ],
+                        theta=[category for category in player_2_categories.keys()],
                         fill="toself",
                         name=player_2.formatted_username,
                         hovertemplate=("Category: %{theta}<br>% Correct: %{r:.1f}%"),

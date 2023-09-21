@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v5.3.1] - 2023-09-19
+### [v5.3.2] - 2023-09-20
 
-Added Menu button options (File, Defense, Help). Also updated the source data for metrics-by-category to be more accurate.
+Fixed a bug with One Day Specials windows and answer submission boxes getting cutoff
