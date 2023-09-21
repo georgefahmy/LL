@@ -20,13 +20,21 @@ from PyDictionary import PyDictionary
 from answer_correctness import combined_correctness
 from check_for_updates import check_for_update
 from layout import super_layout
-from logged_in_tools import (DEFAULT_FONT, STATS_DEFINITION,
-                             display_category_metrics,
-                             display_todays_questions, login)
-from minileagues import (get_mini_data, get_specific_minileague,
-                         load_questions, minileague, q_num_finder)
-from onedays import (get_oneday_data, get_specific_oneday, oneday_main,
-                     search_onedays)
+from logged_in_tools import (
+    DEFAULT_FONT,
+    STATS_DEFINITION,
+    display_category_metrics,
+    display_todays_questions,
+    login,
+)
+from minileagues import (
+    get_mini_data,
+    get_specific_minileague,
+    load_questions,
+    minileague,
+    q_num_finder,
+)
+from onedays import get_oneday_data, get_specific_oneday, oneday_main, search_onedays
 from userdata import UserData, load
 
 BASE_URL = "https://www.learnedleague.com"
