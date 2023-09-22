@@ -20,21 +20,15 @@ from PyDictionary import PyDictionary
 from answer_correctness import combined_correctness
 from check_for_updates import check_for_update
 from layout import super_layout
-from logged_in_tools import (
-    DEFAULT_FONT,
-    STATS_DEFINITION,
-    display_category_metrics,
-    display_todays_questions,
-    login,
-)
-from minileagues import (
-    get_mini_data,
-    get_specific_minileague,
-    load_questions,
-    minileague,
-    q_num_finder,
-)
-from onedays import get_oneday_data, get_specific_oneday, oneday_main, search_onedays
+from logged_in_tools import (DEFAULT_FONT, STATS_DEFINITION,
+                             display_category_metrics,
+                             display_todays_questions, login)
+from minileagues import (get_mini_data, get_specific_minileague,
+                         load_questions, minileague, q_num_finder)
+from onedays import (get_oneday_data, get_specific_oneday, oneday_main,
+                     search_onedays)
+from statistics_window import (add_stats_row, open_stats_window,
+                               remove_all_rows, remove_stats_row)
 from userdata import UserData, load
 
 BASE_URL = "https://www.learnedleague.com"
@@ -272,109 +266,6 @@ def update_question(questions, window, i):
     return question_object
 
 
-def add_stats_row(user_data, logged_in_user):
-    hun_score = (
-        f"HUN: {round(user_data.hun.get(logged_in_user), 3)}"
-        if user_data.hun.get(logged_in_user)
-        else "HUN: --"
-    )
-
-    # formatted_name = (
-    #     re.sub("[0-9]+", "", user_data.username)[:-1].title()
-    #     + re.sub("[0-9]+", "", user_data.username)[-1].upper()
-    #     + re.sub("[^0-9]*", "", user_data.username)
-    # )
-    row = sg.Frame(
-        title="",
-        layout=[
-            [
-                sg.Column(
-                    layout=[
-                        [
-                            sg.Button(
-                                user_data.formatted_username,
-                                font=DEFAULT_FONT,
-                                enable_events=True,
-                                size=(12, 1),
-                                tooltip="Click to Open Player Profile",
-                                key=f"player_profile_page_{user_data.username}",
-                                metadata=BASE_URL
-                                + f"/profiles.php?{user_data.profile_id}",
-                            ),
-                            sg.Text(expand_x=True),
-                            sg.Text(
-                                hun_score,
-                                font=DEFAULT_FONT,
-                                justification="c",
-                                expand_x=True,
-                            ),
-                        ],
-                    ],
-                    justification="l",
-                    element_justification="c",
-                    vertical_alignment="c",
-                    expand_x=True,
-                    size=(160, 30),
-                ),
-                sg.Column(
-                    expand_x=True,
-                    layout=[
-                        [
-                            sg.Text(
-                                key,
-                                font=("Arial Bold", 14),
-                                size=(5, 1),
-                                tooltip=STATS_DEFINITION.get(key),
-                                justification="c",
-                            )
-                            for key in list(STATS_DEFINITION.keys())
-                            if key not in ["Rundle"]
-                        ],
-                        [sg.HorizontalSeparator()],
-                        [
-                            # Overall Stats across all seasons
-                            sg.Text(
-                                user_data.stats.total.get(key),
-                                font=DEFAULT_FONT,
-                                size=(5, 1),
-                                justification="c",
-                                tooltip=STATS_DEFINITION.get(key),
-                            )
-                            for key in list(STATS_DEFINITION)
-                            if key not in ["Rundle"]
-                        ],
-                        [
-                            # Current Season stats
-                            sg.Text(
-                                user_data.stats.current_season.get(key),
-                                font=DEFAULT_FONT,
-                                size=(5, 1),
-                                justification="c",
-                                tooltip=STATS_DEFINITION.get(key),
-                            )
-                            for key in list(STATS_DEFINITION)
-                            if key not in ["Rundle"]
-                        ],
-                    ],
-                ),
-                sg.Column(
-                    layout=[
-                        [
-                            sg.Button(
-                                "Remove",
-                                key=f"remove_{user_data.username}",
-                            )
-                        ]
-                    ],
-                ),
-            ],
-        ],
-        expand_x=True,
-        key=re.sub("[0-9]+", "", f"row_name_{user_data.username}"),
-    )
-    return [[row]]
-
-
 try:
     latest_season = (
         bs(
@@ -518,7 +409,7 @@ window.bind("<Command-p>", "previous_key")
 window["question"].bind("<ButtonPress-2>", "press")
 window["question"].bind("<ButtonPress-1>", "click_here")
 window["answer_submission"].bind("<Return>", "_submit_answer_button")
-window["output_questions"].bind("<ButtonPress-2>", "press")
+# window["output_questions"].bind("<ButtonPress-2>", "press")
 sess = None
 values = None
 logged_in = False
@@ -531,7 +422,7 @@ if i > 1:
 if i < len(list(questions.keys())):
     window["next"].update(disabled=False)
 
-main_window, oneday_window, minileague_window = window, None, None
+main_window, oneday_window, minileague_window, stats_window = window, None, None, None
 
 score = 0
 num_of_money_questions_left = 5
@@ -850,11 +741,11 @@ while True:
                 ) as fp:
                     json.dump(all_data, fp, sort_keys=True, indent=4)
 
-            # Open the One Day Specials Interface (and hide the main interface)
+            # Open the One Day Specials Interface
             if event in ["onedays_button", "One Days Specials"]:
                 oneday_window, data, oneday, list_of_onedays = oneday_main()
 
-            # Open the MiniLeague interface (and hide the main interface)
+            # Open the MiniLeague interface
             if event in ["minileague_button", "Mini Leagues"]:
                 minileague_window, data, filtered_results, specific_mini = minileague()
 
@@ -903,33 +794,28 @@ while True:
                         logged_in = True
                         logged_in_user = user_data.username
                         window["login_button"].update(text="Logout")
-                        window["defense_frame"].update(visible=True)
-                        window["stats_frame"].update(visible=True)
+                        window["stats_button"].update(disabled=False)
+                        window["defense_button"].update(disabled=False)
                         combo_values = sorted(
                             [
                                 UserData.format_username(name.split(".")[0])
                                 for name in os.listdir(USER_DATA_DIR)
                             ]
                         )
-                        window["available_users"].update(
-                            values=combo_values, value=user_data.formatted_username
-                        )
-                        window.extend_layout(
-                            window["stats_column"],
-                            add_stats_row(user_data, logged_in_user),
-                        )
-                        # window.move_to_center()
 
-                        max_stats = 1
+                        # window.extend_layout(
+                        #     window["stats_column"],
+                        #     add_stats_row(user_data, logged_in_user),
+                        # )
 
-                        window["player_1"].update(
-                            values=user_data.opponents,
-                            value=user_data.formatted_username,
-                        )
-                        window["opponent"].update(
-                            values=user_data.opponents,
-                            value=user_data.opponents[current_day],
-                        )
+                        # window["player_1"].update(
+                        #     values=user_data.opponents,
+                        #     value=user_data.formatted_username,
+                        # )
+                        # window["opponent"].update(
+                        #     values=user_data.opponents,
+                        #     value=user_data.opponents[current_day],
+                        # )
 
                         window_width, window_height = window.size
                         screen_width, screen_height = window.get_screen_size()
@@ -944,109 +830,14 @@ while True:
                     window.close()
                     break
 
-            # open player profile from the stats page
-            if "player_profile_page" in event:
-                key = event.split("click_here")[0]
-                webbrowser.open(window[key].metadata)
-
-            # Search for players via their username and return their stats (and save their data)
-            if (
-                event in ["player_search_button", "return_key"]
-                and values["player_search"]
-            ):
-                if not logged_in:
-                    continue
-                max_stats = len(
-                    [
-                        key
-                        for key in list(window.AllKeysDict.keys())
-                        if "row_name_" in str(key)
-                    ]
+            # Open the Statistics interface
+            if event in ["stats_button", "Player Tracker"]:
+                stats_window = open_stats_window()
+                stats_window["available_users"].update(
+                    values=combo_values, value=user_data.formatted_username
                 )
-                if f"row_name_{values['player_search']}" in window.AllKeysDict:
-                    window["player_search"].update(value="")
-                    continue
-
-                searched_user_data = load(window["player_search"].get(), sess=sess)
-                if (
-                    searched_user_data.formatted_username
-                    not in window["available_users"].get()
-                ):
-                    combo_values.append(searched_user_data.formatted_username)
-                    combo_values = sorted(list(set(combo_values)))
-                    window["available_users"].update(
-                        values=combo_values, value=searched_user_data.formatted_username
-                    )
-
-                if max_stats >= 3:
-                    continue
-
-                if not searched_user_data.get("stats"):
-                    window["player_search"].update(value="")
-                    sg.popup_auto_close(
-                        "Player Not Found.", no_titlebar=True, modal=False
-                    )
-                    window["player_search"].set_focus()
-                    continue
-
-                window["player_search"].update(value="")
-                window.extend_layout(
-                    window["stats_column"],
-                    add_stats_row(searched_user_data, logged_in_user),
-                )
-                # window.move_to_center()
-
-            # Select a user from the dropdown and display their stats
-            if event == "available_users":
-                if not logged_in:
-                    continue
-                max_stats = len(
-                    [
-                        key
-                        for key in list(window.AllKeysDict.keys())
-                        if "row_name_" in str(key)
-                    ]
-                )
-                if f"row_name_{window['available_users'].get()}" in window.AllKeysDict:
-                    continue
-
-                if max_stats >= 3:
-                    continue
-
-                searched_user_data = load(window["available_users"].get(), sess=sess)
-                window.extend_layout(
-                    window["stats_column"],
-                    add_stats_row(searched_user_data, logged_in_user),
-                )
-                # window.move_to_center()
-
-            # Display the selected users category metrics. Depending on which button is pressed
-            # the appropriate user will be displayed
-            if "category_button" in event or event == "Category Metrics":
-                if not logged_in:
-                    continue
-                if "defense" in event:
-                    opponent = window["opponent"].get()
-                else:
-                    opponent = window["available_users"].get()
-                display_category_metrics(load(opponent, sess=sess))
-
-            # Remove the statistics row from the interface
-            if "remove_" in event:
-                if not logged_in:
-                    continue
-                row = re.sub("[0-9]+", "", f"row_name_{event.split('_')[-1]}")
-                window[row].update(visible=False)
-                window[row].Widget.master.pack_forget()
-                window["stats_column"].Widget.update()
-                window.AllKeysDict.pop(row)
-                max_stats = len(
-                    [
-                        key
-                        for key in list(window.AllKeysDict.keys())
-                        if "row_name_" in str(key)
-                    ]
-                )
+                stats_table_widget = window["stats_table"].Widget
+                # add_stats_row(user_data, stats_window)
 
             # Submit the category selections and compare against the opponent's metrics for
             # suggested point assignment
@@ -2033,3 +1824,131 @@ while True:
 
             if event == "difficulty_tooltip":
                 webbrowser.open(window["difficulty_tooltip"].metadata)
+
+        if window.metadata == "stats_window":
+            if "+CLICKED+" in event:
+                print(event[-1])
+                row, column = event[-1]
+                if not all(event[-1]):
+                    continue
+
+                if row < 0:
+                    if column > len(list(STATS_DEFINITION.values())):
+                        continue
+                    window["stats_table"].set_tooltip(
+                        list(STATS_DEFINITION.values())[column - 1]
+                    )
+                    continue
+
+                if window["stats_table"].get():
+                    if not all(event[-1]):
+                        continue
+
+                    print(window["stats_table"].get()[row][column])
+
+                    if column == 0:
+                        username = window["stats_table"].get()[row][column]
+                        clicked_user = load(username, sess=sess)
+                        url = BASE_URL + f"/profiles.php?{clicked_user.profile_id}"
+                        webbrowser.open(url)
+
+                    if window["stats_table"].get()[row][column] == "[]":
+                        table_values = remove_stats_row(window, row)
+
+            if "latest_season_switch" in event:
+                if not window["stats_table"].get():
+                    continue
+
+                table_values = window["stats_table"].get()
+                current_season = window["stats_table"].get()[0][1]
+
+                if current_season == "Total":
+                    current_season = "current_season"
+                    window["latest_season_switch"].update(text="Total")
+                else:
+                    current_season = "total"
+                    window["latest_season_switch"].update(text="Latest Season")
+
+                remove_all_rows(window)
+                for username in window["stats_table"].metadata.keys():
+                    clicked_user = window["stats_table"].metadata[username]
+
+                    table_values = add_stats_row(
+                        clicked_user, window, season=current_season
+                    )
+
+            # Search for players via their username and return their stats (and save their data)
+            if (
+                event in ["player_search_button", "return_key"]
+                and values["player_search"]
+            ):
+                if not logged_in:
+                    continue
+                max_stats = len(
+                    [
+                        key
+                        for key in list(window.AllKeysDict.keys())
+                        if "row_name_" in str(key)
+                    ]
+                )
+                if f"row_name_{values['player_search']}" in window.AllKeysDict:
+                    window["player_search"].update(value="")
+                    continue
+
+                searched_user_data = load(window["player_search"].get(), sess=sess)
+                if (
+                    searched_user_data.formatted_username
+                    not in window["available_users"].get()
+                ):
+                    combo_values.append(searched_user_data.formatted_username)
+                    combo_values = sorted(list(set(combo_values)))
+                    window["available_users"].update(
+                        values=combo_values, value=searched_user_data.formatted_username
+                    )
+
+                if max_stats >= 3:
+                    continue
+
+                if not searched_user_data.get("stats"):
+                    window["player_search"].update(value="")
+                    sg.popup_auto_close(
+                        "Player Not Found.", no_titlebar=True, modal=False
+                    )
+                    window["player_search"].set_focus()
+                    continue
+
+                window["player_search"].update(value="")
+                add_stats_row(searched_user_data, window)
+                # window.move_to_center()
+
+            # Select a user from the dropdown and display their stats
+            if event == "available_users":
+                if not logged_in:
+                    continue
+                max_stats = len(
+                    [
+                        key
+                        for key in list(window.AllKeysDict.keys())
+                        if "row_name_" in str(key)
+                    ]
+                )
+                if f"row_name_{window['available_users'].get()}" in window.AllKeysDict:
+                    continue
+
+                if max_stats >= 3:
+                    continue
+
+                searched_user_data = load(window["available_users"].get(), sess=sess)
+                table_values = add_stats_row(searched_user_data, window)
+                # window.move_to_center()
+
+            # Display the selected users category metrics. Depending on which button is pressed
+            # the appropriate user will be displayed
+            if "category_button" in event or event == "Category Metrics":
+                if not logged_in:
+                    continue
+                if "defense" in event:
+                    opponent = window["opponent"].get()
+                else:
+                    opponent = window["available_users"].get()
+                display_category_metrics(load(opponent, sess=sess))
