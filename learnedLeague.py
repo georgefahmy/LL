@@ -1542,7 +1542,7 @@ while True:
 
         if window.metadata == "stats_window":
             if "+CLICKED+" in event:
-                print(event[-1])
+                # print(event[-1])
                 row, column = event[-1]
 
                 if row is None:
@@ -1551,10 +1551,10 @@ while True:
                 if row == -1:
                     if not window["stats_table"].get():
                         continue
+
                     table_values, reverse = Sort(
                         window["stats_table"].get(), column, not reverse
                     )
-                    print(table_values)
                     current_season = window["stats_table"].get()[0][1]
                     remove_all_rows(window)
                     window["stats_table"].update(values=table_values)
@@ -1562,8 +1562,6 @@ while True:
                     continue
 
                 if window["stats_table"].get():
-                    print(window["stats_table"].get()[row][column])
-
                     if column == 0:
                         username = window["stats_table"].get()[row][column]
                         clicked_user = load(username, sess=sess)
