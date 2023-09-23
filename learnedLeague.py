@@ -795,18 +795,17 @@ while True:
                             "&File",
                             [
                                 "LearnedLeague.com",
-                                "One Days Specials",
+                                "One Day Specials",
                                 "Mini Leagues",
+                                "Player Tracker",
+                                "Defense Tactics",
                                 "!Login",
                                 "Logout",
                             ],
                         ],
-                        [
-                            "Defense",
-                            ["Category Metrics", "Show Similarity", "Calculate HUN"],
-                        ],
                         ["Help", ["!About", "!How To", "!Feedback"]],
                     ]
+
                     window["-MENU-"].update(menu_definition=menu_bar_layout)
 
                     if user_data.ok:
@@ -1541,6 +1540,7 @@ while True:
                 webbrowser.open(window["difficulty_tooltip"].metadata)
 
         if window.metadata == "stats_window":
+            # clicking in the table provides different events
             if "+CLICKED+" in event:
                 # print(event[-1])
                 row, column = event[-1]
@@ -1571,9 +1571,11 @@ while True:
                     if window["stats_table"].get()[row][column] == "X":
                         table_values = remove_stats_row(window, row)
 
+            # Clear the stats table complete
             if event == "clear_all_stats":
                 remove_all_rows(window)
 
+            # Load all available players (opponents + past searched players)
             if event == "load_all":
                 for user in combo_values:
                     if window["stats_table"].metadata:
@@ -1586,6 +1588,7 @@ while True:
                     table_values = add_stats_row(searched_user_data, window)
                     window.refresh()
 
+            # Switch between all-time stats and current (or latest) season
             if "latest_season_switch" in event:
                 if not window["stats_table"].get():
                     continue
@@ -1602,9 +1605,7 @@ while True:
 
                 remove_all_rows(window)
                 for username in window["stats_table"].metadata.keys():
-                    print(username)
                     clicked_user = window["stats_table"].metadata[username]
-                    clicked_user.pprint()
 
                     table_values = add_stats_row(
                         clicked_user, window, season=current_season
@@ -1803,6 +1804,7 @@ while True:
                 )
                 window["output_questions"].update(value=result)
 
+            # Clicking a question number in the history box can open the question
             if event == "output_questionspress":
                 history_widget = window["output_questions"].Widget
                 history_selection_ranges = history_widget.tag_ranges(sg.tk.SEL)
@@ -1820,6 +1822,7 @@ while True:
                     )
                     continue
 
+            # Open the question link in a web browser
             if event == "Open Question":
                 pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
                 match = re.match(pattern, selected_text)
@@ -1949,6 +1952,7 @@ while True:
 
                 fig.show(config=config)
 
+            # Show the selected opponent's category metrics
             if "category_button" in event or event == "Category Metrics":
                 if not logged_in:
                     continue

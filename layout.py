@@ -7,9 +7,16 @@ sg.theme("Reddit")
 menu_bar_layout = [
     [
         "&File",
-        ["LearnedLeague.com", "One Day Specials", "Mini Leagues", "Login", "!Logout"],
+        [
+            "LearnedLeague.com",
+            "One Day Specials",
+            "Mini Leagues",
+            "!Player Tracker",
+            "!Defense Tactics",
+            "Login",
+            "!Logout",
+        ],
     ],
-    ["Defense", ["!Category Metrics", "!Show Similarity", "!Calculate HUN"]],
     ["Help", ["!About", "!How To", "!Feedback"]],
 ]
 
