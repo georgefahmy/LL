@@ -19,16 +19,29 @@ from PyDictionary import PyDictionary
 
 from answer_correctness import combined_correctness
 from check_for_updates import check_for_update
+from defense_window import open_defense_window
 from layout import super_layout
-from logged_in_tools import (DEFAULT_FONT, STATS_DEFINITION,
-                             display_category_metrics,
-                             display_todays_questions, login)
-from minileagues import (get_mini_data, get_specific_minileague,
-                         load_questions, minileague, q_num_finder)
-from onedays import (get_oneday_data, get_specific_oneday, oneday_main,
-                     search_onedays)
-from statistics_window import (add_stats_row, open_stats_window,
-                               remove_all_rows, remove_stats_row)
+from logged_in_tools import (
+    DEFAULT_FONT,
+    display_category_metrics,
+    display_todays_questions,
+    login,
+)
+from minileagues import (
+    get_mini_data,
+    get_specific_minileague,
+    load_questions,
+    minileague,
+    q_num_finder,
+)
+from onedays import get_oneday_data, get_specific_oneday, oneday_main, search_onedays
+from statistics_window import (
+    Sort,
+    add_stats_row,
+    open_stats_window,
+    remove_all_rows,
+    remove_stats_row,
+)
 from userdata import UserData, load
 
 BASE_URL = "https://www.learnedleague.com"
@@ -409,10 +422,10 @@ window.bind("<Command-p>", "previous_key")
 window["question"].bind("<ButtonPress-2>", "press")
 window["question"].bind("<ButtonPress-1>", "click_here")
 window["answer_submission"].bind("<Return>", "_submit_answer_button")
-# window["output_questions"].bind("<ButtonPress-2>", "press")
 sess = None
 values = None
 logged_in = False
+reverse = True
 i = choice(list(questions.keys()))
 question_object = update_question(questions, window, i)
 
@@ -422,7 +435,13 @@ if i > 1:
 if i < len(list(questions.keys())):
     window["next"].update(disabled=False)
 
-main_window, oneday_window, minileague_window, stats_window = window, None, None, None
+main_window, oneday_window, minileague_window, stats_window, defense_window = (
+    window,
+    None,
+    None,
+    None,
+    None,
+)
 
 score = 0
 num_of_money_questions_left = 5
@@ -797,25 +816,19 @@ while True:
                         window["stats_button"].update(disabled=False)
                         window["defense_button"].update(disabled=False)
                         combo_values = sorted(
-                            [
-                                UserData.format_username(name.split(".")[0])
-                                for name in os.listdir(USER_DATA_DIR)
-                            ]
+                            list(
+                                set(
+                                    [
+                                        UserData.format_username(name.split(".")[0])
+                                        for name in os.listdir(USER_DATA_DIR)
+                                    ]
+                                    + [
+                                        UserData.format_username(name)
+                                        for name in user_data.opponents
+                                    ]
+                                )
+                            )
                         )
-
-                        # window.extend_layout(
-                        #     window["stats_column"],
-                        #     add_stats_row(user_data, logged_in_user),
-                        # )
-
-                        # window["player_1"].update(
-                        #     values=user_data.opponents,
-                        #     value=user_data.formatted_username,
-                        # )
-                        # window["opponent"].update(
-                        #     values=user_data.opponents,
-                        #     value=user_data.opponents[current_day],
-                        # )
 
                         window_width, window_height = window.size
                         screen_width, screen_height = window.get_screen_size()
@@ -836,317 +849,19 @@ while True:
                 stats_window["available_users"].update(
                     values=combo_values, value=user_data.formatted_username
                 )
-                stats_table_widget = window["stats_table"].Widget
-                # add_stats_row(user_data, stats_window)
 
-            # Submit the category selections and compare against the opponent's metrics for
-            # suggested point assignment
-            if event == "submit_defense":
-                if not logged_in:
-                    continue
+            if event in ["defense_button", "Defense Tactics"]:
+                defense_window = open_defense_window()
+                defense_window["output_questions"].bind("<ButtonPress-2>", "press")
 
-                if "player_1" not in locals():
-                    player_1 = load(values.get("player_1"), sess=sess)
-                else:
-                    if values.get("player_1").lower() != player_1.username:
-                        player_1 = load(values.get("player_1"), sess=sess)
-                if "player_2" not in locals():
-                    player_2 = load(values.get("opponent"), sess=sess)
-                else:
-                    if values.get("opponent").lower() != player_2.username:
-                        player_2 = load(values.get("opponent"), sess=sess)
-
-                if not player_1.profile_id.isnumeric():
-                    sg.popup_auto_close(
-                        "Player Not Found.", no_titlebar=True, modal=False
-                    )
-                    continue
-
-                if not player_2.profile_id.isnumeric():
-                    sg.popup_auto_close(
-                        "Player Not Found.", no_titlebar=True, modal=False
-                    )
-                    continue
-
-                question_categories = [
-                    values.get(key) for key in values.keys() if "strat" in key
-                ]
-
-                if not all(question_categories):
-                    continue
-
-                player_1.calc_hun(player_2)
-
-                if player_2.formatted_username not in window["available_users"].get():
-                    combo_values.append(player_2.formatted_username)
-                    combo_values = sorted(list(set(combo_values)))
-                    window["available_users"].update(
-                        values=combo_values, value=player_2.formatted_username
-                    )
-
-                hun_score = player_1.hun.get(player_2.username)
-
-                window["hun_score"].update(value=round(hun_score, 3))
-
-                raw_scores = [3, 2, 2, 1, 1, 0]
-                percents = DotMap(
-                    {
-                        f"question_{i+1}": {
-                            "percent": player_2.category_metrics.get(key).percent
-                            if player_2.category_metrics.get(key)
-                            else 0
-                        }
-                        for i, key in enumerate(question_categories)
-                    }
+                defense_window["player_1"].update(
+                    values=user_data.opponents,
+                    value=user_data.formatted_username,
                 )
-                sorted_percents = sorted(
-                    percents.keys(),
-                    key=lambda x: (percents[x]["percent"]),
-                    reverse=False,
+                defense_window["opponent"].update(
+                    values=user_data.opponents,
+                    value=user_data.opponents[current_day],
                 )
-                for i, key in enumerate(sorted_percents):
-                    percents[key]["score"] = raw_scores[i]
-
-                [
-                    window[f"defense_suggestion_{i+1}"].update(
-                        value=percents[key].score
-                    )
-                    for i, key in enumerate(list(percents.keys()))
-                ]
-
-            # Clear the categories and points from the window
-            if event == "defense_clear":
-                [
-                    window[f"defense_suggestion_{i}"].update(value="")
-                    for i in range(1, 7)
-                ]
-                [window[f"defense_strat_{i}"].update(value="") for i in range(1, 7)]
-
-            # Open a popup window to display the current match day's questions
-            if event == "todays_questions":
-                question_window = display_todays_questions(
-                    latest_season, current_day + 1, values["display_todays_answers"]
-                )
-
-            # Search through the opponents quesiton history for key words and display
-            # whether they got the question right or wrong
-            if event == "search_questions_button":
-                if not logged_in:
-                    continue
-
-                if "player_1" not in locals():
-                    player_1 = load(values.get("player_1"), sess=sess)
-                else:
-                    if values.get("player_1").lower() != player_1.username:
-                        player_1 = load(values.get("player_1"), sess=sess)
-
-                if "player_2" not in locals():
-                    player_2 = load(values.get("opponent"), sess=sess)
-                else:
-                    if values.get("opponent").lower() != player_2.username:
-                        player_2 = load(values.get("opponent"), sess=sess)
-
-                if not player_1.profile_id.isnumeric():
-                    sg.popup_auto_close(
-                        "Player Not Found.", no_titlebar=True, modal=False
-                    )
-                    continue
-
-                if not player_2.profile_id.isnumeric():
-                    sg.popup_auto_close(
-                        "Player Not Found.", no_titlebar=True, modal=False
-                    )
-                    continue
-
-                if player_2.formatted_username not in window["available_users"].get():
-                    combo_values.append(player_2.formatted_username)
-                    combo_values = sorted(list(set(combo_values)))
-                    window["available_users"].update(
-                        values=combo_values, value=player_2.formatted_username
-                    )
-
-                search_term = values["defense_question_search_term"]
-                filtered_dict = DotMap(
-                    {
-                        k: v
-                        for k, v in player_2.question_history.iteritems()
-                        if search_term.lower() in v.question.lower()
-                    }
-                )
-                total_filtered_questions = len(list(filtered_dict.keys()))
-                total_filtered_correct = len(
-                    [key for key, value in filtered_dict.items() if value.correct]
-                )
-                # filtered_dict.pprint(pformat="json")
-                result = "\n".join(
-                    [
-                        f"{key} - {filtered_dict[key].question_category}"
-                        + f" - : {'Correct' if filtered_dict[key].correct else 'Incorrect'}"
-                        for key in sorted(list(filtered_dict.keys()), reverse=True)
-                    ]
-                )
-                window["filtered_metrics"].update(
-                    value=f"Total Correct: {total_filtered_correct}/{total_filtered_questions}"
-                )
-                window["output_questions"].update(value=result)
-
-            if event == "output_questionspress":
-                history_widget = window["output_questions"].Widget
-                history_selection_ranges = history_widget.tag_ranges(sg.tk.SEL)
-                if history_selection_ranges:
-                    pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
-                    selected_text = history_widget.get(*history_selection_ranges)
-                    if re.match(pattern, selected_text):
-                        window["output_questions"].set_right_click_menu(
-                            ["&Right", ["Open Question"]]
-                        )
-
-                else:
-                    window["output_questions"].set_right_click_menu(
-                        ["&Right", ["!Open Question"]]
-                    )
-                    continue
-
-            if event == "Open Question":
-                pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
-                match = re.match(pattern, selected_text)
-                if match:
-                    season, day, question = match.groups()
-                    url = f"https://www.learnedleague.com/question.php?{season}&{day}&{question}"
-                    webbrowser.open(url)
-
-            # Calculate the HUN similarity between the two players (player 1 and opponent)
-            if event in ["calc_hun", "Calculate HUN"]:
-                if not logged_in:
-                    continue
-
-                if "player_1" not in locals():
-                    player_1 = load(values.get("player_1"), sess=sess)
-                else:
-                    if values.get("player_1").lower() != player_1.username:
-                        player_1 = load(values.get("player_1"), sess=sess)
-                if "player_2" not in locals():
-                    player_2 = load(values.get("opponent"), sess=sess)
-                else:
-                    if values.get("opponent").lower() != player_2.username:
-                        player_2 = load(values.get("opponent"), sess=sess)
-
-                if not player_1.profile_id.isnumeric():
-                    sg.popup_auto_close(
-                        "Player Not Found.", no_titlebar=True, modal=False
-                    )
-                    continue
-
-                if not player_2.profile_id.isnumeric():
-                    sg.popup_auto_close(
-                        "Player Not Found.", no_titlebar=True, modal=False
-                    )
-                    continue
-
-                player_1.calc_hun(player_2)
-
-                hun_score = player_1.hun.get(player_2.username)
-
-                window["hun_score"].update(value=round(hun_score, 3))
-                if player_2.formatted_username not in window["available_users"].get():
-                    combo_values.append(player_2.formatted_username)
-                    combo_values = sorted(list(set(combo_values)))
-                    window["available_users"].update(
-                        values=combo_values, value=player_2.formatted_username
-                    )
-
-            # Open a plotly web chart showing the similarity in metrics between the two players
-            if event in ["similarity_chart", "Show Similarity"]:
-                if not logged_in:
-                    continue
-
-                if "player_1" not in locals():
-                    player_1 = load(values.get("player_1"), sess=sess)
-                else:
-                    if values.get("player_1").lower() != player_1.username:
-                        player_1 = load(values.get("player_1"), sess=sess)
-                if "player_2" not in locals():
-                    player_2 = load(values.get("opponent"), sess=sess)
-                else:
-                    if values.get("opponent").lower() != player_2.username:
-                        player_2 = load(values.get("opponent"), sess=sess)
-
-                if not player_1.profile_id.isnumeric():
-                    sg.popup_auto_close(
-                        "Player Not Found.", no_titlebar=True, modal=False
-                    )
-                    continue
-
-                if not player_2.profile_id.isnumeric():
-                    sg.popup_auto_close(
-                        "Player Not Found.", no_titlebar=True, modal=False
-                    )
-                    continue
-
-                player_1.calc_hun(player_2)
-
-                hun_score = player_1.hun.get(player_2.username)
-
-                window["hun_score"].update(value=round(hun_score, 3))
-                if player_2.formatted_username not in window["available_users"].get():
-                    combo_values.append(player_2.formatted_username)
-                    combo_values = sorted(list(set(combo_values)))
-                    window["available_users"].update(
-                        values=combo_values, value=player_2.formatted_username
-                    )
-
-                fig = Figure()
-                config = {
-                    "displaylogo": False,
-                    "displayModeBar": True,
-                    "modeBarButtonsToRemove": ["lasso2d", "select2d"],
-                    "toImageButtonOptions": {
-                        "format": "png",
-                        "filename": f"{player_1.formatted_username}_{player_2.formatted_username}_similarity",
-                    },
-                }
-                player_1_categories = OrderedDict(
-                    sorted(player_1.category_metrics.items())
-                )
-                player_2_categories = OrderedDict(
-                    sorted(player_2.category_metrics.items())
-                )
-
-                fig.add_trace(
-                    Scatterpolar(
-                        r=[
-                            category.percent * 100
-                            for category in player_1_categories.values()
-                        ],
-                        theta=[category for category in player_1_categories.keys()],
-                        fill="toself",
-                        name=player_1.formatted_username,
-                        hovertemplate=("Category: %{theta}<br>% Correct: %{r:.1f}%"),
-                        hoveron="points",
-                    )
-                )
-                fig.add_trace(
-                    Scatterpolar(
-                        r=[
-                            category.percent * 100
-                            for category in player_2_categories.values()
-                        ],
-                        theta=[category for category in player_2_categories.keys()],
-                        fill="toself",
-                        name=player_2.formatted_username,
-                        hovertemplate=("Category: %{theta}<br>% Correct: %{r:.1f}%"),
-                        hoveron="points",
-                    )
-                )
-                fig.update_layout(
-                    title_text="Learned League Similarity",
-                    polar=dict(
-                        radialaxis=dict(visible=True, range=[0, 100]),
-                    ),
-                    showlegend=True,
-                )
-
-                fig.show(config=config)
 
         if window.metadata == "minileague_window":
             if "Escape" in event:
@@ -1829,21 +1544,24 @@ while True:
             if "+CLICKED+" in event:
                 print(event[-1])
                 row, column = event[-1]
-                if not all(event[-1]):
+
+                if row is None:
                     continue
 
-                if row < 0:
-                    if column > len(list(STATS_DEFINITION.values())):
+                if row == -1:
+                    if not window["stats_table"].get():
                         continue
-                    window["stats_table"].set_tooltip(
-                        list(STATS_DEFINITION.values())[column - 1]
+                    table_values, reverse = Sort(
+                        window["stats_table"].get(), column, not reverse
                     )
+                    print(table_values)
+                    current_season = window["stats_table"].get()[0][1]
+                    remove_all_rows(window)
+                    window["stats_table"].update(values=table_values)
+
                     continue
 
                 if window["stats_table"].get():
-                    if not all(event[-1]):
-                        continue
-
                     print(window["stats_table"].get()[row][column])
 
                     if column == 0:
@@ -1852,8 +1570,23 @@ while True:
                         url = BASE_URL + f"/profiles.php?{clicked_user.profile_id}"
                         webbrowser.open(url)
 
-                    if window["stats_table"].get()[row][column] == "[]":
+                    if window["stats_table"].get()[row][column] == "X":
                         table_values = remove_stats_row(window, row)
+
+            if event == "clear_all_stats":
+                remove_all_rows(window)
+
+            if event == "load_all":
+                for user in combo_values:
+                    if window["stats_table"].metadata:
+                        if user in window["stats_table"].metadata.keys():
+                            user = window["stats_table"].metadata[username]
+                        else:
+                            searched_user_data = load(user, sess=sess)
+                    else:
+                        searched_user_data = load(user, sess=sess)
+                    table_values = add_stats_row(searched_user_data, window)
+                    window.refresh()
 
             if "latest_season_switch" in event:
                 if not window["stats_table"].get():
@@ -1871,7 +1604,9 @@ while True:
 
                 remove_all_rows(window)
                 for username in window["stats_table"].metadata.keys():
+                    print(username)
                     clicked_user = window["stats_table"].metadata[username]
+                    clicked_user.pprint()
 
                     table_values = add_stats_row(
                         clicked_user, window, season=current_season
@@ -1925,18 +1660,6 @@ while True:
             if event == "available_users":
                 if not logged_in:
                     continue
-                max_stats = len(
-                    [
-                        key
-                        for key in list(window.AllKeysDict.keys())
-                        if "row_name_" in str(key)
-                    ]
-                )
-                if f"row_name_{window['available_users'].get()}" in window.AllKeysDict:
-                    continue
-
-                if max_stats >= 3:
-                    continue
 
                 searched_user_data = load(window["available_users"].get(), sess=sess)
                 table_values = add_stats_row(searched_user_data, window)
@@ -1947,8 +1670,290 @@ while True:
             if "category_button" in event or event == "Category Metrics":
                 if not logged_in:
                     continue
-                if "defense" in event:
-                    opponent = window["opponent"].get()
+                opponent = window["available_users"].get()
+                display_category_metrics(load(opponent, sess=sess))
+
+        if window.metadata == "defense_window":
+            # Submit the category selections and compare against the opponent's metrics for
+            # suggested point assignment
+            if event == "submit_defense":
+                if not logged_in:
+                    continue
+
+                if "player_1" not in locals():
+                    player_1 = load(values.get("player_1"), sess=sess)
                 else:
-                    opponent = window["available_users"].get()
+                    if values.get("player_1").lower() != player_1.username:
+                        player_1 = load(values.get("player_1"), sess=sess)
+                if "player_2" not in locals():
+                    player_2 = load(values.get("opponent"), sess=sess)
+                else:
+                    if values.get("opponent").lower() != player_2.username:
+                        player_2 = load(values.get("opponent"), sess=sess)
+
+                if not player_1.profile_id.isnumeric():
+                    sg.popup_auto_close(
+                        "Player Not Found.", no_titlebar=True, modal=False
+                    )
+                    continue
+
+                if not player_2.profile_id.isnumeric():
+                    sg.popup_auto_close(
+                        "Player Not Found.", no_titlebar=True, modal=False
+                    )
+                    continue
+
+                question_categories = [
+                    values.get(key) for key in values.keys() if "strat" in key
+                ]
+
+                if not all(question_categories):
+                    continue
+
+                raw_scores = [3, 2, 2, 1, 1, 0]
+                percents = DotMap(
+                    {
+                        f"question_{i+1}": {
+                            "percent": player_2.category_metrics.get(key).percent
+                            if player_2.category_metrics.get(key)
+                            else 0
+                        }
+                        for i, key in enumerate(question_categories)
+                    }
+                )
+                sorted_percents = sorted(
+                    percents.keys(),
+                    key=lambda x: (percents[x]["percent"]),
+                    reverse=False,
+                )
+                for i, key in enumerate(sorted_percents):
+                    percents[key]["score"] = raw_scores[i]
+
+                [
+                    window[f"defense_suggestion_{i+1}"].update(
+                        value=percents[key].score
+                    )
+                    for i, key in enumerate(list(percents.keys()))
+                ]
+
+            # Clear the categories and points from the window
+            if event == "defense_clear":
+                [
+                    window[f"defense_suggestion_{i}"].update(value="")
+                    for i in range(1, 7)
+                ]
+                [window[f"defense_strat_{i}"].update(value="") for i in range(1, 7)]
+
+            # Open a popup window to display the current match day's questions
+            if event == "todays_questions":
+                question_window = display_todays_questions(
+                    latest_season, current_day + 1, values["display_todays_answers"]
+                )
+
+            # Search through the opponents quesiton history for key words and display
+            # whether they got the question right or wrong
+            if event == "search_questions_button":
+                if not logged_in:
+                    continue
+
+                if "player_1" not in locals():
+                    player_1 = load(values.get("player_1"), sess=sess)
+                else:
+                    if values.get("player_1").lower() != player_1.username:
+                        player_1 = load(values.get("player_1"), sess=sess)
+
+                if "player_2" not in locals():
+                    player_2 = load(values.get("opponent"), sess=sess)
+                else:
+                    if values.get("opponent").lower() != player_2.username:
+                        player_2 = load(values.get("opponent"), sess=sess)
+
+                if not player_1.profile_id.isnumeric():
+                    sg.popup_auto_close(
+                        "Player Not Found.", no_titlebar=True, modal=False
+                    )
+                    continue
+
+                if not player_2.profile_id.isnumeric():
+                    sg.popup_auto_close(
+                        "Player Not Found.", no_titlebar=True, modal=False
+                    )
+                    continue
+
+                search_term = values["defense_question_search_term"]
+                filtered_dict = DotMap(
+                    {
+                        k: v
+                        for k, v in player_2.question_history.iteritems()
+                        if search_term.lower() in v.question.lower()
+                    }
+                )
+                total_filtered_questions = len(list(filtered_dict.keys()))
+                total_filtered_correct = len(
+                    [key for key, value in filtered_dict.items() if value.correct]
+                )
+                # filtered_dict.pprint(pformat="json")
+                result = "\n".join(
+                    [
+                        f"{key} - {filtered_dict[key].question_category}"
+                        + f" - : {'Correct' if filtered_dict[key].correct else 'Incorrect'}"
+                        for key in sorted(list(filtered_dict.keys()), reverse=True)
+                    ]
+                )
+                window["filtered_metrics"].update(
+                    value=f"Total Correct: {total_filtered_correct}/{total_filtered_questions}"
+                )
+                window["output_questions"].update(value=result)
+
+            if event == "output_questionspress":
+                history_widget = window["output_questions"].Widget
+                history_selection_ranges = history_widget.tag_ranges(sg.tk.SEL)
+                if history_selection_ranges:
+                    pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
+                    selected_text = history_widget.get(*history_selection_ranges)
+                    if re.match(pattern, selected_text):
+                        window["output_questions"].set_right_click_menu(
+                            ["&Right", ["Open Question"]]
+                        )
+
+                else:
+                    window["output_questions"].set_right_click_menu(
+                        ["&Right", ["!Open Question"]]
+                    )
+                    continue
+
+            if event == "Open Question":
+                pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
+                match = re.match(pattern, selected_text)
+                if match:
+                    season, day, question = match.groups()
+                    url = f"https://www.learnedleague.com/question.php?{season}&{day}&{question}"
+                    webbrowser.open(url)
+
+            # Calculate the HUN similarity between the two players (player 1 and opponent)
+            if event in ["calc_hun", "Calculate HUN"]:
+                if not logged_in:
+                    continue
+
+                if "player_1" not in locals():
+                    player_1 = load(values.get("player_1"), sess=sess)
+                else:
+                    if values.get("player_1").lower() != player_1.username:
+                        player_1 = load(values.get("player_1"), sess=sess)
+                if "player_2" not in locals():
+                    player_2 = load(values.get("opponent"), sess=sess)
+                else:
+                    if values.get("opponent").lower() != player_2.username:
+                        player_2 = load(values.get("opponent"), sess=sess)
+
+                if not player_1.profile_id.isnumeric():
+                    sg.popup_auto_close(
+                        "Player Not Found.", no_titlebar=True, modal=False
+                    )
+                    continue
+
+                if not player_2.profile_id.isnumeric():
+                    sg.popup_auto_close(
+                        "Player Not Found.", no_titlebar=True, modal=False
+                    )
+                    continue
+
+                player_1.calc_hun(player_2)
+
+                hun_score = player_1.hun.get(player_2.username)
+
+                window["hun_score"].update(value=round(hun_score, 3))
+
+            # Open a plotly web chart showing the similarity in metrics between the two players
+            if event in ["similarity_chart", "Show Similarity"]:
+                if not logged_in:
+                    continue
+
+                if "player_1" not in locals():
+                    player_1 = load(values.get("player_1"), sess=sess)
+                else:
+                    if values.get("player_1").lower() != player_1.username:
+                        player_1 = load(values.get("player_1"), sess=sess)
+                if "player_2" not in locals():
+                    player_2 = load(values.get("opponent"), sess=sess)
+                else:
+                    if values.get("opponent").lower() != player_2.username:
+                        player_2 = load(values.get("opponent"), sess=sess)
+
+                if not player_1.profile_id.isnumeric():
+                    sg.popup_auto_close(
+                        "Player Not Found.", no_titlebar=True, modal=False
+                    )
+                    continue
+
+                if not player_2.profile_id.isnumeric():
+                    sg.popup_auto_close(
+                        "Player Not Found.", no_titlebar=True, modal=False
+                    )
+                    continue
+
+                player_1.calc_hun(player_2)
+
+                hun_score = player_1.hun.get(player_2.username)
+
+                window["hun_score"].update(value=round(hun_score, 3))
+
+                fig = Figure()
+                config = {
+                    "displaylogo": False,
+                    "displayModeBar": True,
+                    "modeBarButtonsToRemove": ["lasso2d", "select2d"],
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": f"{player_1.formatted_username}_{player_2.formatted_username}_similarity",
+                    },
+                }
+                player_1_categories = OrderedDict(
+                    sorted(player_1.category_metrics.items())
+                )
+                player_2_categories = OrderedDict(
+                    sorted(player_2.category_metrics.items())
+                )
+
+                fig.add_trace(
+                    Scatterpolar(
+                        r=[
+                            category.percent * 100
+                            for category in player_1_categories.values()
+                        ],
+                        theta=[category for category in player_1_categories.keys()],
+                        fill="toself",
+                        name=player_1.formatted_username,
+                        hovertemplate=("Category: %{theta}<br>% Correct: %{r:.1f}%"),
+                        hoveron="points",
+                    )
+                )
+                fig.add_trace(
+                    Scatterpolar(
+                        r=[
+                            category.percent * 100
+                            for category in player_2_categories.values()
+                        ],
+                        theta=[category for category in player_2_categories.keys()],
+                        fill="toself",
+                        name=player_2.formatted_username,
+                        hovertemplate=("Category: %{theta}<br>% Correct: %{r:.1f}%"),
+                        hoveron="points",
+                    )
+                )
+                fig.update_layout(
+                    title_text="Learned League Similarity",
+                    polar=dict(
+                        radialaxis=dict(visible=True, range=[0, 100]),
+                    ),
+                    showlegend=True,
+                )
+
+                fig.show(config=config)
+
+            if "category_button" in event or event == "Category Metrics":
+                if not logged_in:
+                    continue
+                opponent = window["opponent"].get()
+
                 display_category_metrics(load(opponent, sess=sess))

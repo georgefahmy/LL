@@ -10,6 +10,14 @@ WD = os.getcwd()
 MODKOS = "https://www.learnedleague.com/images/misc/ModKos.png?t=1649"
 
 
+def Sort(sub_li, col, reverse=True):
+    if col in [0, 1, 19, 20]:
+        table_values = sorted(sub_li, key=lambda x: x[col], reverse=reverse)
+    else:
+        table_values = sorted(sub_li, key=lambda x: float(x[col]), reverse=reverse)
+    return table_values, reverse
+
+
 def add_stats_row(user_data, window, season="total"):
     current_values = window["stats_table"].get()
     loaded_stats = window["stats_table"].metadata
@@ -28,7 +36,7 @@ def add_stats_row(user_data, window, season="total"):
             for key in list(STATS_DEFINITION)
             if key not in ["Rundle"]
         ]
-        + ["[]"]
+        + ["X"]
     ]
     if current_values:
         table_values = current_values + table_values
@@ -80,6 +88,9 @@ def open_stats_window():
             ),
             sg.Button("Category Metrics", size=(16, 1), key="category_button_stats"),
             sg.Button("Latest Season", size=(14, 1), key="latest_season_switch"),
+            sg.Text(expand_x=True),
+            sg.Button("Clear All", size=(14, 1), key="clear_all_stats"),
+            sg.Button("Load All", size=(14, 1), key="load_all"),
         ],
         [
             sg.Table(
@@ -97,15 +108,15 @@ def open_stats_window():
                 num_rows=20,
                 auto_size_columns=False,
                 col_widths=[
-                    len(key) + 2
+                    max(len(key) + 2, 5)
                     for key in ["Username"] + list(STATS_DEFINITION.keys()) + ["Remove"]
                     if key not in ["Rundle"]
                 ],
                 justification="c",
                 vertical_scroll_only=True,
                 hide_vertical_scroll=True,
-                key="stats_table",
                 select_mode="browse",
+                key="stats_table",
             )
         ],
     ]
