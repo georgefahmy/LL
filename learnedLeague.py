@@ -1669,7 +1669,11 @@ while True:
             if "category_button" in event or event == "Category Metrics":
                 if not logged_in:
                     continue
-                opponent = window["available_users"].get()
+                if values["stats_table"]:
+                    row = values["stats_table"][0]
+                    opponent = table_values[row][0]
+                else:
+                    opponent = window["available_users"].get()
                 display_category_metrics(load(opponent, sess=sess))
 
         if window.metadata == "defense_window":

@@ -127,4 +127,5 @@ def open_stats_window():
         finalize=True,
         return_keyboard_events=True,
         metadata="stats_window",
+        resizable=True,
     )
