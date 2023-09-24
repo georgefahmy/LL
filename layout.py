@@ -1,5 +1,3 @@
-from unittest.mock import DEFAULT
-
 import PySimpleGUI as sg
 
 from logged_in_tools import CATEGORIES, DEFAULT_FONT
@@ -9,9 +7,16 @@ sg.theme("Reddit")
 menu_bar_layout = [
     [
         "&File",
-        ["LearnedLeague.com", "One Day Specials", "Mini Leagues", "Login", "!Logout"],
+        [
+            "LearnedLeague.com",
+            "One Day Specials",
+            "Mini Leagues",
+            "!Player Tracker",
+            "!Defense Tactics",
+            "Login",
+            "!Logout",
+        ],
     ],
-    ["Defense", ["!Category Metrics", "!Show Similarity", "!Calculate HUN"]],
     ["Help", ["!About", "!How To", "!Feedback"]],
 ]
 
@@ -320,46 +325,6 @@ main_layout = [
     ],
 ]
 
-stats_layout = [
-    [
-        sg.Combo(
-            [],
-            key="available_users",
-            readonly=True,
-            enable_events=True,
-            font=DEFAULT_FONT,
-            size=(10, 1),
-        ),
-        sg.Button("Category Metrics", size=(16, 1), key="category_button_stats"),
-        sg.Text(
-            "Player Search:",
-            font=("Arial", 14),
-            justification="r",
-        ),
-        sg.Input(
-            "",
-            key="player_search",
-            font=("Arial", 14),
-            size=(15, 15),
-            use_readonly_for_disable=True,
-            enable_events=True,
-        ),
-        sg.Button(
-            "Search",
-            key="player_search_button",
-            size=(10, 1),
-        ),
-    ],
-    [
-        sg.Column(
-            layout=[],
-            key="stats_column",
-            expand_y=True,
-            expand_x=True,
-        )
-    ],
-]
-
 defense_layout = [
     [
         sg.Text("You: ", font=("Arial Bold", 14), expand_x=True),
@@ -473,7 +438,7 @@ defense_layout = [
 ]
 
 super_layout = [
-    [sg.Menu(menu_bar_layout, font=DEFAULT, key="-MENU-")],
+    [sg.Menu(menu_bar_layout, font=DEFAULT_FONT, key="-MENU-")],
     [
         sg.Frame(
             "Main",
@@ -489,6 +454,20 @@ super_layout = [
                         "Mini Leagues",
                         key="minileague_button",
                         tooltip="Mini League trivia (opens new window)",
+                    ),
+                    sg.Button(
+                        "Stats",
+                        key="stats_button",
+                        tooltip="Open the Statistics Window to compare player stats",
+                        disabled=True,
+                        disabled_button_color=("black", "gray"),
+                    ),
+                    sg.Button(
+                        "Defense",
+                        key="defense_button",
+                        tooltip="Open the Defense Tactics window",
+                        disabled=True,
+                        disabled_button_color=("black", "gray"),
                     ),
                     sg.Text(expand_x=True),
                     sg.Button(
@@ -512,25 +491,6 @@ super_layout = [
             layout=main_layout,
             expand_x=True,
             expand_y=True,
-        ),
-        sg.Frame(
-            title="Defense",
-            layout=defense_layout,
-            expand_x=True,
-            expand_y=True,
-            key="defense_frame",
-            visible=False,
-        ),
-    ],
-    [
-        sg.Frame(
-            title="Stats",
-            layout=stats_layout,
-            expand_x=True,
-            expand_y=True,
-            element_justification="l",
-            key="stats_frame",
-            visible=False,
         )
     ],
 ]
