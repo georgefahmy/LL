@@ -471,7 +471,9 @@ def minileague():
     specific_mini = get_specific_minileague(data, choice(filtered_results))
     specific_mini = load_questions(specific_mini, window)
 
-    window["mini_league_selection"].update(values=filtered_results)
+    window["mini_league_selection"].update(
+        values=filtered_results, value=specific_mini.title
+    )
     [window[f"question_{i}"].bind("<ButtonPress-2>", "press") for i in range(1, 67)]
     [
         window[f"question_{i}"].bind("<ButtonPress-1>", "click_here")

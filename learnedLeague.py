@@ -762,11 +762,22 @@ while True:
 
             # Open the One Day Specials Interface
             if event in ["onedays_button", "One Days Specials"]:
-                oneday_window, data, oneday, list_of_onedays = oneday_main()
+                (
+                    oneday_window,
+                    data,
+                    oneday,
+                    list_of_onedays,
+                    oneday_filtered_results,
+                ) = oneday_main()
 
             # Open the MiniLeague interface
             if event in ["minileague_button", "Mini Leagues"]:
-                minileague_window, data, filtered_results, specific_mini = minileague()
+                (
+                    minileague_window,
+                    data,
+                    minileague_filtered_results,
+                    specific_mini,
+                ) = minileague()
 
             # if the question number is clicked, open the link
             if event == "question_number":
@@ -916,7 +927,9 @@ while True:
                     sg.popup_ok(result, title="Wiki Summary", font=("Arial", 16))
 
             if event == "random_mini_league":
-                specific_mini = get_specific_minileague(data, choice(filtered_results))
+                specific_mini = get_specific_minileague(
+                    data, choice(minileague_filtered_results)
+                )
                 specific_mini = load_questions(specific_mini, window)
 
             if event in ("mini_league_selection", "full_reset"):
@@ -1101,7 +1114,9 @@ while True:
 
             if event == "random_oneday":
                 oneday = get_oneday_data(
-                    get_specific_oneday(list_of_onedays, choice(filtered_results))
+                    get_specific_oneday(
+                        list_of_onedays, choice(oneday_filtered_results)
+                    )
                 )
                 data = oneday["data"]
                 score = 0
@@ -1157,12 +1172,12 @@ while True:
                 window["questions_column"].contents_changed()
 
             if event == "oneday_filter_search":
-                filtered_results = search_onedays(
+                oneday_filtered_results = search_onedays(
                     list_of_onedays, search_word=values["oneday_search"]
                 ) or [""]
                 window["oneday_search"].update(value="")
-                if not filtered_results[0]:
-                    filtered_results = search_onedays(list_of_onedays)
+                if not oneday_filtered_results[0]:
+                    oneday_filtered_results = search_onedays(list_of_onedays)
                     sg.popup_error(
                         "WARNING - No Results",
                         font=("Arial", 16),
@@ -1171,10 +1186,10 @@ while True:
                     )
                     continue
                 window["oneday_selection"].update(
-                    value=filtered_results[0], values=filtered_results
+                    value=oneday_filtered_results[0], values=oneday_filtered_results
                 )
                 oneday = get_oneday_data(
-                    get_specific_oneday(list_of_onedays, filtered_results[0])
+                    get_specific_oneday(list_of_onedays, oneday_filtered_results[0])
                 )
                 data = oneday["data"]
                 i = 1

@@ -361,7 +361,7 @@ def oneday_main():
                     [
                         sg.Frame(
                             f"Question {i}",
-                            size=(970, 300),
+                            size=(970, 400),
                             expand_x=True,
                             expand_y=True,
                             key=f"frame_question_{i}",
@@ -375,6 +375,7 @@ def oneday_main():
                                         no_scrollbar=True,
                                         expand_x=True,
                                         expand_y=True,
+                                        auto_size_text=True,
                                         enable_events=True,
                                         right_click_menu=[
                                             "&Right",
@@ -541,10 +542,13 @@ def oneday_main():
         w.configure(yscrollcommand=False, state="disabled")
         height = w.tk.call(w._w, "count", "-displaylines", "1.0", "end")
         window[f"question_{i}"].set_size((970, min(10, height + 1)))
-        window[f"question_{i}"].expand(expand_x=True, expand_y=True, expand_row=True)
-        window[f"frame_question_{i}"].expand(
-            expand_x=True, expand_y=True, expand_row=True
+        window[f"question_{i}"].expand(expand_row=True)
+        f = window[f"frame_question_{i}"].Widget
+        frame_height = sum(
+            [f.children[frame].winfo_height() for frame in f.children.keys()]
         )
+        window[f"frame_question_{i}"].set_size((970, max(300, frame_height)))
+        window[f"frame_question_{i}"].expand(expand_row=True)
     window.refresh()
     window["questions_column"].contents_changed()
-    return window, data, oneday, list_of_onedays
+    return window, data, oneday, list_of_onedays, filtered_results
