@@ -1122,27 +1122,24 @@ while True:
                 score = 0
                 num_of_money_questions_left = 5
                 submitted_answers = {}
+                window["oneday_title"].update(value=oneday["title"])
+                window["difficulty"].update(value=oneday["difficulty_rating"])
+                window["percent_correct"].update(
+                    value=str(oneday["overall_average"]) + "%"
+                )
+                window["blurb_text"].update(value=oneday["blurb"])
+                window["oneday_date"].update(value=oneday["date"])
+                window["oneday_selection"].update(value=oneday["title"])
+                window["90th_percent"].update(value=oneday["90th_percentile"])
+                window["50th_percent"].update(value=oneday["50th_percentile"])
+                window["10th_percent"].update(value=oneday["10th_percentile"])
+                window["number_of_players"].update(value=oneday["number_of_players"])
+                window["score"].update(value=score)
+                window["num_of_money_questions_left"].update(
+                    value=num_of_money_questions_left
+                )
                 for i in data.keys():
                     question_object = data[i]
-                    window["oneday_title"].update(value=oneday["title"])
-                    window["difficulty"].update(value=oneday["difficulty_rating"])
-                    window["percent_correct"].update(
-                        value=str(oneday["overall_average"]) + "%"
-                    )
-                    window["blurb_text"].update(value=oneday["blurb"])
-                    window["oneday_date"].update(value=oneday["date"])
-                    window["oneday_selection"].update(value=oneday["title"])
-                    window["90th_percent"].update(value=oneday["90th_percentile"])
-                    window["50th_percent"].update(value=oneday["50th_percentile"])
-                    window["10th_percent"].update(value=oneday["10th_percentile"])
-                    window["number_of_players"].update(
-                        value=oneday["number_of_players"]
-                    )
-                    window["score"].update(value=score)
-                    window["num_of_money_questions_left"].update(
-                        value=num_of_money_questions_left
-                    )
-
                     window[f"question_{i}"].update(value=question_object["_question"])
                     window[f"answer_{i}"].update(value="*******")
                     window[f"money_check_{i}"].update(disabled=False, value=False)
@@ -1161,12 +1158,23 @@ while True:
                     w.configure(yscrollcommand=False, state="disabled")
                     height = w.tk.call(w._w, "count", "-displaylines", "1.0", "end")
                     window[f"question_{i}"].set_size((970, min(10, height + 1)))
-                    window[f"question_{i}"].expand(
-                        expand_x=True, expand_y=True, expand_row=True
+                    window[f"question_{i}"].expand(expand_row=True)
+
+                window.refresh()
+                window["questions_column"].contents_changed()
+
+                for i in data.keys():
+                    f = window[f"frame_question_{i}"].Widget
+                    frame_height = sum(
+                        [
+                            f.children[frame].winfo_height()
+                            for frame in f.children.keys()
+                        ]
                     )
-                    window[f"frame_question_{i}"].expand(
-                        expand_x=True, expand_y=True, expand_row=True
+                    window[f"frame_question_{i}"].set_size(
+                        (970, max(200, frame_height))
                     )
+                    window[f"frame_question_{i}"].expand(expand_row=True)
 
                 window.refresh()
                 window["questions_column"].contents_changed()
@@ -1196,27 +1204,24 @@ while True:
                 score = 0
                 num_of_money_questions_left = 5
                 submitted_answers = {}
+                window["oneday_title"].update(value=oneday["title"])
+                window["difficulty"].update(value=oneday["difficulty_rating"])
+                window["percent_correct"].update(
+                    value=str(oneday["overall_average"]) + "%"
+                )
+                window["blurb_text"].update(value=oneday["blurb"])
+                window["oneday_date"].update(value=oneday["date"])
+                window["oneday_selection"].update(value=oneday["title"])
+                window["90th_percent"].update(value=oneday["90th_percentile"])
+                window["50th_percent"].update(value=oneday["50th_percentile"])
+                window["10th_percent"].update(value=oneday["10th_percentile"])
+                window["number_of_players"].update(value=oneday["number_of_players"])
+                window["score"].update(value=score)
+                window["num_of_money_questions_left"].update(
+                    value=num_of_money_questions_left
+                )
                 for i in data.keys():
                     question_object = data[i]
-                    window["oneday_title"].update(value=oneday["title"])
-                    window["difficulty"].update(value=oneday["difficulty_rating"])
-                    window["percent_correct"].update(
-                        value=str(oneday["overall_average"]) + "%"
-                    )
-                    window["blurb_text"].update(value=oneday["blurb"])
-                    window["oneday_date"].update(value=oneday["date"])
-                    window["oneday_selection"].update(value=oneday["title"])
-                    window["90th_percent"].update(value=oneday["90th_percentile"])
-                    window["50th_percent"].update(value=oneday["50th_percentile"])
-                    window["10th_percent"].update(value=oneday["10th_percentile"])
-                    window["number_of_players"].update(
-                        value=oneday["number_of_players"]
-                    )
-                    window["score"].update(value=score)
-                    window["num_of_money_questions_left"].update(
-                        value=num_of_money_questions_left
-                    )
-
                     window[f"question_{i}"].update(value=question_object["_question"])
                     window[f"answer_{i}"].update(value="*******")
                     window[f"money_check_{i}"].update(disabled=False, value=False)
@@ -1235,12 +1240,23 @@ while True:
                     w.configure(yscrollcommand=False, state="disabled")
                     height = w.tk.call(w._w, "count", "-displaylines", "1.0", "end")
                     window[f"question_{i}"].set_size((970, min(10, height + 1)))
-                    window[f"question_{i}"].expand(
-                        expand_x=True, expand_y=True, expand_row=True
+                    window[f"question_{i}"].expand(expand_row=True)
+
+                window.refresh()
+                window["questions_column"].contents_changed()
+
+                for i in data.keys():
+                    f = window[f"frame_question_{i}"].Widget
+                    frame_height = sum(
+                        [
+                            f.children[frame].winfo_height()
+                            for frame in f.children.keys()
+                        ]
                     )
-                    window[f"frame_question_{i}"].expand(
-                        expand_x=True, expand_y=True, expand_row=True
+                    window[f"frame_question_{i}"].set_size(
+                        (970, max(200, frame_height))
                     )
+                    window[f"frame_question_{i}"].expand(expand_row=True)
 
                 window.refresh()
                 window["questions_column"].contents_changed()

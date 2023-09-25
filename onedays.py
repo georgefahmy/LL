@@ -14,6 +14,8 @@ BASE_URL = "https://www.learnedleague.com"
 WD = os.getcwd()
 MODKOS = "https://www.learnedleague.com/images/misc/ModKos.png?t=1649"
 
+# TODO refactor this to use the element add_row functionality
+
 
 def internet_on():
     try:
@@ -361,7 +363,7 @@ def oneday_main():
                     [
                         sg.Frame(
                             f"Question {i}",
-                            size=(970, 400),
+                            size=(970, 300),
                             expand_x=True,
                             expand_y=True,
                             key=f"frame_question_{i}",
@@ -541,14 +543,21 @@ def oneday_main():
         w = window[f"question_{i}"].Widget
         w.configure(yscrollcommand=False, state="disabled")
         height = w.tk.call(w._w, "count", "-displaylines", "1.0", "end")
-        window[f"question_{i}"].set_size((970, min(10, height + 1)))
+        window[f"question_{i}"].set_size((970, min(8, height + 1)))
         window[f"question_{i}"].expand(expand_row=True)
+
+    window.refresh()
+    window["questions_column"].contents_changed()
+
+    for i in data.keys():
         f = window[f"frame_question_{i}"].Widget
         frame_height = sum(
             [f.children[frame].winfo_height() for frame in f.children.keys()]
         )
-        window[f"frame_question_{i}"].set_size((970, max(300, frame_height)))
+        window[f"frame_question_{i}"].set_size((970, max(200, frame_height)))
         window[f"frame_question_{i}"].expand(expand_row=True)
+
     window.refresh()
     window["questions_column"].contents_changed()
+
     return window, data, oneday, list_of_onedays, filtered_results
