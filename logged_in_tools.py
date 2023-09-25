@@ -13,11 +13,11 @@ BASE_URL = "https://www.learnedleague.com"
 LOGIN_URL = BASE_URL + "/ucp.php?mode=login"
 USER_QHIST = BASE_URL + "/profiles.php?%s&9"
 CATEGORIES = [
-    "AMER_HIST",
+    "AMER HIST",
     "ART",
     "BUS/ECON",
-    "CLASS_MUSIC",
-    "CURR_EVENTS",
+    "CLASS MUSIC",
+    "CURR EVENTS",
     "FILM",
     "FOOD/DRINK",
     "GAMES/SPORT",
@@ -26,11 +26,11 @@ CATEGORIES = [
     "LIFESTYLE",
     "LITERATURE",
     "MATH",
-    "POP_MUSIC",
+    "POP MUSIC",
     "SCIENCE",
     "TELEVISION",
     "THEATRE",
-    "WORLD_HIST",
+    "WORLD HIST",
 ]
 STATS_DEFINITION = {
     "Seas.": "Season",
@@ -187,14 +187,15 @@ def display_todays_questions(season, day, display_answers=False):
         sess.get(current_match_day).content,
         "html.parser",
     )
-    if "not yet active" in match_day_page.find("h2").parent.text:
-        return sg.popup_no_titlebar(
-            f"Match Day {day} is not yet active.",
-            title=f"Warning - Match Day {day} not active.",
-            modal=False,
-            auto_close=True,
-            auto_close_duration=10,
-        )
+    if match_day_page.find("h2"):
+        if "not yet active" in match_day_page.find("h2").parent.text:
+            return sg.popup_no_titlebar(
+                f"Match Day {day} is not yet active.",
+                title=f"Warning - Match Day {day} not active.",
+                modal=False,
+                auto_close=True,
+                auto_close_duration=10,
+            )
     questions_ans = DotMap()
     questions = [
         val.text
