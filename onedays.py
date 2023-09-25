@@ -14,8 +14,6 @@ BASE_URL = "https://www.learnedleague.com"
 WD = os.getcwd()
 MODKOS = "https://www.learnedleague.com/images/misc/ModKos.png?t=1649"
 
-# TODO refactor this to use the element add_row functionality
-
 
 def internet_on():
     try:
@@ -356,7 +354,7 @@ def oneday_main():
                 expand_x=True,
                 expand_y=True,
                 scrollable=True,
-                size=(975, 615),
+                size=(975, 650),
                 key="questions_column",
                 vertical_scroll_only=True,
                 layout=[
@@ -374,10 +372,10 @@ def oneday_main():
                                         key=f"question_{i}",
                                         font=("Arial", 20),
                                         disabled=True,
+                                        size=(None, 8),
                                         no_scrollbar=True,
                                         expand_x=True,
-                                        expand_y=True,
-                                        auto_size_text=True,
+                                        # expand_y=True,
                                         enable_events=True,
                                         right_click_menu=[
                                             "&Right",
@@ -395,6 +393,7 @@ def oneday_main():
                                         disabled_button_color=("black", "gray"),
                                     ),
                                     sg.Text(
+                                        text="*******",
                                         key=f"answer_{i}",
                                         font=("Arial", 16),
                                         size=(10, 1),
@@ -407,9 +406,10 @@ def oneday_main():
                                         "Money Question",
                                         key=f"money_check_{i}",
                                         font=font,
+                                        disabled=False,
                                         background_color=background_color,
                                         tooltip="""If correct - get points equal to % of
-                                          people who got the question wrong""",
+                                                people who got the question wrong""",
                                     ),
                                 ],
                                 [
@@ -423,6 +423,7 @@ def oneday_main():
                                         key=f"answer_submission_{i}",
                                         font=("Arial", 16),
                                         expand_x=True,
+                                        background_color="white",
                                         use_readonly_for_disable=True,
                                     ),
                                     sg.Button(
@@ -487,18 +488,6 @@ def oneday_main():
 
     window["oneday_selection"].update(values=search_onedays(list_of_onedays))
 
-    [window[f"question_{i}"].bind("<ButtonPress-2>", "press") for i in range(1, 13)]
-    [
-        window[f"question_{i}"].bind("<ButtonPress-1>", "click_here")
-        for i in range(1, 13)
-    ]
-    [
-        window[f"answer_submission_{i}"].bind("<Return>", f"_submit_answer_button_{i}")
-        for i in range(1, 13)
-    ]
-    for i in range(1, 13):
-        window[f"correct_override_{i}"].TooltipObject.timeout = 300
-
     filtered_results = search_onedays(list_of_onedays)
     oneday = get_oneday_data(
         get_specific_oneday(list_of_onedays, choice(filtered_results))
@@ -513,49 +502,34 @@ def oneday_main():
     score = 0
     num_of_money_questions_left = 5
 
-    for i in data.keys():
-        question_object = data[i]
-        window["oneday_title"].update(value=oneday["title"])
-        window["difficulty"].update(value=oneday["difficulty_rating"])
-        window["percent_correct"].update(value=str(oneday["overall_average"]) + "%")
-        window["blurb_text"].update(value=oneday["blurb"])
-        window["oneday_date"].update(value=oneday["date"])
-        window["oneday_selection"].update(value=oneday["title"])
-        window["90th_percent"].update(value=oneday["90th_percentile"])
-        window["50th_percent"].update(value=oneday["50th_percentile"])
-        window["10th_percent"].update(value=oneday["10th_percentile"])
-        window["number_of_players"].update(value=oneday["number_of_players"])
-        window["score"].update(value=score)
-        window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
+    window["oneday_title"].update(value=oneday["title"])
+    window["difficulty"].update(value=oneday["difficulty_rating"])
+    window["percent_correct"].update(value=str(oneday["overall_average"]) + "%")
+    window["blurb_text"].update(value=oneday["blurb"])
+    window["oneday_date"].update(value=oneday["date"])
+    window["oneday_selection"].update(value=oneday["title"])
+    window["90th_percent"].update(value=oneday["90th_percentile"])
+    window["50th_percent"].update(value=oneday["50th_percentile"])
+    window["10th_percent"].update(value=oneday["10th_percentile"])
+    window["number_of_players"].update(value=oneday["number_of_players"])
+    window["score"].update(value=score)
+    window["num_of_money_questions_left"].update(value=num_of_money_questions_left)
 
-        window[f"question_{i}"].update(value=question_object["_question"])
-        window[f"answer_{i}"].update(value="*******")
-        window[f"money_check_{i}"].update(disabled=False, value=False)
-        window[f"show/hide_{i}"].update(text="Show Answer", disabled=False)
-        window[f"answer_submission_{i}"].update(
-            value="", disabled=False, background_color="white"
-        )
+    for i in data.keys():
+        window[f"question_{i}"].update(value=data[i].get("_question"))
         window[f"answer_submission_{i}"].bind("<Return>", f"_submit_answer_button_{i}")
-        window[f"submit_answer_button_{i}"].update(disabled=False)
-        window[f"question_percent_correct_{i}"].update(
-            value="Submit answer to see", font=("Arial Italic", 10)
-        )
-        w = window[f"question_{i}"].Widget
-        w.configure(yscrollcommand=False, state="disabled")
-        height = w.tk.call(w._w, "count", "-displaylines", "1.0", "end")
-        window[f"question_{i}"].set_size((970, min(8, height + 1)))
-        window[f"question_{i}"].expand(expand_row=True)
 
-    window.refresh()
-    window["questions_column"].contents_changed()
-
-    for i in data.keys():
-        f = window[f"frame_question_{i}"].Widget
-        frame_height = sum(
-            [f.children[frame].winfo_height() for frame in f.children.keys()]
-        )
-        window[f"frame_question_{i}"].set_size((970, max(200, frame_height)))
-        window[f"frame_question_{i}"].expand(expand_row=True)
+    [window[f"question_{i}"].bind("<ButtonPress-2>", "press") for i in range(1, 13)]
+    [
+        window[f"question_{i}"].bind("<ButtonPress-1>", "click_here")
+        for i in range(1, 13)
+    ]
+    [
+        window[f"answer_submission_{i}"].bind("<Return>", f"_submit_answer_button_{i}")
+        for i in range(1, 13)
+    ]
+    for i in range(1, 13):
+        window[f"correct_override_{i}"].TooltipObject.timeout = 300
 
     window.refresh()
     window["questions_column"].contents_changed()
