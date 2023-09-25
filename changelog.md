@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v5.4.0] - 2023-09-23
+### [v5.4.1] - 2023-09-24
 
-Much improved statistics and defense tactics interfaces. Separate windows are now available to be opened when logged in.
+Minor bug fix with oneday specials window cutting off the submission box.
