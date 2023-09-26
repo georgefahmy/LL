@@ -5,7 +5,6 @@ import os
 import re
 import sys
 import webbrowser
-from collections import OrderedDict
 from random import choice
 from textwrap import wrap
 
@@ -15,7 +14,6 @@ import wikipedia
 from bs4 import BeautifulSoup as bs
 from bs4 import SoupStrainer as ss
 from dotmap import DotMap
-from plotly.graph_objects import Figure, Scatterpolar
 from PyDictionary import PyDictionary
 
 from answer_correctness import combined_correctness
@@ -36,6 +34,8 @@ from minileagues import (
     q_num_finder,
 )
 from onedays import get_oneday_data, get_specific_oneday, oneday_main, search_onedays
+from plotly_chart import plotly_chart
+from radar_chart import radar_similarity
 from statistics_window import (
     Sort,
     add_stats_row,
@@ -1888,58 +1888,22 @@ while True:
                     )
                     continue
 
-                fig = Figure()
-                config = {
-                    "displaylogo": False,
-                    "displayModeBar": True,
-                    "modeBarButtonsToRemove": ["lasso2d", "select2d"],
-                    "toImageButtonOptions": {
-                        "format": "png",
-                        "filename": f"{player_1.formatted_username}_{player_2.formatted_username}_similarity",
-                    },
-                }
-                player_1_categories = OrderedDict(
-                    sorted(player_1.category_metrics.items())
-                )
-                player_2_categories = OrderedDict(
-                    sorted(player_2.category_metrics.items())
-                )
+                if False:
+                    plotly_chart(player_1, player_2)
 
-                fig.add_trace(
-                    Scatterpolar(
-                        r=[
-                            category.percent * 100
-                            for category in player_1_categories.values()
-                        ],
-                        theta=[category for category in player_1_categories.keys()],
-                        fill="toself",
-                        name=player_1.formatted_username,
-                        hovertemplate=("Category: %{theta}<br>% Correct: %{r:.1f}%"),
-                        hoveron="points",
-                    )
-                )
-                fig.add_trace(
-                    Scatterpolar(
-                        r=[
-                            category.percent * 100
-                            for category in player_2_categories.values()
-                        ],
-                        theta=[category for category in player_2_categories.keys()],
-                        fill="toself",
-                        name=player_2.formatted_username,
-                        hovertemplate=("Category: %{theta}<br>% Correct: %{r:.1f}%"),
-                        hoveron="points",
-                    )
-                )
-                fig.update_layout(
-                    title_text="Learned League Similarity",
-                    polar=dict(
-                        radialaxis=dict(visible=True, range=[0, 100]),
-                    ),
-                    showlegend=True,
-                )
+                plot_window = radar_similarity(player_1, player_2)
 
-                fig.show(config=config)
+                screen_width, _ = window.GetScreenDimensions()
+                _, q_current_loc_y = plot_window.current_location()
+                _, d_current_loc_y = window.current_location()
+
+                q_window_width, _ = plot_window.size
+
+                q_new_loc_x = (screen_width / 2) - q_window_width + 160
+                d_new_loc_x = (screen_width / 2) + 180
+
+                window.move(int(d_new_loc_x), int(d_current_loc_y))
+                plot_window.move(int(q_new_loc_x), int(q_current_loc_y))
 
             # Show the selected opponent's category metrics
             if "category_button" in event or event == "Category Metrics":
