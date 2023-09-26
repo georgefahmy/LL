@@ -143,14 +143,14 @@ def radar_similarity(player_1, player_2):
     )
     annot.set_visible(False)
 
-    def update_annot(ind, sc, c):
+    def update_annot(ind, sc, fc, c):
         pos = sc.get_offsets()[ind["ind"][0]]
         annot.xy = pos
         text = f"{pos[1]:.1f}%, {[labels[n] for n in ind['ind']][0]}"
 
         annot.set_text(text)
-        annot.get_bbox_patch().set_facecolor(c)
-        annot.get_bbox_patch().set_alpha(0.7)
+        annot.set(color=c)
+        annot.get_bbox_patch().set(edgecolor="k", fc=fc)
 
     def hover(event):
         vis = annot.get_visible()
@@ -158,11 +158,11 @@ def radar_similarity(player_1, player_2):
             cont1, ind1 = sc1.contains(event)
             cont2, ind2 = sc2.contains(event)
             if cont1:
-                update_annot(ind1, sc1, "blue")
+                update_annot(ind1, sc1, "blue", "w")
                 annot.set_visible(True)
                 fig.canvas.draw_idle()
             elif cont2:
-                update_annot(ind2, sc2, "red")
+                update_annot(ind2, sc2, "red", "k")
                 annot.set_visible(True)
                 fig.canvas.draw_idle()
             else:
