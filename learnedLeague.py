@@ -1732,6 +1732,17 @@ while True:
                 question_window = display_todays_questions(
                     latest_season, current_day + 1, values["display_todays_answers"]
                 )
+                screen_width, _ = window.GetScreenDimensions()
+                _, q_current_loc_y = question_window.current_location()
+                _, d_current_loc_y = window.current_location()
+
+                q_window_width, _ = question_window.size
+
+                q_new_loc_x = (screen_width / 2) - q_window_width - 10
+                d_new_loc_x = (screen_width / 2) + 10
+
+                window.move(int(d_new_loc_x), int(d_current_loc_y))
+                question_window.move(int(q_new_loc_x), int(q_current_loc_y))
 
             # Search through the opponents quesiton history for key words and display
             # whether they got the question right or wrong
@@ -1876,12 +1887,6 @@ while True:
                         "Player Not Found.", no_titlebar=True, modal=False
                     )
                     continue
-
-                player_1.calc_hun(player_2)
-
-                hun_score = player_1.hun.get(player_2.username)
-
-                window["hun_score"].update(value=round(hun_score, 3))
 
                 fig = Figure()
                 config = {
