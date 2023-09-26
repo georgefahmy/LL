@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v5.4.1] - 2023-09-24
+### [v5.5.0] - 2023-09-25
 
-Minor bug fix with oneday specials window cutting off the submission box.
+Updated similarity charts to use matplotlib instead of plotly.
