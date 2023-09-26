@@ -327,4 +327,5 @@ def display_todays_questions(season, day, display_answers=False):
         resizable=True,
         finalize=True,
         modal=False,
+        metadata="todays_question_window",
     )
