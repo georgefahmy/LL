@@ -184,10 +184,11 @@ def radar_similarity(player_1, player_2):
     if not os.path.isdir(
         os.path.expanduser("~") + "/.LearnedLeague/similarity_charts/"
     ):
-        os.mkdir(os.path.expanduser("~") + ".LearnedLeague/similarity_charts/")
+        os.mkdir(os.path.expanduser("~") + "/.LearnedLeague/similarity_charts/")
 
     fig.savefig(
-        f".LearnedLeague/similarity_charts/{player_1.formatted_username}_{player_2.formatted_username}_similarity.png"
+        os.path.expanduser("~")
+        + f"/.LearnedLeague/similarity_charts/{player_1.formatted_username}_{player_2.formatted_username}_similarity.png"
     )
     layout = [
         [sg.Text("Player Similarity", font=("Arial Bold", 18))],

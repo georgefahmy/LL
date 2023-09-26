@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v5.5.0] - 2023-09-25
+### [v5.5.1] - 2023-09-25
 
-Updated similarity charts to use matplotlib instead of plotly.
+Fixed bug with saving similarity plot
