@@ -106,6 +106,7 @@ def open_stats_window():
                 enable_events=True,
                 enable_click_events=True,
                 num_rows=20,
+                expand_y=True,
                 auto_size_columns=False,
                 col_widths=[
                     max(len(key) + 2, 5)
