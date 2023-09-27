@@ -31,11 +31,7 @@ def add_stats_row(user_data, window, season="total"):
         return
     table_values = [
         [user_data.formatted_username]
-        + [
-            user_data.stats[season].get(key)
-            for key in list(STATS_DEFINITION)
-            if key not in ["Rundle"]
-        ]
+        + [user_data.stats[season].get(key) for key in list(STATS_DEFINITION)]
         + ["X"]
     ]
     if current_values:
@@ -98,7 +94,6 @@ def open_stats_window():
                 headings=[
                     key
                     for key in ["Username"] + list(STATS_DEFINITION.keys()) + ["Remove"]
-                    if key not in ["Rundle"]
                 ],
                 alternating_row_color="light gray",
                 header_font=("Arial Bold", 14),
@@ -106,13 +101,14 @@ def open_stats_window():
                 enable_events=True,
                 enable_click_events=True,
                 num_rows=20,
+                expand_x=True,
                 expand_y=True,
                 auto_size_columns=False,
                 col_widths=[
-                    max(len(key) + 2, 5)
+                    max(len(key) + 2, 7)
                     for key in ["Username"] + list(STATS_DEFINITION.keys()) + ["Remove"]
-                    if key not in ["Rundle"]
                 ],
+                max_col_width=15,
                 justification="c",
                 vertical_scroll_only=True,
                 hide_vertical_scroll=True,

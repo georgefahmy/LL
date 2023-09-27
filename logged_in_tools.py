@@ -54,6 +54,7 @@ Perfect defensive points - (1: 0, 2: 1, 3: 2, 4: 4, 5: 6, 6: 9)""",
     "3PT": "3-Pointers",
     "MCW": "Most Common Wrong Answers -\nNumber of answers submitted\nwhich were the Most Common Wrong Answer for its question",
     "QPct": "Percent of correct answers",
+    "Rundle": "User's Rundle",
     "Rank": "Overall Rank in the Season",
 }
 

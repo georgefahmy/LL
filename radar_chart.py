@@ -132,6 +132,7 @@ def radar_similarity(player_1, player_2):
     ax.fill(theta, data[1], facecolor=colors[1], alpha=0.15, label="_nolegend_")
 
     ax.set_varlabels(labels)
+    ax.set_ylim(0, 100)
 
     annot = ax.annotate(
         "",
