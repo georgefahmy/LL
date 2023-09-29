@@ -466,6 +466,70 @@ while True:
         # print(window.metadata, event)
 
         if window.metadata == "main_window":
+            # Login to the LL website with provided credentials. This will expand the interface
+            # to include significantly more data and capabilities
+            if event in ["login_button", "Login", "Logout"]:
+                user_data = None
+                if window["login_button"].get_text() == "Login":
+                    sess = login()
+                    if not sess:
+                        continue
+                    username = sess.headers.get("profile")
+                    user_data = load(username=username, sess=sess)
+                    menu_bar_layout = [
+                        [
+                            "&File",
+                            [
+                                "LearnedLeague.com",
+                                "One Day Specials",
+                                "Mini Leagues",
+                                "Player Tracker",
+                                "Defense Tactics",
+                                "Match Analysis",
+                                "!Login",
+                                "Logout",
+                            ],
+                        ],
+                        ["Help", ["!About", "!How To", "!Feedback"]],
+                    ]
+
+                    window["-MENU-"].update(menu_definition=menu_bar_layout)
+
+                    if user_data.ok:
+                        logged_in = True
+                        logged_in_user = user_data.username
+                        window["login_button"].update(text="Logout")
+                        window["stats_button"].update(disabled=False)
+                        window["defense_button"].update(disabled=False)
+                        window["match_button"].update(disabled=False)
+                        combo_values = sorted(
+                            list(
+                                set(
+                                    [
+                                        UserData.format_username(name.split(".")[0])
+                                        for name in os.listdir(USER_DATA_DIR)
+                                    ]
+                                    + [
+                                        UserData.format_username(name)
+                                        for name in user_data.opponents
+                                    ]
+                                )
+                            )
+                        )
+
+                        window_width, window_height = window.size
+                        screen_width, screen_height = window.get_screen_size()
+                        x = (screen_width - window_width) / 2
+                        y = (screen_height - window_height) / 2 - 200
+                        window.move(int(x), int(y))
+                        window.refresh()
+
+                elif window["login_button"].get_text() == "Logout":
+                    login(logout=True)
+                    sess.close()
+                    window.close()
+                    break
+
             # Trigger the right click menu for searching text within a question
             if event == "questionpress":
                 question_widget = window["question"].Widget
@@ -791,68 +855,6 @@ while True:
             # Open the LL homepage
             if event in ["open_ll", "LearnedLeague.com"]:
                 webbrowser.open("https://www.learnedleague.com")
-
-            # Login to the LL website with provided credentials. This will expand the interface
-            # to include significantly more data and capabilities
-            if event in ["login_button", "Login", "Logout"]:
-                user_data = None
-                if window["login_button"].get_text() == "Login":
-                    sess = login()
-                    if not sess:
-                        continue
-                    username = sess.headers.get("profile")
-                    user_data = load(username=username, sess=sess)
-                    menu_bar_layout = [
-                        [
-                            "&File",
-                            [
-                                "LearnedLeague.com",
-                                "One Day Specials",
-                                "Mini Leagues",
-                                "Player Tracker",
-                                "Defense Tactics",
-                                "!Login",
-                                "Logout",
-                            ],
-                        ],
-                        ["Help", ["!About", "!How To", "!Feedback"]],
-                    ]
-
-                    window["-MENU-"].update(menu_definition=menu_bar_layout)
-
-                    if user_data.ok:
-                        logged_in = True
-                        logged_in_user = user_data.username
-                        window["login_button"].update(text="Logout")
-                        window["stats_button"].update(disabled=False)
-                        window["defense_button"].update(disabled=False)
-                        combo_values = sorted(
-                            list(
-                                set(
-                                    [
-                                        UserData.format_username(name.split(".")[0])
-                                        for name in os.listdir(USER_DATA_DIR)
-                                    ]
-                                    + [
-                                        UserData.format_username(name)
-                                        for name in user_data.opponents
-                                    ]
-                                )
-                            )
-                        )
-
-                        window_width, window_height = window.size
-                        screen_width, screen_height = window.get_screen_size()
-                        x = (screen_width - window_width) / 2
-                        y = (screen_height - window_height) / 2 - 200
-                        window.move(int(x), int(y))
-                        window.refresh()
-
-                elif window["login_button"].get_text() == "Logout":
-                    login(logout=True)
-                    sess.close()
-                    window.close()
-                    break
 
             # Open the Statistics interface
             if event in ["stats_button", "Player Tracker"]:
