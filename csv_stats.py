@@ -12,7 +12,17 @@ ALL_DATA_BASE_URL = "https://www.learnedleague.com/lgwide.php?{}"
 def stats_filter(field, value, operator="in", user_stats=DotMap()):
     if not set([True for u in user_stats.values() if field in u.toDict().keys()]):
         return user_stats
-    if operator not in ["==", ">=", "<=", "<", ">", "in", "not in"]:
+    if operator not in [
+        "==",
+        ">=",
+        "<=",
+        "<",
+        ">",
+        "in",
+        "not in",
+        "startswith",
+        "endswith",
+    ]:
         print("Invalid Operator")
         return user_stats
     if operator == ">=":
@@ -36,6 +46,14 @@ def stats_filter(field, value, operator="in", user_stats=DotMap()):
     elif operator == "not in":
         print("Not In operator")
         return DotMap({k: v for k, v in user_stats.items() if value not in v[field]})
+    elif operator == "startswith":
+        print("Startswith")
+        return DotMap(
+            {k: v for k, v in user_stats.items() if v[field].startswith(value)}
+        )
+    elif operator == "endswith":
+        print("Endswith")
+        return DotMap({k: v for k, v in user_stats.items() if v[field].endswith(value)})
     else:
         return user_stats
 
@@ -106,7 +124,7 @@ available_valid_fields = [
 df = pd.DataFrame().from_dict(user_stats.toDict(), orient="index")
 
 user = "FahmyG"
-field = "tca"
+field = "oe"
 value = user_stats[user][field]
 std_deviation = df[field].std()
 average = df[field].mean()
@@ -114,5 +132,7 @@ average = df[field].mean()
 calc_pct(user, field, mode="invquant")
 calc_pct(user, field, value=0.999999, mode="quant")
 
-hist(field, 100)
-df[field].max()
+hist(field, 50)
+
+
+len(stats_filter("rundle", "D ", operator="startswith", user_stats=user_stats))

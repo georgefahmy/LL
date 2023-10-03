@@ -105,7 +105,7 @@ def open_stats_window():
                 expand_y=True,
                 auto_size_columns=False,
                 col_widths=[
-                    max(len(key) + 2, 7)
+                    min(len(key) + 2, 10)
                     for key in ["Username"] + list(STATS_DEFINITION.keys()) + ["Remove"]
                 ],
                 max_col_width=15,

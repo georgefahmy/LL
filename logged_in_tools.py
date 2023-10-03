@@ -188,6 +188,15 @@ def display_todays_questions(season, day, display_answers=False):
         sess.get(current_match_day).content,
         "html.parser",
     )
+    if match_day_page.find("h1"):
+        if "Results" in match_day_page.find("h1").parent.text:
+            return sg.popup_no_titlebar(
+                "No Active Match Day in play",
+                title="No Active Match",
+                modal=False,
+                auto_close=True,
+                auto_close_duration=10,
+            )
     if match_day_page.find("h2"):
         if "not yet active" in match_day_page.find("h2").parent.text:
             return sg.popup_no_titlebar(

@@ -873,7 +873,9 @@ while True:
                 )
                 defense_window["opponent"].update(
                     values=user_data.opponents,
-                    value=user_data.opponents[current_day],
+                    value=user_data.opponents[
+                        min(len(user_data.opponents) - 1, current_day)
+                    ],
                 )
 
         if window.metadata == "minileague_window":
@@ -1732,7 +1734,9 @@ while True:
             # Open a popup window to display the current match day's questions
             if event == "todays_questions":
                 question_window = display_todays_questions(
-                    latest_season, current_day + 1, values["display_todays_answers"]
+                    latest_season,
+                    min(len(user_data.opponents) - 1, current_day) + 1,
+                    values["display_todays_answers"],
                 )
                 screen_width, _ = window.GetScreenDimensions()
                 _, q_current_loc_y = question_window.current_location()
