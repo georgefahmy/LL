@@ -9,3 +9,4 @@ __pycache__/
 VERSION
 universal_wheels/*.whl
 .LearnedLeague*
+*.csv
