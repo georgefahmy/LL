@@ -359,8 +359,8 @@ super_layout = [
                         disabled_button_color=("black", "gray"),
                     ),
                     sg.Button(
-                        "Match Analysis",
-                        key="match_button",
+                        "Analysis",
+                        key="analysis_button",
                         tooltip="Open the Match Analysis window",
                         disabled=True,
                         disabled_button_color=("black", "gray"),

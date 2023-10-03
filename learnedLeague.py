@@ -501,7 +501,7 @@ while True:
                         window["login_button"].update(text="Logout")
                         window["stats_button"].update(disabled=False)
                         window["defense_button"].update(disabled=False)
-                        window["match_button"].update(disabled=False)
+                        window["analysis_button"].update(disabled=False)
                         combo_values = sorted(
                             list(
                                 set(
@@ -529,6 +529,59 @@ while True:
                     sess.close()
                     window.close()
                     break
+
+            # Open the One Day Specials Interface
+            if event in ["onedays_button", "One Days Specials"]:
+                (
+                    oneday_window,
+                    data,
+                    oneday,
+                    list_of_onedays,
+                    oneday_filtered_results,
+                ) = oneday_main()
+
+            # Open the MiniLeague interface
+            if event in ["minileague_button", "Mini Leagues"]:
+                (
+                    minileague_window,
+                    data,
+                    minileague_filtered_results,
+                    specific_mini,
+                ) = minileague()
+
+            # Open the LL homepage
+            if event in ["open_ll", "LearnedLeague.com"]:
+                webbrowser.open("https://www.learnedleague.com")
+
+            # Open the Statistics interface
+            if event in ["stats_button", "Player Tracker"]:
+                stats_window = open_stats_window()
+                stats_window["available_users"].update(
+                    values=combo_values, value=user_data.formatted_username
+                )
+
+            if event in ["defense_button", "Defense Tactics"]:
+                defense_window = open_defense_window()
+                defense_window["output_questions"].bind("<ButtonPress-2>", "press")
+
+                defense_window["player_1"].update(
+                    values=user_data.opponents,
+                    value=user_data.formatted_username,
+                )
+                defense_window["opponent"].update(
+                    values=user_data.opponents,
+                    value=user_data.opponents[
+                        min(len(user_data.opponents) - 1, current_day)
+                    ],
+                )
+
+            if event == "analysis_button":
+                sg.popup_no_titlebar(
+                    "Functionality Coming Soon",
+                    modal=False,
+                    auto_close=True,
+                    auto_close_duration=10,
+                )
 
             # Trigger the right click menu for searching text within a question
             if event == "questionpress":
@@ -825,25 +878,6 @@ while True:
                 ) as fp:
                     json.dump(all_data, fp, sort_keys=True, indent=4)
 
-            # Open the One Day Specials Interface
-            if event in ["onedays_button", "One Days Specials"]:
-                (
-                    oneday_window,
-                    data,
-                    oneday,
-                    list_of_onedays,
-                    oneday_filtered_results,
-                ) = oneday_main()
-
-            # Open the MiniLeague interface
-            if event in ["minileague_button", "Mini Leagues"]:
-                (
-                    minileague_window,
-                    data,
-                    minileague_filtered_results,
-                    specific_mini,
-                ) = minileague()
-
             # if the question number is clicked, open the link
             if event == "question_number":
                 webbrowser.open(window["question_number"].metadata)
@@ -851,32 +885,6 @@ while True:
             # Open the question item in your browser
             if "click_here" in event:
                 webbrowser.open(window["question"].metadata)
-
-            # Open the LL homepage
-            if event in ["open_ll", "LearnedLeague.com"]:
-                webbrowser.open("https://www.learnedleague.com")
-
-            # Open the Statistics interface
-            if event in ["stats_button", "Player Tracker"]:
-                stats_window = open_stats_window()
-                stats_window["available_users"].update(
-                    values=combo_values, value=user_data.formatted_username
-                )
-
-            if event in ["defense_button", "Defense Tactics"]:
-                defense_window = open_defense_window()
-                defense_window["output_questions"].bind("<ButtonPress-2>", "press")
-
-                defense_window["player_1"].update(
-                    values=user_data.opponents,
-                    value=user_data.formatted_username,
-                )
-                defense_window["opponent"].update(
-                    values=user_data.opponents,
-                    value=user_data.opponents[
-                        min(len(user_data.opponents) - 1, current_day)
-                    ],
-                )
 
         if window.metadata == "minileague_window":
             if "Escape" in event:
