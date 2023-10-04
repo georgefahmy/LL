@@ -34,7 +34,7 @@ OPTIONS = {
         "requests",
         "rapidfuzz",
     ],
-    "exclude": [
+    "excludes": [
         "*.csv",
         "csv_stats.py",
         "*.gif",
