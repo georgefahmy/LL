@@ -34,6 +34,11 @@ OPTIONS = {
         "requests",
         "rapidfuzz",
     ],
+    "exclude": [
+        "*.csv",
+        "csv_stats.py",
+        "*.gif",
+    ],
     "iconfile": "/Users/GFahmy/Documents/projects/LL/resources/ll_logo.icns",
     "arch": "universal2",
 }
