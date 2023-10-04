@@ -190,22 +190,24 @@ def display_todays_questions(season, day, display_answers=False):
     )
     if match_day_page.find("h1"):
         if "Results" in match_day_page.find("h1").parent.text:
-            return sg.popup_no_titlebar(
+            sg.popup_no_titlebar(
                 "No Active Match Day in play",
                 title="No Active Match",
                 modal=False,
                 auto_close=True,
                 auto_close_duration=10,
             )
+            return DotMap(metadata="continue")
     if match_day_page.find("h2"):
         if "not yet active" in match_day_page.find("h2").parent.text:
-            return sg.popup_no_titlebar(
+            sg.popup_no_titlebar(
                 f"Match Day {day} is not yet active.",
                 title=f"Warning - Match Day {day} not active.",
                 modal=False,
                 auto_close=True,
                 auto_close_duration=10,
             )
+            return DotMap(metadata="continue")
     questions_ans = DotMap()
     questions = [
         val.text

@@ -1746,6 +1746,9 @@ while True:
                     min(len(user_data.opponents) - 1, current_day) + 1,
                     values["display_todays_answers"],
                 )
+                if question_window.metadata == "continue":
+                    continue
+
                 screen_width, _ = window.GetScreenDimensions()
                 _, q_current_loc_y = question_window.current_location()
                 _, d_current_loc_y = window.current_location()
