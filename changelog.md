@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v5.6.0] - 2023-09-25
+### [v5.6.1] - 2023-10-04
 
-Added placeholder for stats analysis
+Minor bug fix
