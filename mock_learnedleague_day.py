@@ -2,6 +2,7 @@ import json
 import os
 import random
 import uuid
+import webbrowser
 
 import PySimpleGUI as sg
 from dotmap import DotMap
@@ -13,6 +14,8 @@ namespace = uuid.UUID(int=1)
 
 def generate_random_day(all_data, seed=None, threshold=0):
     random_list = []
+    points = [0, 1, 1, 2, 2, 3]
+
     if seed:
         random.seed(seed)
     if 0 <= threshold < 95:
@@ -25,7 +28,17 @@ def generate_random_day(all_data, seed=None, threshold=0):
     chosen = DotMap()
     for x in random_list:
         chosen[x] = all_data[x]
-    return DotMap(questions=chosen)
+
+    match_day = DotMap(questions=chosen)
+    match_day.code = "-".join(list(match_day.questions.keys()))
+    match_day.uuid = uuid.uuid3(namespace, match_day.code)
+    for i, key in enumerate(
+        sorted(match_day.questions.items(), key=lambda item: item[1].percent)
+    ):
+        match_day.questions[key[0]].assigned_point = points[i]
+        match_day.questions[key[0]].index = i
+
+    return match_day
 
 
 datapath = os.path.expanduser("~") + "/.LearnedLeague/all_data.json"
@@ -34,21 +47,9 @@ if os.path.isfile(datapath):
     with open(datapath, "r") as fp:
         all_data = DotMap(json.load(fp))
 
-points = [0, 1, 1, 2, 2, 3]
 seed = None
 threshold = 0
 match_day = generate_random_day(all_data, seed=seed, threshold=threshold)
-match_day.pprint(pformat="json")
-
-match_day.code = "-".join(list(match_day.questions.keys()))
-match_day.uuid = uuid.uuid3(namespace, match_day.code)
-
-
-for i, key in enumerate(
-    sorted(match_day.questions.items(), key=lambda item: item[1].percent)
-):
-    match_day.questions[key[0]].assigned_point = points[i]
-    match_day.questions[key[0]].index = i
 
 
 # TODO build layout similar to LL interface with above questions as input
@@ -68,6 +69,7 @@ window = sg.Window(
                 font=DEFAULT_FONT,
             ),
             sg.Text(expand_x=True),
+            sg.Button("New Questions"),
         ],
         [
             sg.Column(
@@ -77,10 +79,11 @@ window = sg.Window(
                 layout=[
                     [
                         sg.Frame(
-                            title=q,
+                            title="",
                             expand_x=True,
                             expand_y=True,
                             background_color="light gray",
+                            key="",
                             layout=(
                                 [
                                     sg.Frame(
@@ -88,9 +91,10 @@ window = sg.Window(
                                         layout=[
                                             [
                                                 sg.Text(
-                                                    f"Q{v.index+1}:",
+                                                    f"Q{i+1}:",
                                                     font=DEFAULT_FONT,
                                                     background_color="light gray",
+                                                    key="",
                                                 ),
                                             ],
                                         ],
@@ -99,6 +103,7 @@ window = sg.Window(
                                         relief=None,
                                         border_width=0,
                                         pad=0,
+                                        key="",
                                     ),
                                     sg.Multiline(
                                         f"{v._question}",
@@ -110,6 +115,8 @@ window = sg.Window(
                                         expand_y=True,
                                         border_width=0,
                                         font=DEFAULT_FONT,
+                                        key=f"Q{i+1}",
+                                        size=(None, 4),
                                     ),
                                 ],
                                 [
@@ -119,8 +126,9 @@ window = sg.Window(
                                         justification="l",
                                         background_color="white",
                                         border_width=1,
-                                        key=f"submitted_answer_{v.index}",
+                                        key=f"submitted_answer_{i}",
                                         font=DEFAULT_FONT,
+                                        use_readonly_for_disable=True,
                                     ),
                                     sg.Input(
                                         "",
@@ -129,25 +137,22 @@ window = sg.Window(
                                         justification="c",
                                         border_width=1,
                                         background_color="light gray",
-                                        key=f"assigned_points_{v.index}",
+                                        key=f"assigned_points_{i}",
                                         font=DEFAULT_FONT,
                                     ),
                                 ],
                                 [
                                     sg.Text(
-                                        background_color="light gray", expand_x=True
-                                    ),
-                                    sg.Text(
                                         "Correct Answer:",
                                         expand_x=False,
-                                        justification="r",
+                                        justification="l",
                                         background_color="light gray",
                                         font=DEFAULT_FONT,
                                     ),
                                     sg.Text(
                                         "",
                                         expand_x=True,
-                                        key=f"correct_answer_{v.index}",
+                                        key=f"correct_answer_{i}",
                                         justification="r",
                                         background_color="light green",
                                         font=DEFAULT_FONT,
@@ -156,17 +161,21 @@ window = sg.Window(
                             ),
                         )
                     ]
-                    for q, v in match_day.questions.items()
+                    for i, v in enumerate(match_day.questions.values())
                 ],
             )
         ],
         [sg.Button("Submit")],
     ],
-    size=(650, 850),
+    size=(900, 900),
     resizable=True,
     finalize=True,
     metadata="mock_day",
 )
+
+points = [q.assigned_point for q in match_day.questions.values()]
+answers = [q.answer for q in match_day.questions.values()]
+[window[f"Q{i+1}"].bind("<ButtonPress-1>", "click_here") for i in range(0, 6)]
 while True:
     event, values = window.read()
     # If the window is closed, break the loop and close the application
@@ -175,4 +184,44 @@ while True:
         break
 
     if event == "Submit":
-        continue
+        print([val for key, val in values.items() if "submitted_answer" in key])
+
+        [
+            window[f"assigned_points_{i}"].update(value=v.assigned_point)
+            for i, v in enumerate(match_day.questions.values())
+        ]
+        [
+            window[f"correct_answer_{i}"].update(value=v.answer)
+            for i, v in enumerate(match_day.questions.values())
+        ]
+        [
+            window[f"submitted_answer_{i}"].update(disabled=True)
+            for i, v in enumerate(match_day.questions.values())
+        ]
+
+    # Open the question item in your browser
+    if "click_here" in event:
+        q_id = event.split("click_here")[0]
+        url = window[q_id].metadata
+        print(url)
+        if url:
+            webbrowser.open(url)
+
+    if "New" in event:
+        match_day = generate_random_day(all_data, seed=seed, threshold=threshold)
+        [
+            window[f"Q{i+1}"].update(value=v._question)
+            for i, v in enumerate(match_day.questions.values())
+        ]
+        [
+            window[f"assigned_points_{i}"].update(value="")
+            for i, v in enumerate(match_day.questions.values())
+        ]
+        [
+            window[f"correct_answer_{i}"].update(value="")
+            for i, v in enumerate(match_day.questions.values())
+        ]
+        [
+            window[f"submitted_answer_{i}"].update(disabled=False)
+            for i, v in enumerate(match_day.questions.values())
+        ]
