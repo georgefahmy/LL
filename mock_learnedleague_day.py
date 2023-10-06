@@ -197,6 +197,7 @@ while True:
         [
             window[f"submitted_answer_{i}"].update(disabled=True)
             for i, v in enumerate(match_day.questions.values())
+            if not window[f"submitted_answer_{i}"].get()
         ]
 
     # Open the question item in your browser
