@@ -1115,6 +1115,7 @@ while True:
             # Open the question item in your browser
             if "click_here" in event:
                 q_id = event.split("click_here")[0]
+                print(q_id)
                 url = window[q_id].metadata
                 print(url)
                 if url:

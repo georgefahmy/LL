@@ -18,7 +18,7 @@ def generate_random_day(mock_day_data, seed=None, threshold=0):
 
     if seed:
         random.seed(seed)
-    if 0 <= threshold < 95:
+    if 0 <= int(threshold) < 95:
         mock_day_data = DotMap(
             {k: v for k, v in mock_day_data.items() if int(v.percent) > threshold}
         )
@@ -65,7 +65,13 @@ def open_mock_day(seed=None, threshold=0):
                 ),
                 sg.Text(expand_x=True),
                 sg.Text("Percent  Threshold:", font=DEFAULT_FONT),
-                sg.Input(default_text="0", key="perc_threshold", font=DEFAULT_FONT),
+                sg.Combo(
+                    default_value=0,
+                    values=list(range(0, 101, 1)),
+                    readonly=True,
+                    key="perc_threshold",
+                    font=DEFAULT_FONT,
+                ),
                 sg.Button("New Questions"),
             ],
             [
@@ -80,7 +86,6 @@ def open_mock_day(seed=None, threshold=0):
                                 expand_x=True,
                                 expand_y=True,
                                 background_color="light gray",
-                                key="",
                                 layout=(
                                     [
                                         sg.Frame(
@@ -114,6 +119,7 @@ def open_mock_day(seed=None, threshold=0):
                                             font=DEFAULT_FONT,
                                             key=f"Q{i+1}",
                                             size=(None, 4),
+                                            metadata=v.clickable_link,
                                         ),
                                     ],
                                     [
@@ -169,6 +175,7 @@ def open_mock_day(seed=None, threshold=0):
         finalize=True,
         metadata="mock_day",
     )
+    [window[f"Q{i}"].bind("<ButtonPress-1>", "click_here") for i in range(1, 7)]
     return window, match_day, seed, threshold, mock_day_data
 
 
