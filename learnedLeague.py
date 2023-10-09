@@ -33,6 +33,7 @@ from minileagues import (
     minileague,
     q_num_finder,
 )
+from mock_learnedleague_day import open_mock_day
 from onedays import get_oneday_data, get_specific_oneday, oneday_main, search_onedays
 from plotly_chart import plotly_chart
 from radar_chart import radar_similarity
@@ -436,8 +437,16 @@ if i > 1:
 if i < len(list(questions.keys())):
     window["next"].update(disabled=False)
 
-main_window, oneday_window, minileague_window, stats_window, defense_window = (
+(
+    main_window,
+    oneday_window,
+    minileague_window,
+    stats_window,
+    defense_window,
+    mock_day_window,
+) = (
     window,
+    None,
     None,
     None,
     None,
@@ -548,6 +557,9 @@ while True:
                     minileague_filtered_results,
                     specific_mini,
                 ) = minileague()
+
+            if event in ["mock_day", "Mock Match day"]:
+                mock_day_window = open_mock_day()
 
             # Open the LL homepage
             if event in ["open_ll", "LearnedLeague.com"]:
@@ -1061,7 +1073,11 @@ while True:
                         readonlybackground="light green"
                     )
                     specific_mini.data.score += 1
+
                 window["score"].update(value=specific_mini.data.score)
+
+        if window.metadata == "mock_day":
+            continue
 
         if window.metadata == "oneday_window":
             if "Escape" in event:
