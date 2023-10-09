@@ -1,10 +1,12 @@
 import os
+import sys
 
 import requests
 from bs4 import BeautifulSoup as bs
 from delocate.fuse import fuse_wheels
 
-python_version = "312"
+v = sys.version_info
+python_version = str(v.major) + str(v.minor)
 arm64 = "arm64"
 x86 = "x86_64"
 numpy_files = "https://pypi.org/project/numpy/#files"
@@ -35,6 +37,13 @@ pillow_filenames = [
     os.getcwd() + "/universal_wheels/" + url.split("/")[-1] for url in pillow_links
 ]
 links = numpy_links + pillow_links
+pillow_version = list(
+    set([v.split("-cp")[0] for v in [link.split("/")[-1] for link in pillow_links]])
+)[0]
+numpy_version = list(
+    set([v.split("-cp")[0] for v in [link.split("/")[-1] for link in numpy_links]])
+)[0]
+print([link.split("/")[-1] for link in pillow_links])
 
 for url in links:
     filename = os.getcwd() + "/universal_wheels/" + url.split("/")[-1]
@@ -44,17 +53,15 @@ for url in links:
         print(f"Saved {url}")
 
 cwd = os.getcwd()
-site_packages = (
-    "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/"
-)
+
 numpy_universal = (
     os.getcwd()
-    + "/universal_wheels/numpy-1.26.0-cp312-cp312-macosx_11_0_universal2.whl"
+    + f"/universal_wheels/{numpy_version}-cp{python_version}-cp{python_version}-macosx_11_0_universal2.whl"
 )
 fuse_wheels(np_filenames[0], np_filenames[1], numpy_universal)
 pillow_universal = (
     os.getcwd()
-    + "/universal_wheels/Pillow-10.0.1-cp312-cp312-macosx_11_0_universal2.whl"
+    + f"/universal_wheels/{pillow_version}-cp{python_version}-cp{python_version}-macosx_11_0_universal2.whl"
 )
 fuse_wheels(pillow_filenames[0], pillow_filenames[1], pillow_universal)
 
