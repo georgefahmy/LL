@@ -345,6 +345,11 @@ super_layout = [
                         tooltip="Mini League trivia (opens new window)",
                     ),
                     sg.Button(
+                        "Mock Match Day",
+                        key="mock_day",
+                        tooltip="Mini League trivia (opens new window)",
+                    ),
+                    sg.Button(
                         "Stats",
                         key="stats_button",
                         tooltip="Open the Statistics Window to compare player stats",

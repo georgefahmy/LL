@@ -4,7 +4,7 @@ import requests
 from bs4 import BeautifulSoup as bs
 from delocate.fuse import fuse_wheels
 
-python_version = "311"
+python_version = "312"
 arm64 = "arm64"
 x86 = "x86_64"
 numpy_files = "https://pypi.org/project/numpy/#files"
@@ -49,12 +49,12 @@ site_packages = (
 )
 numpy_universal = (
     os.getcwd()
-    + "/universal_wheels/numpy-1.25.2-cp311-cp311-macosx_11_0_universal2.whl"
+    + "/universal_wheels/numpy-1.26.0-cp312-cp312-macosx_11_0_universal2.whl"
 )
 fuse_wheels(np_filenames[0], np_filenames[1], numpy_universal)
 pillow_universal = (
     os.getcwd()
-    + "/universal_wheels/Pillow-10.0.0-cp311-cp311-macosx_11_0_universal2.whl"
+    + "/universal_wheels/Pillow-10.0.1-cp312-cp312-macosx_11_0_universal2.whl"
 )
 fuse_wheels(pillow_filenames[0], pillow_filenames[1], pillow_universal)
 

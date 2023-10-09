@@ -1,11 +1,12 @@
 import base64
 import datetime
+import io
 import json
 import os
 import re
 import sys
 import webbrowser
-from random import choice
+from random import choice, randint
 from textwrap import wrap
 
 import PySimpleGUI as sg
@@ -14,6 +15,7 @@ import wikipedia
 from bs4 import BeautifulSoup as bs
 from bs4 import SoupStrainer as ss
 from dotmap import DotMap
+from PIL import Image
 from PyDictionary import PyDictionary
 
 from answer_correctness import combined_correctness
@@ -33,6 +35,7 @@ from minileagues import (
     minileague,
     q_num_finder,
 )
+from mock_learnedleague_day import generate_random_day, open_mock_day
 from onedays import get_oneday_data, get_specific_oneday, oneday_main, search_onedays
 from plotly_chart import plotly_chart
 from radar_chart import radar_similarity
@@ -247,14 +250,6 @@ def update_question(questions, window, i):
 
     window["question"].update(value=question)
     window["question"].metadata = question_object.get("clickable_link")
-    if question_object.get("clickable_link"):
-        window["question"].set_tooltip(
-            "Click to Open: " + question_object.get("clickable_link")
-        )
-        window["question"].TooltipObject.timeout = 10
-    else:
-        window["question"].set_tooltip("")
-        window["question"].TooltipObject.timeout = 1000000
     window["num_questions"].update(value=len(list(questions.keys())))
     window["%_correct"].update(value=str(question_object["percent"]) + "%")
     window["season_number"].update(value=question_object["season"])
@@ -275,6 +270,13 @@ def update_question(questions, window, i):
     window["rundle_D"].update(value=question_object["D"] + "%")
     window["rundle_E"].update(value=question_object["E"] + "%")
     window["rundle_R"].update(value=question_object["R"] + "%")
+    widget = window["question"].Widget
+    widget.tag_config("HIGHLIGHT", foreground="blue", font=("Arial", 22, "underline"))
+    text = window["question"].get()
+    if "Click here" in text:
+        index = text.index("Click here")
+        indexes = (f"1.{index}", f"1.{index+10}")
+        widget.tag_add("HIGHLIGHT", indexes[0], indexes[1])
     window.refresh()
 
     return question_object
@@ -436,8 +438,16 @@ if i > 1:
 if i < len(list(questions.keys())):
     window["next"].update(disabled=False)
 
-main_window, oneday_window, minileague_window, stats_window, defense_window = (
+(
+    main_window,
+    oneday_window,
+    minileague_window,
+    stats_window,
+    defense_window,
+    mock_day_window,
+) = (
     window,
+    None,
     None,
     None,
     None,
@@ -548,6 +558,15 @@ while True:
                     minileague_filtered_results,
                     specific_mini,
                 ) = minileague()
+
+            if event in ["mock_day", "Mock Match day"]:
+                (
+                    mock_day_window,
+                    match_day,
+                    seed,
+                    threshold,
+                    mock_day_data,
+                ) = open_mock_day()
 
             # Open the LL homepage
             if event in ["open_ll", "LearnedLeague.com"]:
@@ -884,7 +903,24 @@ while True:
 
             # Open the question item in your browser
             if "click_here" in event:
-                webbrowser.open(window["question"].metadata)
+                if window["question"].metadata:
+                    img_data = requests.get(window["question"].metadata).content
+                    pil_image = Image.open(io.BytesIO(img_data))
+                    png_bio = io.BytesIO()
+                    pil_image.save(png_bio, format="PNG")
+                    png_data = png_bio.getvalue()
+                    img_window = sg.Window(
+                        title="Image",
+                        layout=[
+                            [
+                                sg.Image(
+                                    data=png_data,
+                                )
+                            ],
+                        ],
+                        finalize=True,
+                        modal=False,
+                    )
 
         if window.metadata == "minileague_window":
             if "Escape" in event:
@@ -1061,7 +1097,79 @@ while True:
                         readonlybackground="light green"
                     )
                     specific_mini.data.score += 1
+
                 window["score"].update(value=specific_mini.data.score)
+
+        if window.metadata == "mock_day":
+            if event == "Submit":
+                print([val for key, val in values.items() if "submitted_answer" in key])
+
+                for i, v in enumerate(match_day.questions.values()):
+                    window[f"assigned_points_{i}"].update(value=v.assigned_point)
+                    window[f"correct_answer_{i}"].update(value=v.answer)
+                    window[f"percent_correct_{i}"].update(value=f"{v.percent}%")
+                    window[f"submitted_answer_{i}"].update(disabled=True)
+                    window["Submit"].update(disabled=True)
+
+            if event == "Show/Hide Answers":
+                for i, v in enumerate(match_day.questions.values()):
+                    if window[f"correct_answer_{i}"].get():
+                        window[f"correct_answer_{i}"].update(value="")
+                        window[f"percent_correct_{i}"].update(value="")
+
+                    else:
+                        window[f"correct_answer_{i}"].update(value=v.answer)
+                        window[f"percent_correct_{i}"].update(value=f"{v.percent}%")
+
+            # Open the question item in your browser
+            if "click_here" in event:
+                q_id = event.split("click_here")[0]
+                if window[q_id].metadata:
+                    img_data = requests.get(window[q_id].metadata).content
+                    pil_image = Image.open(io.BytesIO(img_data))
+                    png_bio = io.BytesIO()
+                    pil_image.save(png_bio, format="PNG")
+                    png_data = png_bio.getvalue()
+                    img_window = sg.Window(
+                        title="Image",
+                        layout=[
+                            [
+                                sg.Image(
+                                    data=png_data,
+                                )
+                            ],
+                        ],
+                        finalize=True,
+                        modal=False,
+                    )
+
+            if "New" in event:
+                if values["random_seed"]:
+                    seed = randint(0, 999)
+                else:
+                    seed = None
+
+                match_day = generate_random_day(
+                    mock_day_data, seed=seed, threshold=values["perc_threshold"]
+                )
+
+                for i, v in enumerate(match_day.questions.values()):
+                    window[f"Q{i+1}"].update(value=v._question)
+                    window[f"Q{i+1}"].metadata = v.clickable_link
+                    window[f"assigned_points_{i}"].update(value="")
+                    window[f"correct_answer_{i}"].update(value="")
+                    window[f"percent_correct_{i}"].update(value="")
+                    window[f"submitted_answer_{i}"].update(disabled=False, value="")
+                    window["Submit"].update(disabled=False)
+                    widget = window[f"Q{i+1}"].Widget
+                    widget.tag_config(
+                        "HIGHLIGHT", foreground="blue", font=("Arial", 14, "underline")
+                    )
+                    text = window[f"Q{i+1}"].get()
+                    if "Click here" in text:
+                        index = text.index("Click here")
+                        indexes = (f"1.{index}", f"1.{index+10}")
+                        widget.tag_add("HIGHLIGHT", indexes[0], indexes[1])
 
         if window.metadata == "oneday_window":
             if "Escape" in event:
