@@ -33,7 +33,7 @@ from minileagues import (
     minileague,
     q_num_finder,
 )
-from mock_learnedleague_day import open_mock_day
+from mock_learnedleague_day import generate_random_day, open_mock_day
 from onedays import get_oneday_data, get_specific_oneday, oneday_main, search_onedays
 from plotly_chart import plotly_chart
 from radar_chart import radar_similarity
@@ -559,7 +559,13 @@ while True:
                 ) = minileague()
 
             if event in ["mock_day", "Mock Match day"]:
-                mock_day_window = open_mock_day()
+                (
+                    mock_day_window,
+                    match_day,
+                    seed,
+                    threshold,
+                    mock_day_data,
+                ) = open_mock_day()
 
             # Open the LL homepage
             if event in ["open_ll", "LearnedLeague.com"]:
@@ -1077,7 +1083,63 @@ while True:
                 window["score"].update(value=specific_mini.data.score)
 
         if window.metadata == "mock_day":
-            continue
+            if event == "Submit":
+                print([val for key, val in values.items() if "submitted_answer" in key])
+
+            [
+                window[f"assigned_points_{i}"].update(value=v.assigned_point)
+                for i, v in enumerate(match_day.questions.values())
+            ]
+            [
+                window[f"correct_answer_{i}"].update(value=v.answer)
+                for i, v in enumerate(match_day.questions.values())
+            ]
+            [
+                window[f"submitted_answer_{i}"].update(disabled=True)
+                for i, v in enumerate(match_day.questions.values())
+                if not window[f"submitted_answer_{i}"].get()
+            ]
+
+            if event == "Show/Hide Answers":
+                [
+                    window[f"correct_answer_{i}"].update(value=v.answer)
+                    for i, v in enumerate(match_day.questions.values())
+                    if not window[f"correct_answer_{i}"].get()
+                ]
+                [
+                    window[f"correct_answer_{i}"].update(value="")
+                    for i, v in enumerate(match_day.questions.values())
+                    if window[f"correct_answer_{i}"].get()
+                ]
+
+            # Open the question item in your browser
+            if "click_here" in event:
+                q_id = event.split("click_here")[0]
+                url = window[q_id].metadata
+                print(url)
+                if url:
+                    webbrowser.open(url)
+
+            if "New" in event:
+                match_day = generate_random_day(
+                    mock_day_data, seed=seed, threshold=values["perc_threshold"]
+                )
+                [
+                    window[f"Q{i+1}"].update(value=v._question)
+                    for i, v in enumerate(match_day.questions.values())
+                ]
+                [
+                    window[f"assigned_points_{i}"].update(value="")
+                    for i, v in enumerate(match_day.questions.values())
+                ]
+                [
+                    window[f"correct_answer_{i}"].update(value="")
+                    for i, v in enumerate(match_day.questions.values())
+                ]
+                [
+                    window[f"submitted_answer_{i}"].update(disabled=False)
+                    for i, v in enumerate(match_day.questions.values())
+                ]
 
         if window.metadata == "oneday_window":
             if "Escape" in event:
