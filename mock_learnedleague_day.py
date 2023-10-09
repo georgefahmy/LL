@@ -65,7 +65,7 @@ def open_mock_day(seed=None, threshold=0):
                 ),
                 sg.Text(expand_x=True),
                 sg.Text("Percent  Threshold:", font=DEFAULT_FONT),
-                sg.Input(deault_text="0", key="perc_threshold", font=DEFAULT_FONT),
+                sg.Input(default_text="0", key="perc_threshold", font=DEFAULT_FONT),
                 sg.Button("New Questions"),
             ],
             [
