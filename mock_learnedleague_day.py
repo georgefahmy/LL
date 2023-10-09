@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 import random
@@ -16,15 +17,24 @@ def generate_random_day(mock_day_data, seed=None, threshold=0):
     random_list = []
     points = [3, 2, 2, 1, 1, 0]
 
-    if seed:
-        random.seed(seed)
-    if 0 <= int(threshold) < 95:
+    if 0 <= int(threshold) <= 95:
         mock_day_data = DotMap(
             {k: v for k, v in mock_day_data.items() if int(v.percent) > threshold}
         )
+
+    if seed:
+        random.seed(
+            seed + int(datetime.datetime.today().date().strftime("%s")) + int(threshold)
+        )
+    else:
+        random.seed(
+            int(datetime.datetime.today().date().strftime("%s")) + int(threshold)
+        )
+
     while len(random_list) < 6:
         random_list.append(random.choice(list(mock_day_data.keys())))
         random_list = list(set(random_list))
+
     chosen = DotMap()
     for x in random_list:
         chosen[x] = mock_day_data[x]
@@ -64,10 +74,11 @@ def open_mock_day(seed=None, threshold=0):
                     font=DEFAULT_FONT,
                 ),
                 sg.Text(expand_x=True),
+                sg.Checkbox("Random Seed", key="random_seed", font=DEFAULT_FONT),
                 sg.Text("Percent  Threshold:", font=DEFAULT_FONT),
                 sg.Combo(
                     default_value=0,
-                    values=list(range(0, 101, 1)),
+                    values=list(range(0, 96, 1)),
                     readonly=True,
                     key="perc_threshold",
                     font=DEFAULT_FONT,
@@ -119,7 +130,7 @@ def open_mock_day(seed=None, threshold=0):
                                             font=DEFAULT_FONT,
                                             key=f"Q{i+1}",
                                             size=(None, 4),
-                                            metadata=v.clickable_link,
+                                            metadata=str(v.clickable_link),
                                         ),
                                     ],
                                     [
@@ -132,8 +143,9 @@ def open_mock_day(seed=None, threshold=0):
                                             key=f"submitted_answer_{i}",
                                             font=DEFAULT_FONT,
                                             use_readonly_for_disable=True,
+                                            disabled_readonly_background_color="orange",
                                         ),
-                                        sg.Input(
+                                        sg.Text(
                                             "",
                                             expand_x=False,
                                             size=(2, 1),
@@ -160,6 +172,23 @@ def open_mock_day(seed=None, threshold=0):
                                             background_color="light green",
                                             font=DEFAULT_FONT,
                                         ),
+                                        sg.Text(
+                                            "% Correct:",
+                                            expand_x=False,
+                                            size=(8, 1),
+                                            justification="r",
+                                            background_color="light gray",
+                                            font=DEFAULT_FONT,
+                                        ),
+                                        sg.Text(
+                                            "",
+                                            expand_x=False,
+                                            size=(4, 1),
+                                            key=f"percent_correct_{i}",
+                                            justification="r",
+                                            background_color="light blue",
+                                            font=DEFAULT_FONT,
+                                        ),
                                     ],
                                 ),
                             )
@@ -175,7 +204,17 @@ def open_mock_day(seed=None, threshold=0):
         finalize=True,
         metadata="mock_day",
     )
-    [window[f"Q{i}"].bind("<ButtonPress-1>", "click_here") for i in range(1, 7)]
+    for i in range(1, 7):
+        window[f"Q{i}"].bind("<ButtonPress-1>", "click_here")
+        widget = window[f"Q{i}"].Widget
+        widget.tag_config(
+            "HIGHLIGHT", foreground="blue", font=("Arial", 14, "underline")
+        )
+        text = window[f"Q{i}"].get()
+        if "Click here" in text:
+            index = text.index("Click here")
+            indexes = (f"1.{index}", f"1.{index+10}")
+            widget.tag_add("HIGHLIGHT", indexes[0], indexes[1])
     return window, match_day, seed, threshold, mock_day_data
 
 
