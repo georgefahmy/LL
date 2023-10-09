@@ -14,7 +14,7 @@ namespace = uuid.UUID(int=1)
 
 def generate_random_day(all_data, seed=None, threshold=0):
     random_list = []
-    points = [0, 1, 1, 2, 2, 3]
+    points = [3, 2, 2, 1, 1, 0]
 
     if seed:
         random.seed(seed)
@@ -52,9 +52,6 @@ threshold = 0
 match_day = generate_random_day(all_data, seed=seed, threshold=threshold)
 
 
-# TODO build layout similar to LL interface with above questions as input
-# TODO make it so the questions are selected at the start of the day and don't change?
-# TODO dont worry about metrics part
 # TODO create a folder (if not exist) that stores answers for questions/days and generate metrics.
 # TODO experiment - Do this with a database? make it online accessible for online competitions?
 # TODO future - expand available questions to include all questions in oneday and mini league sources
@@ -165,7 +162,7 @@ window = sg.Window(
                 ],
             )
         ],
-        [sg.Button("Submit")],
+        [sg.Button("Submit"), sg.Button("Show/Hide Answers")],
     ],
     size=(900, 900),
     resizable=True,
@@ -198,6 +195,18 @@ while True:
             window[f"submitted_answer_{i}"].update(disabled=True)
             for i, v in enumerate(match_day.questions.values())
             if not window[f"submitted_answer_{i}"].get()
+        ]
+
+    if event == "Show/Hide Answers":
+        [
+            window[f"correct_answer_{i}"].update(value=v.answer)
+            for i, v in enumerate(match_day.questions.values())
+            if not window[f"correct_answer_{i}"].get()
+        ]
+        [
+            window[f"correct_answer_{i}"].update(value="")
+            for i, v in enumerate(match_day.questions.values())
+            if window[f"correct_answer_{i}"].get()
         ]
 
     # Open the question item in your browser
