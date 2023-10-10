@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v5.6.1] - 2023-10-04
+### [v5.7.0] - 2023-10-10
 
-Minor bug fix
+Added a new window to do a deterministic mock match day! It uses the date as a seed, so the questions are all the same for everyone who attemps to use it. A random seed button and a % correct threshold are also available.
