@@ -1,12 +1,15 @@
 import datetime
+import io
 import json
 import os
 import random
 import uuid
-import webbrowser
+from random import choice, randint
 
 import PySimpleGUI as sg
+import requests
 from dotmap import DotMap
+from PIL import Image
 
 from logged_in_tools import DEFAULT_FONT
 
@@ -32,7 +35,7 @@ def generate_random_day(mock_day_data, seed=None, threshold=0):
         )
 
     while len(random_list) < 6:
-        random_list.append(random.choice(list(mock_day_data.keys())))
+        random_list.append(choice(list(mock_day_data.keys())))
         random_list = list(set(random_list))
 
     chosen = DotMap()
@@ -40,13 +43,19 @@ def generate_random_day(mock_day_data, seed=None, threshold=0):
         chosen[x] = mock_day_data[x]
 
     match_day = DotMap(questions=chosen)
-    match_day.code = "-".join(list(match_day.questions.keys()))
-    match_day.uuid = uuid.uuid3(namespace, match_day.code)
+    match_day.code = "-".join(sorted(list(match_day.questions.keys())))
+    match_day.uuid = str(uuid.uuid3(namespace, match_day.code))
+    match_day.date = str(datetime.datetime.today().date())
     for i, key in enumerate(
         sorted(match_day.questions.items(), key=lambda item: item[1].percent)
     ):
         match_day.questions[key[0]].assigned_point = points[i]
         match_day.questions[key[0]].index = i
+    mock_matches_path = os.path.expanduser("~") + "/.LearnedLeague/mock_matches/"
+    if not os.path.isdir(mock_matches_path):
+        os.mkdir(mock_matches_path)
+    with open(mock_matches_path + match_day.uuid + ".json", "w") as fp:
+        json.dump(match_day, fp, indent=4)
 
     return match_day
 
@@ -219,7 +228,7 @@ def open_mock_day(seed=None, threshold=0):
 
 
 if __name__ == "__main__":
-    datapath = os.path.expanduser("~") + "/.LearnedLeague/mock_day_data.json"
+    datapath = os.path.expanduser("~") + "/.LearnedLeague/all_data.json"
     mock_day_data = DotMap()
     if os.path.isfile(datapath):
         with open(datapath, "r") as fp:
@@ -227,11 +236,8 @@ if __name__ == "__main__":
     seed = None
     threshold = 0
     match_day = generate_random_day(mock_day_data, seed=seed, threshold=threshold)
-    window = open_mock_day()
+    window, match_day, seed, threshold, mock_day_data = open_mock_day(seed, threshold)
 
-    points = [q.assigned_point for q in match_day.questions.values()]
-    answers = [q.answer for q in match_day.questions.values()]
-    [window[f"Q{i+1}"].bind("<ButtonPress-1>", "click_here") for i in range(0, 6)]
     while True:
         event, values = window.read()
         # If the window is closed, break the loop and close the application
@@ -242,57 +248,69 @@ if __name__ == "__main__":
         if event == "Submit":
             print([val for key, val in values.items() if "submitted_answer" in key])
 
-            [
+            for i, v in enumerate(match_day.questions.values()):
                 window[f"assigned_points_{i}"].update(value=v.assigned_point)
-                for i, v in enumerate(match_day.questions.values())
-            ]
-            [
                 window[f"correct_answer_{i}"].update(value=v.answer)
-                for i, v in enumerate(match_day.questions.values())
-            ]
-            [
+                window[f"percent_correct_{i}"].update(value=f"{v.percent}%")
                 window[f"submitted_answer_{i}"].update(disabled=True)
-                for i, v in enumerate(match_day.questions.values())
-                if not window[f"submitted_answer_{i}"].get()
-            ]
+                window["Submit"].update(disabled=True)
 
         if event == "Show/Hide Answers":
-            [
-                window[f"correct_answer_{i}"].update(value=v.answer)
-                for i, v in enumerate(match_day.questions.values())
-                if not window[f"correct_answer_{i}"].get()
-            ]
-            [
-                window[f"correct_answer_{i}"].update(value="")
-                for i, v in enumerate(match_day.questions.values())
-                if window[f"correct_answer_{i}"].get()
-            ]
+            for i, v in enumerate(match_day.questions.values()):
+                if window[f"correct_answer_{i}"].get():
+                    window[f"correct_answer_{i}"].update(value="")
+                    window[f"percent_correct_{i}"].update(value="")
+
+                else:
+                    window[f"correct_answer_{i}"].update(value=v.answer)
+                    window[f"percent_correct_{i}"].update(value=f"{v.percent}%")
 
         # Open the question item in your browser
         if "click_here" in event:
             q_id = event.split("click_here")[0]
-            url = window[q_id].metadata
-            print(url)
-            if url:
-                webbrowser.open(url)
+            if window[q_id].metadata:
+                img_data = requests.get(window[q_id].metadata).content
+                pil_image = Image.open(io.BytesIO(img_data))
+                png_bio = io.BytesIO()
+                pil_image.save(png_bio, format="PNG")
+                png_data = png_bio.getvalue()
+                img_window = sg.Window(
+                    title="Image",
+                    layout=[
+                        [
+                            sg.Image(
+                                data=png_data,
+                            )
+                        ],
+                    ],
+                    finalize=True,
+                    modal=False,
+                )
 
         if "New" in event:
+            if values["random_seed"]:
+                seed = randint(0, 999)
+            else:
+                seed = None
+
             match_day = generate_random_day(
-                mock_day_data, seed=seed, threshold=threshold
+                mock_day_data, seed=seed, threshold=values["perc_threshold"]
             )
-            [
+
+            for i, v in enumerate(match_day.questions.values()):
                 window[f"Q{i+1}"].update(value=v._question)
-                for i, v in enumerate(match_day.questions.values())
-            ]
-            [
+                window[f"Q{i+1}"].metadata = v.clickable_link
                 window[f"assigned_points_{i}"].update(value="")
-                for i, v in enumerate(match_day.questions.values())
-            ]
-            [
                 window[f"correct_answer_{i}"].update(value="")
-                for i, v in enumerate(match_day.questions.values())
-            ]
-            [
-                window[f"submitted_answer_{i}"].update(disabled=False)
-                for i, v in enumerate(match_day.questions.values())
-            ]
+                window[f"percent_correct_{i}"].update(value="")
+                window[f"submitted_answer_{i}"].update(disabled=False, value="")
+                window["Submit"].update(disabled=False)
+                widget = window[f"Q{i+1}"].Widget
+                widget.tag_config(
+                    "HIGHLIGHT", foreground="blue", font=("Arial", 14, "underline")
+                )
+                text = window[f"Q{i+1}"].get()
+                if "Click here" in text:
+                    index = text.index("Click here")
+                    indexes = (f"1.{index}", f"1.{index+10}")
+                    widget.tag_add("HIGHLIGHT", indexes[0], indexes[1])
