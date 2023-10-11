@@ -77,7 +77,7 @@ def hist(field, bins=10):
 season = 98
 
 player_stats_url = ALL_DATA_BASE_URL.format(season)
-file = f"LL{season}_Leaguewide.csv"
+file = os.path.expanduser("~") + "/.LearnedLeague" + f"LL{season}_Leaguewide.csv"
 if not os.path.isfile(file):
     with open(file, "wb+") as out_file:
         sess = login()
