@@ -20,7 +20,6 @@ from PyDictionary import PyDictionary
 
 from answer_correctness import combined_correctness
 from check_for_updates import check_for_update
-from defense_window import open_defense_window
 from layout import super_layout
 from logged_in_tools import (
     DEFAULT_FONT,
@@ -28,24 +27,30 @@ from logged_in_tools import (
     display_todays_questions,
     login,
 )
-from minileagues import (
+from radar_chart import radar_similarity
+from userdata import UserData, load
+from windows.defense_window import open_defense_window
+from windows.minileagues import (
     get_mini_data,
     get_specific_minileague,
     load_questions,
     minileague,
     q_num_finder,
 )
-from mock_learnedleague_day import generate_random_day, open_mock_day
-from onedays import get_oneday_data, get_specific_oneday, oneday_main, search_onedays
-from radar_chart import radar_similarity
-from statistics_window import (
+from windows.mock_learnedleague_day import generate_random_day, open_mock_day
+from windows.onedays import (
+    get_oneday_data,
+    get_specific_oneday,
+    oneday_main,
+    search_onedays,
+)
+from windows.statistics_window import (
     Sort,
     add_stats_row,
     open_stats_window,
     remove_all_rows,
     remove_stats_row,
 )
-from userdata import UserData, load
 
 BASE_URL = "https://www.learnedleague.com"
 
