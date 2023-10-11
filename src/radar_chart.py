@@ -11,7 +11,7 @@ from matplotlib.path import Path
 from matplotlib.projections import register_projection
 from matplotlib.projections.polar import PolarAxes
 
-from logged_in_tools import CATEGORIES
+from .constants import CATEGORIES
 
 matplotlib.use("TkAgg")
 

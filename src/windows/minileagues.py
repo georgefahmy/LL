@@ -1,6 +1,5 @@
 import base64
 import datetime
-import os
 import re
 from collections import OrderedDict
 from random import choice
@@ -10,8 +9,7 @@ import requests
 from bs4 import BeautifulSoup as bs
 from dotmap import DotMap
 
-BASE_URL = "https://www.learnedleague.com"
-WD = os.getcwd()
+from ..constants import BASE_URL, WD
 
 
 def internet_on():
@@ -483,5 +481,7 @@ def minileague():
         window[f"answer_submission_{i}"].bind("<Return>", f"_submit_answer_button_{i}")
         for i in range(1, 67)
     ]
+
+    window.refresh()
 
     return window, data, filtered_results, specific_mini

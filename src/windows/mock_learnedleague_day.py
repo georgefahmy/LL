@@ -4,14 +4,13 @@ import json
 import os
 import random
 import uuid
-from random import choice, randint
 
 import PySimpleGUI as sg
 import requests
 from dotmap import DotMap
 from PIL import Image
 
-from logged_in_tools import DEFAULT_FONT
+from ..constants import DEFAULT_FONT
 
 namespace = uuid.UUID(int=1)
 
@@ -35,9 +34,10 @@ def generate_random_day(mock_day_data, seed=None, threshold=0):
         )
 
     while len(random_list) < 6:
-        random_list.append(choice(list(mock_day_data.keys())))
+        random_list.append(random.choice(list(mock_day_data.keys())))
         random_list = list(set(random_list))
 
+    random.Random(seed).shuffle(sorted(random_list))
     chosen = DotMap()
     for x in random_list:
         chosen[x] = mock_day_data[x]
@@ -289,7 +289,7 @@ if __name__ == "__main__":
 
         if "New" in event:
             if values["random_seed"]:
-                seed = randint(0, 999)
+                seed = random.randint(0, 999)
             else:
                 seed = None
 

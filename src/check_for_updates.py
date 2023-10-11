@@ -6,10 +6,7 @@ import PySimpleGUI as sg
 import requests
 from packaging import version
 
-WD = os.getcwd()
-
-FILENAME = "LearnedLeague.dmg"
-VOLUME_NAME = FILENAME.split(".")[0]
+from .constants import WD
 
 
 def get_sudo_password():

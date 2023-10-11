@@ -10,9 +10,7 @@ import PySimpleGUI as sg
 import requests
 from bs4 import BeautifulSoup as bs
 
-BASE_URL = "https://www.learnedleague.com"
-WD = os.getcwd()
-MODKOS = "https://www.learnedleague.com/images/misc/ModKos.png?t=1649"
+from ..constants import BASE_URL, MODKOS, WD
 
 
 def internet_on():

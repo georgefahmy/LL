@@ -18,33 +18,33 @@ from dotmap import DotMap
 from PIL import Image
 from PyDictionary import PyDictionary
 
-from answer_correctness import combined_correctness
-from check_for_updates import check_for_update
-from layout import super_layout
-from logged_in_tools import (
-    DEFAULT_FONT,
+from src.answer_correctness import combined_correctness
+from src.check_for_updates import check_for_update
+from src.constants import DEFAULT_FONT
+from src.layout import super_layout
+from src.logged_in_tools import (
     display_category_metrics,
     display_todays_questions,
     login,
 )
-from radar_chart import radar_similarity
-from userdata import UserData, load
-from windows.defense_window import open_defense_window
-from windows.minileagues import (
+from src.radar_chart import radar_similarity
+from src.userdata import UserData, load
+from src.windows.defense_window import open_defense_window
+from src.windows.minileagues import (
     get_mini_data,
     get_specific_minileague,
     load_questions,
     minileague,
     q_num_finder,
 )
-from windows.mock_learnedleague_day import generate_random_day, open_mock_day
-from windows.onedays import (
+from src.windows.mock_learnedleague_day import generate_random_day, open_mock_day
+from src.windows.onedays import (
     get_oneday_data,
     get_specific_oneday,
     oneday_main,
     search_onedays,
 )
-from windows.statistics_window import (
+from src.windows.statistics_window import (
     Sort,
     add_stats_row,
     open_stats_window,

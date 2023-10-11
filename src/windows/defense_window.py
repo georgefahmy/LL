@@ -1,12 +1,6 @@
-import os
-
 import PySimpleGUI as sg
 
-from logged_in_tools import CATEGORIES, DEFAULT_FONT
-
-BASE_URL = "https://www.learnedleague.com"
-WD = os.getcwd()
-MODKOS = "https://www.learnedleague.com/images/misc/ModKos.png?t=1649"
+from ..constants import CATEGORIES, DEFAULT_FONT
 
 
 def open_defense_window():

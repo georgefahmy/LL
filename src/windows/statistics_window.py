@@ -1,13 +1,7 @@
-import os
-
 import PySimpleGUI as sg
 from dotmap import DotMap
 
-from logged_in_tools import DEFAULT_FONT, STATS_DEFINITION
-
-BASE_URL = "https://www.learnedleague.com"
-WD = os.getcwd()
-MODKOS = "https://www.learnedleague.com/images/misc/ModKos.png?t=1649"
+from ..constants import DEFAULT_FONT, STATS_DEFINITION
 
 
 def Sort(sub_li, col, reverse=True):

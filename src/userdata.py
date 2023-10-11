@@ -6,12 +6,9 @@ from bs4 import BeautifulSoup as bs
 from bs4 import SoupStrainer as ss
 from dotmap import DotMap
 
-from logged_in_tools import login
+from .constants import BASE_URL, USER_DATA_DIR
+from .logged_in_tools import login
 
-BASE_URL = "https://www.learnedleague.com"
-LOGIN_URL = BASE_URL + "/ucp.php?mode=login"
-USER_QHIST = BASE_URL + "/profiles.php?%s&9"
-USER_DATA_DIR = os.path.expanduser("~") + "/.LearnedLeague/user_data"
 if not os.path.isdir(USER_DATA_DIR):
     os.mkdir(USER_DATA_DIR)
 

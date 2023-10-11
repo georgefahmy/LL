@@ -1,6 +1,6 @@
 import PySimpleGUI as sg
 
-from logged_in_tools import DEFAULT_FONT
+from .constants import DEFAULT_FONT
 
 sg.theme("Reddit")
 

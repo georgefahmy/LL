@@ -18,10 +18,10 @@ with open("resources/VERSION", "w") as f:
 
 APP = ["learnedLeague.py"]
 DATA_FILES = [
+    "src",
     "resources",
     "resources/VERSION",
     "resources/ll_logo.icns",
-    "onedays.py",
 ]
 OPTIONS = {
     "includes": [
