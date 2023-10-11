@@ -37,7 +37,6 @@ from minileagues import (
 )
 from mock_learnedleague_day import generate_random_day, open_mock_day
 from onedays import get_oneday_data, get_specific_oneday, oneday_main, search_onedays
-from plotly_chart import plotly_chart
 from radar_chart import radar_similarity
 from statistics_window import (
     Sort,
@@ -2012,9 +2011,6 @@ while True:
                         "Player Not Found.", no_titlebar=True, modal=False
                     )
                     continue
-
-                if False:
-                    plotly_chart(player_1, player_2)
 
                 plot_window = radar_similarity(player_1, player_2)
 
