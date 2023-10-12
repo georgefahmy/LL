@@ -4,7 +4,7 @@ from dotmap import DotMap
 from ..constants import DEFAULT_FONT, STATS_DEFINITION
 
 
-def Sort(sub_li, col, reverse=True):
+def sort(sub_li, col, reverse=True):
     if col in [0, 1, 19, 20]:
         table_values = sorted(sub_li, key=lambda x: x[col], reverse=reverse)
     else:

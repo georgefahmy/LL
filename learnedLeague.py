@@ -45,11 +45,11 @@ from src.windows.onedays import (
     search_onedays,
 )
 from src.windows.statistics_window import (
-    Sort,
     add_stats_row,
     open_stats_window,
     remove_all_rows,
     remove_stats_row,
+    sort,
 )
 
 BASE_URL = "https://www.learnedleague.com"
@@ -1656,7 +1656,7 @@ while True:
                     if not window["stats_table"].get():
                         continue
 
-                    table_values, reverse = Sort(
+                    table_values, reverse = sort(
                         window["stats_table"].get(), column, not reverse
                     )
                     current_season = window["stats_table"].get()[0][1]
