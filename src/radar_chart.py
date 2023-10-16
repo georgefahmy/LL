@@ -1,19 +1,19 @@
 import os
 from collections import OrderedDict
 
-import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
 import PySimpleGUI as sg
+from matplotlib import use
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.patches import Circle
 from matplotlib.path import Path
 from matplotlib.projections import register_projection
 from matplotlib.projections.polar import PolarAxes
+from numpy import append, degrees, linspace, pi
 
 from .constants import CATEGORIES
 
-matplotlib.use("TkAgg")
+use("TkAgg")
 
 
 def radar_factory(num_vars, frame="circle"):
@@ -31,7 +31,7 @@ def radar_factory(num_vars, frame="circle"):
 
     """
     # calculate evenly-spaced axis angles
-    theta = np.linspace(0, 2 * np.pi, num_vars, endpoint=False)
+    theta = linspace(0, 2 * pi, num_vars, endpoint=False)
 
     class RadarTransform(PolarAxes.PolarTransform):
         def transform_path_non_affine(self, path):
@@ -65,12 +65,12 @@ def radar_factory(num_vars, frame="circle"):
             x, y = line.get_data()
             # FIXME: markers at x[0], y[0] get doubled-up
             if x[0] != x[-1]:
-                x = np.append(x, x[0])
-                y = np.append(y, y[0])
+                x = append(x, x[0])
+                y = append(y, y[0])
                 line.set_data(x, y)
 
         def set_varlabels(self, labels):
-            self.set_thetagrids(np.degrees(theta), labels)
+            self.set_thetagrids(degrees(theta), labels)
 
         def _gen_axes_patch(self):
             # The Axes patch must be centered at (0.5, 0.5) and of radius 0.5
@@ -90,7 +90,7 @@ class Toolbar(NavigationToolbar2Tk):
 
 
 def format_coord(category, percent):
-    category_value = CATEGORIES[min(17, int(round((np.degrees(category)) / 20, 0)))]
+    category_value = CATEGORIES[min(17, int(round((degrees(category)) / 20, 0)))]
     return f"Category: {category_value}, Percentage: {percent:.1f}%"
 
 
