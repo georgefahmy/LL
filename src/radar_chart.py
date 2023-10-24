@@ -150,6 +150,7 @@ def radar_similarity(player_1, player_2):
         perc = sc.get_offsets()[n][1]
         text = f"{name}\n{cat}: {perc:.1f}%"
 
+        annot.xy = sc.get_offsets()[n]
         annot.set(text=text, color=c, bbox=dict(boxstyle="round", fc=fc, edgecolor="k"))
 
     def hover(event):
