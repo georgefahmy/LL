@@ -678,6 +678,14 @@ while True:
                 window["answer_submission"].update(value="", disabled=False)
                 window["submit_answer_button"].update(disabled=False)
                 window["correct_override"].update(disabled=True)
+                if i == len(questions.keys()):
+                    window["next"].update(disabled=True)
+                else:
+                    window["next"].update(disabled=False)
+                if i == 1:
+                    window["previous"].update(disabled=True)
+                else:
+                    window["previous"].update(disabled=False)
 
             # If the category dropdown is changed from ALL, or the filter button is pressed
             # display the new questions
