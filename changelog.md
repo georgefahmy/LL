@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v5.7.1] - 2023-10-23
+### [v5.7.2] - 2023-10-23
 
-Fixed a bug with random selection not updating the status of the next/previous button based on the index of the question.
+Fixed minor bug with the defensive similarity chart annotations being in the wrong spot
