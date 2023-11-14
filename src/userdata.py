@@ -152,9 +152,16 @@ class UserData(DotMap):
             cells = category.find_all("td")
             cat_name = cells[0].text
             correct, total = cells[1].text.split("-")
+            if not correct:
+                correct = 0
+            if not total:
+                total = 0
             category_metrics[cat_name].correct = int(correct)
             category_metrics[cat_name].total = int(total)
-            category_metrics[cat_name].percent = int(correct) / int(total)
+            try:
+                category_metrics[cat_name].percent = int(correct) / int(total)
+            except ZeroDivisionError:
+                category_metrics[cat_name].percent = 0.0
 
         self.category_metrics = category_metrics
 
@@ -188,7 +195,15 @@ class UserData(DotMap):
                 f'S{re.sub("&","D",row.find_all("td")[0].a.get("href").split("?")[-1])}'
             )
             win_loss[current_day] = win_loss_text
+
+        if not win_loss:
+            self.formatted_username = self.format_username(self.username)
+            self._get_full_data()
+            self._save()
+            return
+
         _key_lookup = current_day + "Q1"
+
         if not any(
             [
                 _key_lookup in self.question_history,

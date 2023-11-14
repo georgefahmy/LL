@@ -297,7 +297,7 @@ try:
         .split("LL")[-1]
     )
 except Exception:
-    latest_season = 98
+    latest_season = 99
 
 available_seasons = [
     str(season) for season in list(range(60, int(latest_season) + 1, 1))
@@ -317,13 +317,16 @@ missing_seasons = sorted(
     list(set(available_seasons).symmetric_difference(set(season_in_data)))
 )
 
-current_day = int(
-    bs(
-        requests.get("https://www.learnedleague.com/allrundles.php").content,
-        "html.parser",
-        parse_only=ss("h3"),
-    ).h3.text.split()[-1]
-)
+try:
+    current_day = int(
+        bs(
+            requests.get("https://www.learnedleague.com/allrundles.php").content,
+            "html.parser",
+            parse_only=ss("h3"),
+        ).h3.text.split()[-1]
+    )
+except:
+    current_day = 0
 
 season_day = f"S{latest_season}D{current_day}Q6"
 
@@ -347,10 +350,10 @@ for season in available_seasons:
     for key in all_data.keys():
         if season in key:
             season_questions += 1
-    if season_questions < (current_day * 6) and True:
+    if season_questions < (current_day * 6) and current_day > 0:
         missing_seasons += [season]
 
-if len(missing_seasons) > 0:
+if len(missing_seasons) > 0 and current_day > 0:
     icon_file = WD + "/resources/ll_app_logo.png"
     sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
     max_length = len(missing_seasons)
