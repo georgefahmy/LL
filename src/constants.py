@@ -60,3 +60,48 @@ Perfect defensive points - (1: 0, 2: 1, 3: 2, 4: 4, 5: 6, 6: 9)""",
     "Rundle": "User's Rundle",
     "Rank": "Overall Rank in the Season",
 }
+
+ALL_DATA_BASE_URL = "https://www.learnedleague.com/lgwide.php?{}"
+
+VALID_OPERATORS = [
+    "==",
+    ">=",
+    "<=",
+    "<",
+    ">",
+    "in",
+    "not in",
+    "startswith",
+    "endswith",
+]
+
+AVAIABLE_FIELDS = [
+    "wins",
+    "losses",
+    "ties",
+    "pts",
+    "mpd",
+    "tmp",
+    "tca",
+    "pca",
+    "ufpe",
+    "oe",
+    "qpct",
+    "tpa",
+    "caa",
+    "pcaa",
+    "ufpa",
+    "de",
+    "nufp",
+    "qpo",
+    "qpd",
+    "opd",
+    "fw",
+    "fl",
+    "3pt",
+    "mcw",
+    "rundle",
+    "rundle rank",
+    "league",
+    "branch",
+]
