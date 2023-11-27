@@ -210,7 +210,7 @@ class UserData(DotMap):
                 win_loss[list(win_loss.keys())[-1]] == "F",
             ]
         ):
-            print("Retrieved Latest Data")
+            print(f"Retrieved Latest Data for {self.username}")
             self.formatted_username = self.format_username(self.username)
             self._get_full_data()
             self._save()
