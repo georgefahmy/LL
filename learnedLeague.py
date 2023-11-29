@@ -54,6 +54,8 @@ from src.windows.statistics_window import (
     sort,
 )
 
+print(sg.get_versions())
+
 BASE_URL = "https://www.learnedleague.com"
 
 WD = os.getcwd()

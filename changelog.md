@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v5.7.2] - 2023-10-23
+### [v5.7.3] - 2023-11-27
 
-Fixed minor bug with the defensive similarity chart annotations being in the wrong spot
+Minor improvements and some file management updates
