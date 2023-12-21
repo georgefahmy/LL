@@ -1720,6 +1720,8 @@ while True:
                         webbrowser.open(url)
 
                     if window["stats_table"].get()[row][column] == "X":
+                        username = window["stats_table"].get()[row][0]
+                        del window["stats_table"].metadata[username]
                         table_values = remove_stats_row(window, row)
 
             # Clear the stats table complete
