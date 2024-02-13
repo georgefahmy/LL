@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v5.7.4] - 2023-12-22
+### [v5.7.4] - 2024-02-15
 
 Fixed minor bug with stats window now removing rows after switching between total and latest season

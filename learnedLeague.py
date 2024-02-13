@@ -362,7 +362,7 @@ if len(missing_seasons) > 0 and current_day > 0:
     sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
     max_length = len(missing_seasons)
     loading_window = sg.Window(
-        "Loading New Seasons",
+        "Loading New Questions",
         [
             [
                 sg.ProgressBar(
@@ -1870,9 +1870,11 @@ while True:
                 percents = DotMap(
                     {
                         f"question_{i+1}": {
-                            "percent": player_2.category_metrics.get(key).percent
-                            if player_2.category_metrics.get(key)
-                            else 0
+                            "percent": (
+                                player_2.category_metrics.get(key).percent
+                                if player_2.category_metrics.get(key)
+                                else 0
+                            )
                         }
                         for i, key in enumerate(question_categories)
                     }
