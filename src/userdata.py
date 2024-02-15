@@ -181,10 +181,17 @@ class UserData(DotMap):
         previous_day = bs(
             profile_id_page.content, "html.parser", parse_only=ss("table")
         )
-
-        rows = previous_day.find(
+        data_table = previous_day.find(
             "table", {"summary": "Data table for LL results"}
-        ).find_all("tr")[1:]
+        )
+        if not data_table:
+            print("Data table issue, loading full data")
+            self.formatted_username = self.format_username(self.username)
+            self._get_full_data()
+            self._save()
+            return
+
+        rows = data_table.find_all("tr")[1:]
         win_loss = DotMap()
         for row in rows:
             win_loss_text = row.find_all("td")[2].text
