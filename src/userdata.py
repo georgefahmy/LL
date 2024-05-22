@@ -171,6 +171,70 @@ class UserData(DotMap):
                 "table", {"summary": "Data table for LL results"}
             ).find_all("tr")[1:]
         ]
+        past_seasons = (
+            bs(
+                self.sess.get(
+                    f"https://learnedleague.com/profiles.php?{self.profile_id}&7"
+                ).content,
+                "html.parser",
+            )
+            .find("div", {"class": "pastseasons"})
+            .find_all("div", {"class": "fl_latest"})
+        )
+        self.past_seasons = DotMap()
+        for season in past_seasons:
+            details = DotMap()
+            details["season"] = season.h2.text.split(" ")[0]
+            details["season_link"] = BASE_URL + season.h2.a.get("href")
+            details["rundle"] = season.h3.text.strip()
+            details["rundle_link"] = BASE_URL + "/" + season.h3.a.get("href")
+            details["matches"] = DotMap()
+            details["wins"] = 0
+            details["ties"] = 0
+            details["losses"] = 0
+            rows = season.table.tbody.find_all("tr")
+            for row in rows:
+                cells = row.find_all("td")
+                match_day = cells[0].text.replace(" ", "_").lower()
+                match_day_link = BASE_URL + cells[0].a.get("href")
+                details["matches"][match_day] = DotMap()
+                details["matches"][match_day]["link"] = match_day_link
+                details["matches"][match_day]["opponent"] = cells[1].img.get("title")
+                details["matches"][match_day]["result"] = (
+                    "Win"
+                    if cells[2].text == "W"
+                    else "Tie" if cells[2].text == "T" else "Loss"
+                )
+                if details["matches"][match_day]["result"] == "Win":
+                    details["wins"] += 1
+                elif details["matches"][match_day]["result"] == "Tie":
+                    details["ties"] += 1
+                else:
+                    details["losses"] += 1
+                user_score, opp_score = cells[3].text.split("-")
+                user_points, user_correct = [
+                    val.replace(")", "") for val in user_score.split("(")
+                ]
+                opp_points, opp_correct = [
+                    val.replace(")", "") for val in opp_score.split("(")
+                ]
+                details["matches"][match_day]["score"] = cells[3].text
+                details["matches"][match_day]["detailed_link"] = BASE_URL + cells[
+                    3
+                ].a.get("href")
+                details["matches"][match_day]["score_breakdown"]["points"] = user_points
+                details["matches"][match_day]["score_breakdown"][
+                    "correct"
+                ] = user_correct
+
+                details["matches"][match_day]["score_breakdown"][
+                    "opp_points"
+                ] = opp_points
+                details["matches"][match_day]["score_breakdown"][
+                    "opp_correct"
+                ] = opp_correct
+
+            self.past_seasons[season.h2.text.split(" ")[0]] = details
 
         self.hun = self.hun if self.get("hun") else DotMap()
 
