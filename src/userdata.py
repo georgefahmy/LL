@@ -189,9 +189,9 @@ class UserData(DotMap):
             details["rundle"] = season.h3.text.strip()
             details["rundle_link"] = BASE_URL + "/" + season.h3.a.get("href")
             details["matches"] = DotMap()
-            details["wins"] = 0
-            details["ties"] = 0
-            details["losses"] = 0
+            details["results"]["wins"] = 0
+            details["results"]["ties"] = 0
+            details["results"]["losses"] = 0
             rows = season.table.tbody.find_all("tr")
             for row in rows:
                 cells = row.find_all("td")
@@ -206,11 +206,11 @@ class UserData(DotMap):
                     else "Tie" if cells[2].text == "T" else "Loss"
                 )
                 if details["matches"][match_day]["result"] == "Win":
-                    details["wins"] += 1
+                    details["results"]["wins"] += 1
                 elif details["matches"][match_day]["result"] == "Tie":
-                    details["ties"] += 1
+                    details["results"]["ties"] += 1
                 else:
-                    details["losses"] += 1
+                    details["results"]["losses"] += 1
                 user_score, opp_score = cells[3].text.split("-")
                 user_points, user_correct = [
                     val.replace(")", "") for val in user_score.split("(")
