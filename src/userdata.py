@@ -43,6 +43,7 @@ class UserData(DotMap):
         self.profile_id = self.sess.get(
             f"https://learnedleague.com/profiles.php?{self.username}"
         ).url.split("?")[-1]
+        self.link = f"https://learnedleague.com/profiles.php?{self.profile_id}"
         if not self.profile_id.isnumeric():
             return None
         if load:
@@ -184,10 +185,10 @@ class UserData(DotMap):
         self.past_seasons = DotMap()
         for season in past_seasons:
             details = DotMap()
-            details["season"] = season.h2.text.split(" ")[0]
-            details["season_link"] = BASE_URL + season.h2.a.get("href")
-            details["rundle"] = season.h3.text.strip()
-            details["rundle_link"] = BASE_URL + "/" + season.h3.a.get("href")
+            details["season"]["name"] = season.h2.text.split(" ")[0]
+            details["season"]["link"] = BASE_URL + season.h2.a.get("href")
+            details["rundle"]["name"] = season.h3.text.strip()
+            details["rundle"]["link"] = BASE_URL + "/" + season.h3.a.get("href")
             details["matches"] = DotMap()
             details["results"]["wins"] = 0
             details["results"]["ties"] = 0
