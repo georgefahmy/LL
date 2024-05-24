@@ -78,6 +78,7 @@ def open_stats_window():
             ),
             sg.Button("Category Metrics", size=(16, 1), key="category_button_stats"),
             sg.Button("Latest Season", size=(14, 1), key="latest_season_switch"),
+            sg.Button("Load Favorites", size=(15, 1), key="load_favorites"),
             sg.Text(expand_x=True),
             sg.Button("Clear All", size=(14, 1), key="clear_all_stats"),
             sg.Button("Load All", size=(14, 1), key="load_all"),
