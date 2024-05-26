@@ -24,40 +24,42 @@ def load_data(file=None, user=None):
         return DotMap()
 
 
-all_data_file = "all_data.json"
+if __name__ == "__main__":
 
-username = "fahmyg"
+    all_data_file = "all_data.json"
 
-all_data = load_data(file=all_data_file)
-user_data = load_data(user=username)
+    username = "fahmyg"
 
-cat_data = DotMap()
-for question in all_data.values():
-    cat_data[question["category"]] += 1
+    all_data = load_data(file=all_data_file)
+    user_data = load_data(user=username)
 
-cat_df = pd.Series(cat_data.toDict()).sort_values(ascending=False)
-norm_df = round(cat_df / cat_df.sum() * 100, 3)
+    cat_data = DotMap()
+    for question in all_data.values():
+        cat_data[question["category"]] += 1
 
-data = pd.DataFrame([cat_df, norm_df], index=["Total", "% of Qs"]).transpose()
+    cat_df = pd.Series(cat_data.toDict()).sort_values(ascending=False)
+    norm_df = round(cat_df / cat_df.sum() * 100, 3)
 
-cat_specific_data = DotMap()
-for question in all_data.values():
-    cat = question.category
-    if type(question) is not DotMap:
-        continue
-    if not len(cat_specific_data[cat]):
-        cat_specific_data[cat] = []
-    cat_specific_data[cat].append(int(question.percent))
+    data = pd.DataFrame([cat_df, norm_df], index=["Total", "% of Qs"]).transpose()
 
-data["Avg Correct"] = (
-    pd.DataFrame(cat_specific_data.values(), index=cat_specific_data.keys())
-    .transpose()
-    .mean()
-)
-data["Median Cor"] = (
-    pd.DataFrame(cat_specific_data.values(), index=cat_specific_data.keys())
-    .transpose()
-    .median()
-)
+    cat_specific_data = DotMap()
+    for question in all_data.values():
+        cat = question.category
+        if type(question) is not DotMap:
+            continue
+        if not len(cat_specific_data[cat]):
+            cat_specific_data[cat] = []
+        cat_specific_data[cat].append(int(question.percent))
 
-data.sort_values(by="Avg Correct", ascending=False)
+    data["Avg Correct"] = (
+        pd.DataFrame(cat_specific_data.values(), index=cat_specific_data.keys())
+        .transpose()
+        .mean()
+    )
+    data["Median Cor"] = (
+        pd.DataFrame(cat_specific_data.values(), index=cat_specific_data.keys())
+        .transpose()
+        .median()
+    )
+
+    data.sort_values(by="Avg Correct", ascending=False)
