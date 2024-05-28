@@ -2120,7 +2120,7 @@ while True:
                         content = sess.get(player_stats_url, stream=True).content
                         out_file.write(content)
 
-                raw = pd.read_csv(file, encoding="latin1")
+                raw = pd.read_csv(file, encoding="latin1", low_memory=False)
                 raw.columns = [x.lower() for x in raw.columns]
 
                 match_day = raw.matchday.iloc[0]
