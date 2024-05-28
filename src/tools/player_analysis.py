@@ -1,12 +1,12 @@
-from analysis import load_data
 from dotmap import DotMap
+
+from src.userdata import load
 
 
 def mscore(score_u, score_t):
     """
     Return 2 for win, 1 for tie, 0 for loss, -1 for Forfeit
     """
-
     if score_u < 0 or score_t < 0:
         return -1
     if score_u < score_t:
@@ -36,7 +36,6 @@ def score_wonder(scores):
             scores = scores.replace("F", "0")
         # print(scores)
         scores = [[int(scores[0]), int(scores[2])], [int(scores[5]), int(scores[7])]]
-
     # first compare questions correct return 0 if forfeit
     reg = mscore(scores[0][1], scores[1][1])
     if reg < 0:
@@ -46,15 +45,17 @@ def score_wonder(scores):
     return mscore(scores[0][0], scores[1][0]) - reg
 
 
-user = load_data(user="fahmyb")
-wonder = 0
-optimal_scores = DotMap({"9(5)": 0, "8(4)": 0, "7(3)": 0, "5(2)": 0, "3(1)": 0})
-for season in user.past_seasons.keys():
-    for match in user.past_seasons[season].matches.values():
-        wonder += score_wonder(match.score)
-        my_score = match.score.split("-")[0]
-        if my_score in optimal_scores.keys():
-            optimal_scores[my_score] += 1
+if __name__ == "__main__":
+    user = load(username="fahmyg")
 
-    print(f"Final - {season}: {wonder}")
+    wonder = 0
+    optimal_scores = DotMap({"9(5)": 0, "8(4)": 0, "7(3)": 0, "5(2)": 0, "3(1)": 0})
+    for season in user.past_seasons.keys():
+        for match in user.past_seasons[season].matches.values():
+            wonder += score_wonder(match.score)
+            my_score = match.score.split("-")[0]
+            if my_score in optimal_scores.keys():
+                print(my_score)
+                optimal_scores[my_score] += 1
+        print(f"Final - {season}: {wonder}")
     optimal_scores.pprint()

@@ -32,26 +32,64 @@ def load(username, sess=None):
 
 
 class UserData(DotMap):
-    def __init__(self, username=None, sess=None, load=False, *args, **kwargs):
+
+    def __init__(
+        self,
+        username=None,
+        profile_id=None,
+        sess=None,
+        load=False,
+        other_folder=None,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.sess = sess
         self.username = username.lower() if username else None
         self.formatted_username = (
             self.format_username(self.username) if self.username else None
         )
+        if not profile_id:
+            self.profile_id = self.sess.get(
+                f"https://learnedleague.com/profiles.php?{self.username}"
+            ).url.split("?")[-1]
+        else:
+            self.profile_id = profile_id
+            if not self.username:
+                try:
+                    self.username = (
+                        bs(
+                            self.sess.get(
+                                f"https://learnedleague.com/profiles.php?{self.profile_id}&1"
+                            ).content,
+                            "html.parser",
+                        )
+                        .find("h1", {"class": "namecss"})
+                        .text
+                    ).lower()
+                except:
+                    return None
+                self.formatted_username = (
+                    self.format_username(self.username) if self.username else None
+                )
 
-        self.profile_id = self.sess.get(
-            f"https://learnedleague.com/profiles.php?{self.username}"
-        ).url.split("?")[-1]
         self.link = f"https://learnedleague.com/profiles.php?{self.profile_id}"
         if not self.profile_id.isnumeric():
             return None
         if load:
             self._get_full_data()
-            self._save()
+            self._save(other_folder)
 
-    def _save(self):
-        with open(USER_DATA_DIR + f"/{self.username}.json", "w") as fp:
+    def _save(self, other_folder=None):
+        if other_folder:
+            folder = other_folder
+        else:
+            folder = ""
+
+        if "question_history" not in self._map.keys():
+            return
+
+        with open(USER_DATA_DIR + "/" + folder + f"/{self.username}.json", "w") as fp:
             try:
                 del self.sess
             except KeyError:
@@ -67,6 +105,8 @@ class UserData(DotMap):
         )
 
         all_categories = question_page.find_all("ul", {"class": "mktree"})
+        if not all_categories:
+            return None
         question_history = DotMap()
         for category in all_categories:
             category_name = re.sub(
@@ -287,7 +327,7 @@ class UserData(DotMap):
             self._get_full_data()
             self._save()
 
-    def calc_hun(self, opponent):
+    def calc_hun(self, opponent, show=False):
         raw = 0
         total = 0
         if not self.profile_id.isnumeric():
@@ -316,9 +356,10 @@ class UserData(DotMap):
         opponent.hun[self.username] = hun_score
         self._save()
         opponent._save()
-        # print(
-        #     f"Hun Score for {self.username} and {opponent.username}: {hun_score: 0.3f}"
-        # )
+        if show:
+            print(
+                f"Hun Score for {self.username} and {opponent.username}: {hun_score: 0.3f}"
+            )
 
     @staticmethod
     def format_username(username):

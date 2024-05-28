@@ -27,11 +27,7 @@ def load_data(file=None, user=None):
 if __name__ == "__main__":
 
     all_data_file = "all_data.json"
-
-    username = "fahmyg"
-
     all_data = load_data(file=all_data_file)
-    user_data = load_data(user=username)
 
     cat_data = DotMap()
     for question in all_data.values():
