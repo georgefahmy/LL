@@ -23,7 +23,7 @@ def get_current_season(season=None):
     matchday_table = page.find("table", {"class": "MDTable"}).find_all("tr")[1:-1]
     if (matchday_table[-1].find_all("td")[-1].text).isnumeric():
         current_matchday = (
-            matchday_table[-1].find_all("td")[0].text.replace(" ", "_").lower()
+            matchday_table[-1].find_all("td")[0].text.replace("Match Day ", "").lower()
         )
     else:
         current_matchday = (
@@ -31,21 +31,23 @@ def get_current_season(season=None):
                 [i for i, row in enumerate(matchday_table) if len(row) < 12][0]
             ]
             .find("td")
-            .text.replace(" ", "_")
-            .lower()
+            .text[10:]
         )
-    return (current_season, current_matchday)
+
+    return (current_season, int(current_matchday) - 1)
 
 
-def get_leaguewide_data(season=None):
+def get_leaguewide_data(season=None, matchday=None):
     current_season, current_matchday = get_current_season(season)
     if not season:
         season = current_season
+    if not matchday:
+        matchday = current_matchday
     player_stats_url = ALL_DATA_BASE_URL.format(season)
     file = (
         os.path.expanduser("~")
         + "/.LearnedLeague/"
-        + f"LL{season}_Leaguewide_{current_matchday}.csv"
+        + f"LL{season}_Leaguewide_MD_{matchday}.csv"
     )
     if not os.path.isfile(file):
         with open(file, "wb+") as out_file:
@@ -97,58 +99,60 @@ def get_leaguewide_data(season=None):
 #     return data
 
 
-# def calc_luck(data):
-#     count_stats = ["Rundle", "Player"]
-#     sum_stats = ["Rundle", "FL", "FW", "TCA", "QPlayed"]
-#     data["Matches"] = data["W"] + data["L"] + data["T"]
-#     data["Played"] = data["Matches"] - data["FL"]
-#     data["FPct"] = data["FL"] / data["Matches"]
-#     data["QPlayed"] = 6 * data["Played"]
-#     count = (
-#         data[count_stats]
-#         .groupby("Rundle", as_index=False)
-#         .count()
-#         .rename(columns={"Player": "Player_count"})
-#     )
-#     sum_data = (
-#         data[sum_stats]
-#         .groupby("Rundle", as_index=False)
-#         .sum()
-#         .rename(
-#             columns={"FL": "rFL", "FW": "rFW", "TCA": "rTCA", "QPlayed": "rQPlayed"}
-#         )
-#     )
-#     data = data.merge(count)
-#     data = data.merge(sum_data)
-#     data["xFW"] = (
-#         ((data["rFL"] - data["FL"]) / (data["Player_count"] - 1)) / data["Matches"]
-#     ) * data["Played"]
-#     data["xTMP"] = data["TMP"] * (data["Played"] - data["xFW"]) / data["Played"]
-#     data["rQPCT"] = (data["rTCA"] - data["TCA"]) / (data["rQPlayed"] - data["QPlayed"])
-#     data["xCAA"] = data["rQPCT"] * 6 * (data["Played"] - data["xFW"])
-#     data["xMPA"] = data["PCAA"] * data["rQPCT"] * 6 * (data["Played"] - data["xFW"])
-#     data["SOS"] = data["CAA"] / (6 * (data["Matches"] - data["FW"]) * data["rQPCT"])
-#     data["PWP"] = 1 / (1 + (data["xMPA"] / data["xTMP"]) ** 1.93)
-#     data["xPTS"] = (
-#         (2 * data["PWP"] * (data["Played"] - data["xFW"]))
-#         + (2 * data["xFW"])
-#         - data["FL"]
-#     )
-#     data["xRank"] = (
-#         pd.to_numeric(
-#             data.groupby("Rundle")["xPTS"].rank(method="dense", ascending=False),
-#             errors="coerce",
-#         )
-#         .replace(np.nan, 0)
-#         .astype(int)
-#     )
-#     data["Luck"] = data["PTS"] - data["xPTS"]
-#     data["Luck_Rank"] = (data["Rank"] - data["xRank"]).astype(int)
-#     data["LuckPctile"] = (
-#         (data.groupby("Rundle")["Luck_Rank"].rank() - 1) / data["Player_count"] * 100
-#     )
-#     data.set_index("Player", inplace=True, drop=False)
-#     return data
+def calc_luck(data):
+    count_stats = ["Rundle", "Player"]
+    sum_stats = ["Rundle", "FL", "FW", "TCA", "QPlayed"]
+    data["Matches"] = data["W"] + data["L"] + data["T"]
+    data["Played"] = data["Matches"] - data["FL"]
+    data["FPct"] = data["FL"] / data["Matches"]
+    data["QPlayed"] = 6 * data["Played"]
+    count = (
+        data[count_stats]
+        .groupby("Rundle", as_index=False)
+        .count()
+        .rename(columns={"Player": "Player_count"})
+    )
+    sum_data = (
+        data[sum_stats]
+        .groupby("Rundle", as_index=False)
+        .sum()
+        .rename(
+            columns={"FL": "rFL", "FW": "rFW", "TCA": "rTCA", "QPlayed": "rQPlayed"}
+        )
+    )
+    data = data.merge(count)
+    data = data.merge(sum_data)
+    data["Exp_FW"] = (
+        ((data["rFL"] - data["FL"]) / (data["Player_count"] - 1)) / data["Matches"]
+    ) * data["Played"]
+    data["Exp_TMP"] = data["TMP"] * (data["Played"] - data["Exp_FW"]) / data["Played"]
+    data["rQPCT"] = (data["rTCA"] - data["TCA"]) / (data["rQPlayed"] - data["QPlayed"])
+    data["Exp_CAA"] = data["rQPCT"] * 6 * (data["Played"] - data["Exp_FW"])
+    data["Exp_MPA"] = (
+        data["PCAA"] * data["rQPCT"] * 6 * (data["Played"] - data["Exp_FW"])
+    )
+    data["SOS"] = data["CAA"] / (6 * (data["Matches"] - data["FW"]) * data["rQPCT"])
+    data["PWP"] = 1 / (1 + (data["Exp_MPA"] / data["Exp_TMP"]) ** 1.93)
+    data["Exp_PTS"] = (
+        (2 * data["PWP"] * (data["Played"] - data["Exp_FW"]))
+        + (2 * data["Exp_FW"])
+        - data["FL"]
+    )
+    data["Exp_Rank"] = (
+        pd.to_numeric(
+            data.groupby("Rundle")["Exp_PTS"].rank(method="dense", ascending=False),
+            errors="coerce",
+        )
+        .replace(np.nan, 0)
+        .astype(int)
+    )
+    data["Luck"] = data["PTS"] - data["Exp_PTS"]
+    data["Luck_Rank"] = (data["Rank"] - data["Exp_Rank"]).astype(int)
+    data["LuckPctile"] = (
+        (data.groupby("Rundle")["Luck"].rank() - 1) / data["Player_count"] * 100
+    )
+    data.set_index("Player", inplace=True, drop=False)
+    return data
 
 
 def stats_model_luck(data_df):
@@ -164,9 +168,9 @@ def stats_model_luck(data_df):
         )
     formula = "PTS ~ norm_QPct + norm_OE + norm_DE + Played + FL + FL:norm_OE + FL:norm_QPct + 0"
     model = ols(formula, data=data_df).fit()
-    data_df["xPTS"] = model.predict(data_df)
-    data_df["xRank"] = (
-        data_df.groupby("Rundle")["xPTS"]
+    data_df["Exp_PTS"] = model.predict(data_df)
+    data_df["Exp_Rank"] = (
+        data_df.groupby("Rundle")["Exp_PTS"]
         .rank(ascending=False, method="dense")
         .astype(int)
     )
@@ -175,8 +179,8 @@ def stats_model_luck(data_df):
         * (data_df["Matches"] - data_df["FW"])
         * data_df.groupby("Rundle")["QPct"].transform("mean")
     )
-    data_df["Luck"] = data_df["PTS"] - data_df["xPTS"]
-    data_df["Luck_Rank"] = (data_df["xRank"] - data_df["Rank"]).astype(int)
+    data_df["Luck"] = data_df["PTS"] - data_df["Exp_PTS"]
+    data_df["Luck_Rank"] = (data_df["Exp_Rank"] - data_df["Rank"]).astype(int)
     data_df["LuckPctile"] = rankdata(data_df["Luck"], method="max") / len(data_df) * 100
     data_df.sort_values(by="LuckPctile", ascending=False, inplace=True)
     return data_df
@@ -199,8 +203,22 @@ def predict(user1, user2, data, sess=None):
     return
 
 
-def specifc_user_field(data, usernames, fields, rundle=False):
+def specifc_user_field(data, usernames, fields=None, rundle=False):
     try:
+        if not fields:
+            fields = [
+                "Player",
+                "W",
+                "L",
+                "T",
+                "PTS",
+                "Exp_PTS",
+                "Luck",
+                "Rank",
+                "Exp_Rank",
+                "SOS",
+                "Rundle",
+            ]
         if rundle:
             rundle = data.loc[usernames]["Rundle"]
             if "Rundle" not in fields:
@@ -242,7 +260,7 @@ def specifc_user_field(data, usernames, fields, rundle=False):
         ]
         window = sg.Window("Luck Table", layout, resizable=True)
         event, value = window.read()
-        return
+        return luck_data
     except Exception as e:
         print(e)
 
@@ -251,9 +269,10 @@ if __name__ == "__main__":
     pd.options.display.float_format = "{:,.3f}".format
     sess = login()
     # data = get_stats_data(100, "D_Orange_Div_2")
-    data_df_100 = stats_model_luck(get_leaguewide_data(100))
-    data_df_101 = stats_model_luck(get_leaguewide_data(101))
-    # data = calc_luck(get_leaguewide_data(100))
+    season = 101
+    matchday = 7
+    data = stats_model_luck(get_leaguewide_data(season=season, matchday=matchday))
+    # data = calc_luck(get_leaguewide_data(season))
     usernames = [
         "FahmyG",
         "FahmyB",
@@ -272,16 +291,17 @@ if __name__ == "__main__":
         "L",
         "T",
         "PTS",
-        "xPTS",
+        "Exp_PTS",
         "TCA",
         "PCA",
         "CAA",
         "PCAA",
         "Luck",
         "Rank",
-        "xRank",
+        "Exp_Rank",
         "SOS",
         "Rundle",
     ]
-    specifc_user_field(data_df_101, usernames=usernames, fields=fields)
-    specifc_user_field(data_df_101, usernames=["HulseM"], fields=fields, rundle=True)
+    luck_data = specifc_user_field(
+        data, usernames=usernames, fields=fields, rundle=False
+    )
