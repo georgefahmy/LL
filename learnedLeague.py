@@ -1740,22 +1740,26 @@ while True:
                         searched_user_data = load(user, sess=sess)
                     table_values = add_stats_row(searched_user_data, window)
                     window.refresh()
+
             # load favorites into stats window
             if event == "load_favorites":
-                for user in json.load(
-                    open(
-                        os.path.expanduser("~") + "/.LearnedLeague/favorites.json", "r"
-                    )
-                ):
-                    if window["stats_table"].metadata:
-                        if user in window["stats_table"].metadata.keys():
-                            user = window["stats_table"].metadata[username]
+                fav_file = os.path.expanduser("~") + "/.LearnedLeague/favorites.json"
+                if not os.path.isfile(fav_file):
+                    with open(fav_file, "w") as fp:
+                        json.dump(["FahmyG"], fp, indent=4)
+
+                with open(fav_file, "r") as fp:
+                    favorites = json.load(fp)
+                    for user in favorites:
+                        if window["stats_table"].metadata:
+                            if user in window["stats_table"].metadata.keys():
+                                user = window["stats_table"].metadata[username]
+                            else:
+                                searched_user_data = load(user, sess=sess)
                         else:
                             searched_user_data = load(user, sess=sess)
-                    else:
-                        searched_user_data = load(user, sess=sess)
-                    table_values = add_stats_row(searched_user_data, window)
-                    window.refresh()
+                        table_values = add_stats_row(searched_user_data, window)
+                        window.refresh()
 
             # Switch between all-time stats and current (or latest) season
             if "latest_season_switch" in event:

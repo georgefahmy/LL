@@ -1,23 +1,51 @@
-import datetime
 import os
 
 import numpy as np
 import pandas as pd
 import PySimpleGUI as sg
+import requests
+from bs4 import BeautifulSoup as bs
 from scipy.stats import rankdata
 from statsmodels.formula.api import ols
 
-from src.constants import ALL_DATA_BASE_URL
+from src.constants import ALL_DATA_BASE_URL, BASE_URL
 from src.logged_in_tools import login
 from src.userdata import load
 
 
-def get_leaguewide_data(season):
+def get_current_season(season=None):
+    if season:
+        url = BASE_URL + f"/allrundles.php?{season}"
+    else:
+        url = BASE_URL + "/allrundles.php"
+    page = bs(requests.get(url).content, "html.parser")
+    current_season = int(page.find("h1").text.split(":")[0].replace("LL", ""))
+    matchday_table = page.find("table", {"class": "MDTable"}).find_all("tr")[1:-1]
+    if (matchday_table[-1].find_all("td")[-1].text).isnumeric():
+        current_matchday = (
+            matchday_table[-1].find_all("td")[0].text.replace(" ", "_").lower()
+        )
+    else:
+        current_matchday = (
+            matchday_table[
+                [i for i, row in enumerate(matchday_table) if len(row) < 12][0]
+            ]
+            .find("td")
+            .text.replace(" ", "_")
+            .lower()
+        )
+    return (current_season, current_matchday)
+
+
+def get_leaguewide_data(season=None):
+    current_season, current_matchday = get_current_season(season)
+    if not season:
+        season = current_season
     player_stats_url = ALL_DATA_BASE_URL.format(season)
     file = (
         os.path.expanduser("~")
         + "/.LearnedLeague/"
-        + f"LL{season}_Leaguewide_{str(datetime.datetime.today().date())}.csv"
+        + f"LL{season}_Leaguewide_{current_matchday}.csv"
     )
     if not os.path.isfile(file):
         with open(file, "wb+") as out_file:
@@ -142,6 +170,11 @@ def stats_model_luck(data_df):
         .rank(ascending=False, method="dense")
         .astype(int)
     )
+    data_df["SOS"] = data_df["CAA"] / (
+        6
+        * (data_df["Matches"] - data_df["FW"])
+        * data_df.groupby("Rundle")["QPct"].transform("mean")
+    )
     data_df["Luck"] = data_df["PTS"] - data_df["xPTS"]
     data_df["Luck_Rank"] = (data_df["xRank"] - data_df["Rank"]).astype(int)
     data_df["LuckPctile"] = rankdata(data_df["Luck"], method="max") / len(data_df) * 100
@@ -173,22 +206,34 @@ def specifc_user_field(data, usernames, fields, rundle=False):
             if "Rundle" not in fields:
                 fields.append("Rundle")
             luck_data = (data[data["Rundle"].isin(rundle)][fields]).sort_values(
-                by=["Rundle", "Rank"]
+                by=["Rundle", "Luck"], ascending=[True, False]
             )
         else:
-            luck_data = (data.loc[usernames][fields]).sort_values(by=["Luck"])
+            luck_data = (data.loc[usernames][fields]).sort_values(
+                by=["Luck"], ascending=False
+            )
         headers = luck_data.columns.tolist()
         values = luck_data.round(3).values.tolist()
+        ind = luck_data.index.get_loc(
+            luck_data[
+                luck_data["Player"].str.len() == luck_data["Player"].str.len().max()
+            ].values[0][0]
+        )
+        calc_widths = list(map(lambda x: len(str(x)) + 1, values[ind]))
+        col_widths = [
+            max(calc_widths[i], len(headers[i]) + 2) for i in range(0, len(headers))
+        ]
         sg.theme("Reddit")
         sg.set_options(font=("Arial", 16))
         layout = [
             [
                 sg.Table(
+                    size=(None, len(values)),
                     values=values,
                     headings=headers,
                     # Set column widths for empty record of table
                     auto_size_columns=False,
-                    col_widths=list(map(lambda x: len(x) + 3, headers)),
+                    col_widths=col_widths,
                     expand_x=True,
                     expand_y=True,
                     alternating_row_color="light gray",
@@ -203,19 +248,23 @@ def specifc_user_field(data, usernames, fields, rundle=False):
 
 
 if __name__ == "__main__":
+    pd.options.display.float_format = "{:,.3f}".format
     sess = login()
     # data = get_stats_data(100, "D_Orange_Div_2")
-    data = get_leaguewide_data(101)
-    data_df = stats_model_luck(data)
-    # data = calc_luck(data)
+    data_df_100 = stats_model_luck(get_leaguewide_data(100))
+    data_df_101 = stats_model_luck(get_leaguewide_data(101))
+    # data = calc_luck(get_leaguewide_data(100))
     usernames = [
-        "HarperD",
-        "HulseM",
+        "FahmyG",
         "FahmyB",
         "FahmyBoldsoul",
-        "FahmyG",
         "LefortS",
+        "HarperD",
+        "HulseM",
         "HammondM",
+        "PantaloneG",
+        "JenkinsK",
+        "MooneyJ2",
     ]
     fields = [
         "Player",
@@ -225,12 +274,14 @@ if __name__ == "__main__":
         "PTS",
         "xPTS",
         "TCA",
-        "DE",
+        "PCA",
+        "CAA",
+        "PCAA",
         "Luck",
-        "LuckPctile",
         "Rank",
         "xRank",
+        "SOS",
         "Rundle",
     ]
-    specifc_user_field(data_df, usernames=usernames, fields=fields)
-    specifc_user_field(data_df, usernames=["FahmyG"], fields=fields, rundle=True)
+    specifc_user_field(data_df_101, usernames=usernames, fields=fields)
+    specifc_user_field(data_df_101, usernames=["HulseM"], fields=fields, rundle=True)
