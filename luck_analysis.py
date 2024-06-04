@@ -1,3 +1,4 @@
+import base64
 import os
 
 import numpy as np
@@ -30,7 +31,7 @@ def get_current_season(season=None):
             int(
                 (
                     matchday_table[
-                        [i for i, row in enumerate(matchday_table) if len(row) < 12][0]
+                        [i for i, row in enumerate(matchday_table) if not row.a][0]
                     ]
                     .find("td")
                     .text[10:]
@@ -135,7 +136,7 @@ def calc_luck(data):
 
 
 def stats_model_luck(data_df):
-    normalize_vars = ["OE", "DE", "QPct", "CAA", "PCAA"]
+    normalize_vars = ["OE", "DE", "QPct", "CAA", "3PT"]
     data_df["Level"] = data_df["Rundle"].str[0]
     data_df["Matches"] = data_df["W"] + data_df["L"] + data_df["T"]
     data_df["Played"] = data_df["Matches"] - data_df["FL"]
@@ -150,7 +151,7 @@ def stats_model_luck(data_df):
         * (data_df["Matches"] - data_df["FW"])
         * data_df.groupby("Rundle")["QPct"].transform("mean")
     )
-    formula = "PTS ~ norm_QPct + norm_OE + norm_DE + norm_PCAA + Played + FL + FL:norm_OE + FL:norm_QPct + 0"
+    formula = "PTS ~ Played + FL*norm_OE + FL*norm_QPct + norm_DE + norm_3PT + 0"
     model = ols(formula, data=data_df).fit()
     data_df["Exp_PTS"] = model.predict(data_df)
     data_df["Exp_Rank"] = (
@@ -160,7 +161,12 @@ def stats_model_luck(data_df):
     )
     data_df["Luck"] = data_df["PTS"] - data_df["Exp_PTS"]
     data_df["Luck_Rank"] = (data_df["Exp_Rank"] - data_df["Rank"]).astype(int)
-    data_df["LuckPctile"] = rankdata(data_df["Luck"], method="max") / len(data_df) * 100
+    data_df["Luck_Rank_adj"] = (
+        data_df["Luck_Rank"] / data_df["Player_count"]
+    ) * data_df["Player_count"].mean()
+    data_df["LuckPctile"] = (
+        rankdata(data_df["Luck_Rank_adj"], method="max") / len(data_df) * 100
+    ).round(1)
     data_df.sort_values(by="LuckPctile", ascending=False, inplace=True)
     return data_df, model
 
@@ -182,32 +188,18 @@ def predict(user1, user2, data, sess=None):
     return
 
 
-def specifc_user_field(data, usernames, fields=None, rundle=False):
+def specifc_user_field(data, usernames, fields, rundle=False):
     try:
-        if not fields:
-            fields = [
-                "Player",
-                "W",
-                "L",
-                "T",
-                "PTS",
-                "Exp_PTS",
-                "Luck",
-                "Rank",
-                "Exp_Rank",
-                "SOS",
-                "Rundle",
-            ]
         if rundle:
             rundle = data.loc[usernames]["Rundle"]
             if "Rundle" not in fields:
                 fields.append("Rundle")
             luck_data = (data[data["Rundle"].isin(rundle)][fields]).sort_values(
-                by=["Rundle", "Luck"], ascending=[True, False]
+                by=["Rundle", "LuckPctile"], ascending=[True, False]
             )
         else:
             luck_data = (data.loc[usernames][fields]).sort_values(
-                by=["Luck"], ascending=False
+                by=["LuckPctile"], ascending=False
             )
         headers = luck_data.columns.tolist()
         values = luck_data.round(3).values.tolist()
@@ -228,7 +220,6 @@ def specifc_user_field(data, usernames, fields=None, rundle=False):
                     size=(None, len(values)),
                     values=values,
                     headings=headers,
-                    # Set column widths for empty record of table
                     auto_size_columns=False,
                     col_widths=col_widths,
                     expand_x=True,
@@ -246,10 +237,13 @@ def specifc_user_field(data, usernames, fields=None, rundle=False):
 
 if __name__ == "__main__":
     pd.options.display.float_format = "{:,.3f}".format
+    icon_file = os.getcwd() + "/resources/ll_app_logo.png"
+    sg.theme("Reddit")
+    sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
     sess = login()
     # data = get_stats_data(100, "D_Orange_Div_2")
     season = 101
-    matchday = 7
+    matchday = None
     data, model = stats_model_luck(
         get_leaguewide_data(season=season, matchday=matchday)
     )
@@ -277,7 +271,9 @@ if __name__ == "__main__":
         "DE",
         "OE",
         "QPct",
+        "norm_CAA",
         "Luck",
+        "LuckPctile",
         "Rank",
         "Exp_Rank",
         "SOS",
