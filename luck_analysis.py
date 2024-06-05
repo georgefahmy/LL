@@ -1,10 +1,13 @@
+import argparse
 import base64
 import os
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import PySimpleGUI as sg
 import requests
+import seaborn as sns
 from bs4 import BeautifulSoup as bs
 from scipy.stats import rankdata
 from statsmodels.formula.api import ols
@@ -60,19 +63,40 @@ def get_leaguewide_data(season=None, matchday=None):
             sess = login()
             content = sess.get(player_stats_url, stream=True).content
             out_file.write(content)
-    data = (
-        pd.read_csv(file, encoding="latin1", low_memory=False)
-        .set_index("Player", drop=False)
-        .rename(
-            columns={
-                "Wins": "W",
-                "Losses": "L",
-                "Ties": "T",
-                "Pts": "PTS",
-                "Rundle Rank": "Rank",
-            }
+    try:
+        data = (
+            pd.read_csv(file, encoding="latin1", low_memory=False)
+            .set_index("Player", drop=False)
+            .rename(
+                columns={
+                    "Wins": "W",
+                    "Losses": "L",
+                    "Ties": "T",
+                    "Pts": "PTS",
+                    "Rundle Rank": "Rank",
+                }
+            )
         )
-    )
+    except pd.errors.EmptyDataError:
+        print("Empty Data")
+        with open(file, "wb+") as out_file:
+            sess = login()
+            content = sess.get(player_stats_url, stream=True).content
+            out_file.write(content)
+        data = (
+            pd.read_csv(file, encoding="latin1", low_memory=False)
+            .set_index("Player", drop=False)
+            .rename(
+                columns={
+                    "Wins": "W",
+                    "Losses": "L",
+                    "Ties": "T",
+                    "Pts": "PTS",
+                    "Rundle Rank": "Rank",
+                }
+            )
+        )
+
     data = data.replace([np.inf, -np.inf, np.nan, "--"], 0)
     for col in data.columns:
         data[col] = pd.to_numeric(data[col], errors="ignore")
@@ -135,23 +159,27 @@ def calc_luck(data):
     return data
 
 
-def stats_model_luck(data_df):
-    normalize_vars = ["OE", "DE", "QPct", "CAA", "3PT"]
+def norm_vars(data, normalize_vars):
+    for var in normalize_vars:
+        norm_var = f"norm_{var}"
+        data[norm_var] = data.groupby("Rundle")[var].transform(
+            lambda x: (x - x.mean()) / x.std()
+        )
+    return data
+
+
+def stats_model_luck(data_df, formula):
+    normalize_vars = ["OE", "DE", "QPct", "CAA", "3PT", "SOS"]
     data_df["Level"] = data_df["Rundle"].str[0]
     data_df["Matches"] = data_df["W"] + data_df["L"] + data_df["T"]
     data_df["Played"] = data_df["Matches"] - data_df["FL"]
     data_df["Player_count"] = data_df.groupby("Rundle")["Rundle"].transform("count")
-    for var in normalize_vars:
-        norm_var = f"norm_{var}"
-        data_df[norm_var] = data_df.groupby("Rundle")[var].transform(
-            lambda x: (x - x.mean()) / x.std()
-        )
     data_df["SOS"] = data_df["CAA"] / (
         6
         * (data_df["Matches"] - data_df["FW"])
         * data_df.groupby("Rundle")["QPct"].transform("mean")
     )
-    formula = "PTS ~ Played + FL*norm_OE + FL*norm_QPct + norm_DE + norm_3PT + 0"
+    data_df = norm_vars(data_df, normalize_vars)
     model = ols(formula, data=data_df).fit()
     data_df["Exp_PTS"] = model.predict(data_df)
     data_df["Exp_Rank"] = (
@@ -229,56 +257,138 @@ def specifc_user_field(data, usernames, fields, rundle=False):
             ]
         ]
         window = sg.Window("Luck Table", layout, resizable=True)
-        event, value = window.read()
-        return luck_data
+        return luck_data, window
     except Exception as e:
         print(e)
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-s",
+        "--season",
+        help="Enter the Season Number you want to get stats data for. (ex. -s 100) Default == Latest",
+        default=None,
+        type=int,
+    )
+    parser.add_argument(
+        "-m",
+        "--matchday",
+        help="Enter the Matchday Number you want to get stats data for. (ex. -m 8) Default == Latest",
+        default=None,
+        type=int,
+    )
+    parser.add_argument(
+        "-u",
+        "--usernames",
+        help="Enter the username(s) that you want to get information on. (ex. -u FrielP)",
+        nargs="+",
+        default=[
+            "FahmyG",
+            "FahmyB",
+            "FahmyBoldsoul",
+            "LefortS",
+            "HarperD",
+            "HulseM",
+            "HammondM",
+            "PantaloneG",
+            "JenkinsK",
+            "MooneyJ2",
+        ],
+    )
+    parser.add_argument(
+        "-f",
+        "--fields",
+        help="""Enter any optional data fields that you want to display in the output table.
+        Available Fields:
+        'MPD', 'TMP', 'TCA', 'PCA', 'UfPE', 'OE', 'QPct', 'TPA', 'CAA', 'PCAA', 'UfPA',
+        'DE', 'NUfP', 'QPO', 'QPD', 'OPD', 'FW', 'FL', '3PT', 'MCW', 'Rank',
+        'League', 'Branch', 'Level', 'Matches', 'Played', 'Player_count',
+        'norm_OE', 'norm_DE', 'norm_QPct', 'norm_CAA', 'norm_3PT', 'Luck_Rank_adj'""",
+        nargs="+",
+        action="extend",
+        default=[
+            "Player",
+            "W",
+            "L",
+            "T",
+            "PTS",
+            "Exp_PTS",
+            "Luck",
+            "LuckPctile",
+            "Rank",
+            "Exp_Rank",
+            "SOS",
+            "Rundle",
+        ],
+    )
+    parser.add_argument(
+        "-r",
+        "--rundle",
+        help="Default: False. Set flag to display rundle information for specified Usernames",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "-F",
+        "--formula",
+        help="Advanced Usage for adding variables to the model. Default= Played, FL*norm_OE, FL*norm_QPct, norm_DE",
+        default=[
+            "0",
+            "Played",
+            "FL",
+            "norm_OE",
+            "norm_QPct",
+            "FL:norm_OE",
+            "FL:norm_QPct",
+            "norm_DE",
+        ],
+        action="extend",
+        nargs="+",
+    )
+    args = parser.parse_args()
+
     pd.options.display.float_format = "{:,.3f}".format
     icon_file = os.getcwd() + "/resources/ll_app_logo.png"
     sg.theme("Reddit")
     sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
-    sess = login()
     # data = get_stats_data(100, "D_Orange_Div_2")
-    season = 101
-    matchday = None
+    season = args.season
+    matchday = args.matchday
+
+    formula = "PTS ~ " + " + ".join(args.formula)
+
     data, model = stats_model_luck(
-        get_leaguewide_data(season=season, matchday=matchday)
+        get_leaguewide_data(season=season, matchday=matchday), formula
     )
     print(model.summary())
+
     # data = calc_luck(get_leaguewide_data(season))
-    usernames = [
-        "FahmyG",
-        "FahmyB",
-        "FahmyBoldsoul",
-        "LefortS",
-        "HarperD",
-        "HulseM",
-        "HammondM",
-        "PantaloneG",
-        "JenkinsK",
-        "MooneyJ2",
-    ]
-    fields = [
-        "Player",
-        "W",
-        "L",
-        "T",
-        "PTS",
-        "Exp_PTS",
-        "DE",
-        "OE",
-        "QPct",
-        "norm_CAA",
-        "Luck",
-        "LuckPctile",
-        "Rank",
-        "Exp_Rank",
-        "SOS",
-        "Rundle",
-    ]
-    luck_data = specifc_user_field(
-        data, usernames=usernames, fields=fields, rundle=False
+    luck_data, window = specifc_user_field(
+        data, usernames=args.usernames, fields=args.fields, rundle=args.rundle
     )
+    window.read()
+    # sns.set_theme(color_codes=True)
+    # data["FL:norm_QPct"] = data["FL"] * data["norm_QPct"]
+    # data["FL:norm_OE"] = data["FL"] * data["norm_OE"]
+    # sns.pairplot(
+    #     data,
+    #     x_vars=[
+    #         "norm_OE",
+    #         "norm_QPct",
+    #         "FL:norm_QPct",
+    #         "norm_DE",
+    #     ],
+    #     y_vars=["PTS"],
+    #     height=5,
+    #     aspect=0.7,
+    #     hue="Level",
+    #     kind="reg",
+    # )
+    # sns.residplot(
+    #     x="norm_OE",
+    #     y="PTS",
+    #     lowess=True,
+    #     data=data,
+    # )
+    # plt.show()
