@@ -169,7 +169,7 @@ def norm_vars(data, normalize_vars):
 
 
 def stats_model_luck(data_df, formula):
-    normalize_vars = ["OE", "DE", "QPct", "CAA", "3PT", "SOS"]
+    normalize_vars = ["OE", "DE", "QPct", "CAA", "SOS", "3PT", "MPD", "TPA", "PCAA"]
     data_df["Level"] = data_df["Rundle"].str[0]
     data_df["Matches"] = data_df["W"] + data_df["L"] + data_df["T"]
     data_df["Played"] = data_df["Matches"] - data_df["FL"]
@@ -182,6 +182,7 @@ def stats_model_luck(data_df, formula):
     data_df = norm_vars(data_df, normalize_vars)
     model = ols(formula, data=data_df).fit()
     data_df["Exp_PTS"] = model.predict(data_df)
+    data_df = data_df.replace([np.inf, -np.inf, np.nan, "--"], 0)
     data_df["Exp_Rank"] = (
         data_df.groupby("Rundle")["Exp_PTS"]
         .rank(ascending=False, method="dense")
@@ -262,8 +263,8 @@ def specifc_user_field(data, usernames, fields, rundle=False):
         print(e)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+def get_args():
+    parser = argparse.ArgumentParser(prog="luck_analysis.py")
     parser.add_argument(
         "-s",
         "--season",
@@ -332,34 +333,34 @@ if __name__ == "__main__":
     parser.add_argument(
         "-F",
         "--formula",
-        help="Advanced Usage for adding variables to the model. Default= Played, FL*norm_OE, FL*norm_QPct, norm_DE",
+        help="Advanced Usage for adding variables to the model. Default: Played, FL*norm_OE, FL*norm_QPct, norm_DE",
         default=[
             "0",
             "Played",
-            "FL",
-            "norm_OE",
-            "norm_QPct",
-            "FL:norm_OE",
-            "FL:norm_QPct",
+            "norm_OE*FL",
+            "norm_QPct*FL",
             "norm_DE",
         ],
         action="extend",
         nargs="+",
     )
-    args = parser.parse_args()
+    return parser.parse_args()
 
+
+if __name__ == "__main__":
+    args = get_args()
     pd.options.display.float_format = "{:,.3f}".format
     icon_file = os.getcwd() + "/resources/ll_app_logo.png"
     sg.theme("Reddit")
     sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
-    # data = get_stats_data(100, "D_Orange_Div_2")
+
     season = args.season
     matchday = args.matchday
 
     formula = "PTS ~ " + " + ".join(args.formula)
 
     data, model = stats_model_luck(
-        get_leaguewide_data(season=season, matchday=matchday), formula
+        get_leaguewide_data(season=args.season, matchday=args.matchday), formula=formula
     )
     print(model.summary())
 
@@ -368,27 +369,3 @@ if __name__ == "__main__":
         data, usernames=args.usernames, fields=args.fields, rundle=args.rundle
     )
     window.read()
-    # sns.set_theme(color_codes=True)
-    # data["FL:norm_QPct"] = data["FL"] * data["norm_QPct"]
-    # data["FL:norm_OE"] = data["FL"] * data["norm_OE"]
-    # sns.pairplot(
-    #     data,
-    #     x_vars=[
-    #         "norm_OE",
-    #         "norm_QPct",
-    #         "FL:norm_QPct",
-    #         "norm_DE",
-    #     ],
-    #     y_vars=["PTS"],
-    #     height=5,
-    #     aspect=0.7,
-    #     hue="Level",
-    #     kind="reg",
-    # )
-    # sns.residplot(
-    #     x="norm_OE",
-    #     y="PTS",
-    #     lowess=True,
-    #     data=data,
-    # )
-    # plt.show()
