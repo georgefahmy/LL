@@ -168,36 +168,41 @@ def norm_vars(data, normalize_vars):
     return data
 
 
-def stats_model_luck(data_df, formula):
-    normalize_vars = ["OE", "DE", "QPct", "CAA", "SOS", "3PT", "MPD", "TPA", "PCAA"]
-    data_df["Level"] = data_df["Rundle"].str[0]
-    data_df["Matches"] = data_df["W"] + data_df["L"] + data_df["T"]
-    data_df["Played"] = data_df["Matches"] - data_df["FL"]
-    data_df["Player_count"] = data_df.groupby("Rundle")["Rundle"].transform("count")
-    data_df["SOS"] = data_df["CAA"] / (
+def stats_model_luck(data, formula):
+    normalize_vars = [
+        "OE",
+        "DE",
+        "QPct",
+        "CAA",
+    ]
+    data["Level"] = data["Rundle"].str[0]
+    data["Matches"] = data["W"] + data["L"] + data["T"]
+    data["Played"] = data["Matches"] - data["FL"]
+    data["Player_count"] = data.groupby("Rundle")["Rundle"].transform("count")
+    data["SOS"] = data["CAA"] / (
         6
-        * (data_df["Matches"] - data_df["FW"])
-        * data_df.groupby("Rundle")["QPct"].transform("mean")
+        * (data["Matches"] - data["FW"])
+        * data.groupby("Rundle")["QPct"].transform("mean")
     )
-    data_df = norm_vars(data_df, normalize_vars)
-    model = ols(formula, data=data_df).fit()
-    data_df["Exp_PTS"] = model.predict(data_df)
-    data_df = data_df.replace([np.inf, -np.inf, np.nan, "--"], 0)
-    data_df["Exp_Rank"] = (
-        data_df.groupby("Rundle")["Exp_PTS"]
+    data = norm_vars(data, normalize_vars)
+    model = ols(formula, data=data).fit()
+    data["Exp_PTS"] = model.predict(data)
+    data = data.replace([np.inf, -np.inf, np.nan, "--"], 0)
+    data["Exp_Rank"] = (
+        data.groupby("Rundle")["Exp_PTS"]
         .rank(ascending=False, method="dense")
         .astype(int)
     )
-    data_df["Luck"] = data_df["PTS"] - data_df["Exp_PTS"]
-    data_df["Luck_Rank"] = (data_df["Exp_Rank"] - data_df["Rank"]).astype(int)
-    data_df["Luck_Rank_adj"] = (
-        data_df["Luck_Rank"] / data_df["Player_count"]
-    ) * data_df["Player_count"].mean()
-    data_df["LuckPctile"] = (
-        rankdata(data_df["Luck_Rank_adj"], method="max") / len(data_df) * 100
-    ).round(1)
-    data_df.sort_values(by="LuckPctile", ascending=False, inplace=True)
-    return data_df, model
+    data["Luck"] = data["PTS"] - data["Exp_PTS"]
+    data["Luck_Rank"] = (data["Exp_Rank"] - data["Rank"]).astype(int)
+    data["Luck_Rank_adj"] = (data["Luck_Rank"] / data["Player_count"]) * data[
+        "Player_count"
+    ].mean()
+    data["LuckPctile"] = (
+        rankdata(data["Luck_Rank_adj"], method="max") / len(data) * 100
+    ).round(2)
+    data.sort_values(by="LuckPctile", ascending=False, inplace=True)
+    return data, model
 
 
 def predict(user1, user2, data, sess=None):
@@ -319,6 +324,7 @@ def get_args():
             "LuckPctile",
             "Rank",
             "Exp_Rank",
+            "norm_CAA",
             "SOS",
             "Rundle",
         ],
@@ -347,6 +353,49 @@ def get_args():
     return parser.parse_args()
 
 
+def manual_calc_luck(data):
+    # Calculate total matches and played matches (subtract Forfeit Losses)
+    data["Matches"] = data["W"] + data["L"] + data["T"]
+    data["Played"] = data["Matches"] - data["FL"]
+
+    # Calculate the rundle player count for each player
+    data["Player_count"] = data.groupby("Rundle")["Rundle"].transform("count")
+
+    # Calculate the rundle Forfeit Rate
+    data["rFR"] = data.groupby("Rundle")["FL"].transform("mean") / (data["Matches"])
+
+    # Calculate each Player's expected forfeit wins
+    data["Exp_FW"] = data["rFR"] * (data["Matches"] - data["FL"])
+
+    # Calculate the adjusted matches played accounting for Forfeits
+    data["Adj_FCt"] = data["Matches"] - data["Exp_FW"] - data["FL"]
+
+    # Rundle percent correct
+    data["rQPct"] = data.groupby("Rundle")["QPct"].transform("mean")
+
+    data["rPCAA"] = data.groupby("Rundle")["PCAA"].transform("mean")
+
+    # Calculate expected Match Points allowed
+    data["Exp_MPA"] = 6 * data["rPCAA"] * data["rQPct"] * data["Adj_FCt"]
+
+    # Expected Total Match Points Earned
+    data["Exp_TMP"] = (data["TMP"] * data["Adj_FCt"]) / (data["Matches"] - data["FL"])
+
+    # Expected Winning Percentage
+    data["Exp_Pct"] = 1 / (1 + (data["Exp_MPA"] / data["Exp_TMP"]) ** 1.93)
+
+    # Calculate Expected Points
+    data["Exp_PTS_Man"] = (
+        2 * data["Exp_FW"] - data["FL"] + 2 * data["Adj_FCt"] * data["Exp_Pct"]
+    )
+
+    # Calculate Luck
+    data["Luck_Man"] = data["PTS"] - data["Exp_PTS_Man"]
+    data = data.replace([np.inf, -np.inf, np.nan, "--"], 0)
+    data["diff_PTS"] = data["Exp_PTS"] - data["Exp_PTS_Man"]
+    return data
+
+
 if __name__ == "__main__":
     args = get_args()
     pd.options.display.float_format = "{:,.3f}".format
@@ -362,10 +411,18 @@ if __name__ == "__main__":
     data, model = stats_model_luck(
         get_leaguewide_data(season=args.season, matchday=args.matchday), formula=formula
     )
+    data = manual_calc_luck(data)
     print(model.summary())
 
     # data = calc_luck(get_leaguewide_data(season))
     luck_data, window = specifc_user_field(
         data, usernames=args.usernames, fields=args.fields, rundle=args.rundle
     )
+    print(data["Luck"].sum())
     window.read()
+    data["FL:norm_QPct"] = data["FL"] * data["norm_QPct"]
+    data["FL:norm_OE"] = data["FL"] * data["norm_OE"]
+    data["FL:norm_DE"] = data["FL"] * data["norm_DE"]
+    data["FW:norm_PCA"] = data["FW"] * data["norm_PCA"]
+    # sns.lmplot(x="FL:norm_OE", y="PTS", data=data, col="Level", col_wrap=3)
+    # plt.show()
