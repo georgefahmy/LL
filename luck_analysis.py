@@ -420,9 +420,6 @@ if __name__ == "__main__":
     )
     print(data["Luck"].sum())
     window.read()
-    data["FL:norm_QPct"] = data["FL"] * data["norm_QPct"]
-    data["FL:norm_OE"] = data["FL"] * data["norm_OE"]
-    data["FL:norm_DE"] = data["FL"] * data["norm_DE"]
-    data["FW:norm_PCA"] = data["FW"] * data["norm_PCA"]
+
     # sns.lmplot(x="FL:norm_OE", y="PTS", data=data, col="Level", col_wrap=3)
     # plt.show()
