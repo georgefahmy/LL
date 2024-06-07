@@ -15,7 +15,8 @@ from statsmodels.formula.api import ols
 
 from src.constants import ALL_DATA_BASE_URL, BASE_URL
 from src.logged_in_tools import login
-from src.userdata import load
+
+# from src.userdata import load
 
 
 def get_current_season(season=None):
@@ -201,24 +202,7 @@ def stats_model_luck(data, formula):
     return data, model
 
 
-def predict(user1, user2, data, sess=None):
-    data["xPPM"] = data["PCA"] * data["TCA"] / data["Matches"]
-    user1 = load(username=user1, sess=sess)
-    user1.stats.total["Matches"] = (
-        int(user1.stats.total.W) + int(user1.stats.total.T) + int(user1.stats.total.L)
-    )
-    user1.stats.total["xPPM"] = int(user1.stats.total.TMP) / user1.stats.total.Matches
-    user2 = load(username=user2, sess=sess)
-    user2.stats.total["Matches"] = (
-        int(user2.stats.total.W) + int(user2.stats.total.T) + int(user2.stats.total.L)
-    )
-    user2.stats.total["xPPM"] = int(user2.stats.total.TMP) / user2.stats.total.Matches
-    print(data.loc[user1.formatted_username]["xPPM"])
-    print(data.loc[user2.formatted_username]["xPPM"])
-    return
-
-
-def specifc_user_field(data, usernames, fields, rundle=False):
+def display_data(data, usernames, fields, rundle=False):
     try:
         if rundle:
             rundle = data.loc[usernames]["Rundle"]
@@ -350,49 +334,6 @@ def get_args():
     return parser.parse_args()
 
 
-def manual_calc_luck(data):
-    # Calculate total matches and played matches (subtract Forfeit Losses)
-    data["Matches"] = data["W"] + data["L"] + data["T"]
-    data["Played"] = data["Matches"] - data["FL"]
-
-    # Calculate the rundle player count for each player
-    data["Player_count"] = data.groupby("Rundle")["Rundle"].transform("count")
-
-    # Calculate the rundle Forfeit Rate
-    data["rFR"] = data.groupby("Rundle")["FL"].transform("mean") / (data["Matches"])
-
-    # Calculate each Player's expected forfeit wins
-    data["Exp_FW"] = data["rFR"] * (data["Matches"] - data["FL"])
-
-    # Calculate the adjusted matches played accounting for Forfeits
-    data["Adj_FCt"] = data["Matches"] - data["Exp_FW"] - data["FL"]
-
-    # Rundle percent correct
-    data["rQPct"] = data.groupby("Rundle")["QPct"].transform("mean")
-
-    data["rPCAA"] = data.groupby("Rundle")["PCAA"].transform("mean")
-
-    # Calculate expected Match Points allowed
-    data["Exp_MPA"] = 6 * data["rPCAA"] * data["rQPct"] * data["Adj_FCt"]
-
-    # Expected Total Match Points Earned
-    data["Exp_TMP"] = (data["TMP"] * data["Adj_FCt"]) / (data["Matches"] - data["FL"])
-
-    # Expected Winning Percentage
-    data["Exp_Pct"] = 1 / (1 + (data["Exp_MPA"] / data["Exp_TMP"]) ** 1.93)
-
-    # Calculate Expected Points
-    data["Exp_PTS_Man"] = (
-        2 * data["Exp_FW"] - data["FL"] + 2 * data["Adj_FCt"] * data["Exp_Pct"]
-    )
-
-    # Calculate Luck
-    data["Luck_Man"] = data["PTS"] - data["Exp_PTS_Man"]
-    data = data.replace([np.inf, -np.inf, np.nan, "--"], 0)
-    data["diff_PTS"] = data["Exp_PTS"] - data["Exp_PTS_Man"]
-    return data
-
-
 if __name__ == "__main__":
     args = get_args()
     pd.options.display.float_format = "{:,.3f}".format
@@ -408,17 +349,14 @@ if __name__ == "__main__":
     data, model = stats_model_luck(
         get_leaguewide_data(season=args.season, matchday=args.matchday), formula=formula
     )
-    data = manual_calc_luck(data)
     print(model.summary())
 
     # data = calc_luck(get_leaguewide_data(season))
     if not args.rundle:
         args.fields.append("Rundle")
-    luck_data, window = specifc_user_field(
+
+    luck_data, window = display_data(
         data, usernames=args.usernames, fields=args.fields, rundle=args.rundle
     )
     print(data["Luck"].sum())
     window.read()
-
-    # sns.lmplot(x="FL:norm_OE", y="PTS", data=data, col="Level", col_wrap=3)
-    # plt.show()
