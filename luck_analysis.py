@@ -8,6 +8,9 @@ import pandas as pd
 import PySimpleGUI as sg
 import requests
 
+# from statsmodels.regression.linear_model import OLSResults
+import statsmodels.api as sm
+
 # import seaborn as sns
 from bs4 import BeautifulSoup as bs
 from scipy.stats import rankdata
@@ -105,62 +108,6 @@ def get_leaguewide_data(season=None, matchday=None):
     return data
 
 
-def calc_luck(data):
-    count_stats = ["Rundle", "Player"]
-    sum_stats = ["Rundle", "FL", "FW", "TCA", "QPlayed"]
-    data["Matches"] = data["W"] + data["L"] + data["T"]
-    data["Played"] = data["Matches"] - data["FL"]
-    data["FPct"] = data["FL"] / data["Matches"]
-    data["QPlayed"] = 6 * data["Played"]
-    count = (
-        data[count_stats]
-        .groupby("Rundle", as_index=False)
-        .count()
-        .rename(columns={"Player": "Player_count"})
-    )
-    sum_data = (
-        data[sum_stats]
-        .groupby("Rundle", as_index=False)
-        .sum()
-        .rename(
-            columns={"FL": "rFL", "FW": "rFW", "TCA": "rTCA", "QPlayed": "rQPlayed"}
-        )
-    )
-    data = data.merge(count)
-    data = data.merge(sum_data)
-    data["Exp_FW"] = (
-        ((data["rFL"] - data["FL"]) / (data["Player_count"] - 1)) / data["Matches"]
-    ) * data["Played"]
-    data["Exp_TMP"] = data["TMP"] * (data["Played"] - data["Exp_FW"]) / data["Played"]
-    data["rQPCT"] = (data["rTCA"] - data["TCA"]) / (data["rQPlayed"] - data["QPlayed"])
-    data["Exp_CAA"] = data["rQPCT"] * 6 * (data["Played"] - data["Exp_FW"])
-    data["Exp_MPA"] = (
-        data["PCAA"] * data["rQPCT"] * 6 * (data["Played"] - data["Exp_FW"])
-    )
-    data["SOS"] = data["CAA"] / (6 * (data["Matches"] - data["FW"]) * data["rQPCT"])
-    data["PWP"] = 1 / (1 + (data["Exp_MPA"] / data["Exp_TMP"]) ** 1.93)
-    data["Exp_PTS"] = (
-        (2 * data["PWP"] * (data["Played"] - data["Exp_FW"]))
-        + (2 * data["Exp_FW"])
-        - data["FL"]
-    )
-    data["Exp_Rank"] = (
-        pd.to_numeric(
-            data.groupby("Rundle")["Exp_PTS"].rank(method="dense", ascending=False),
-            errors="coerce",
-        )
-        .replace(np.nan, 0)
-        .astype(int)
-    )
-    data["Luck"] = data["PTS"] - data["Exp_PTS"]
-    data["Luck_Rank"] = (data["Rank"] - data["Exp_Rank"]).astype(int)
-    data["LuckPctile"] = (
-        (data.groupby("Rundle")["Luck"].rank() - 1) / data["Player_count"] * 100
-    )
-    data.set_index("Player", inplace=True, drop=False)
-    return data
-
-
 def norm_vars(data, normalize_vars):
     for var in normalize_vars:
         norm_var = f"norm_{var}"
@@ -170,7 +117,7 @@ def norm_vars(data, normalize_vars):
     return data
 
 
-def stats_model_luck(data, formula):
+def stats_model_luck(data, formula, model=None):
     normalize_vars = ["OE", "DE", "QPct", "CAA", "FL"]
     data["Level"] = data["Rundle"].str[0]
     data["Matches"] = data["W"] + data["L"] + data["T"]
@@ -182,7 +129,10 @@ def stats_model_luck(data, formula):
         * data.groupby("Rundle")["QPct"].transform("mean")
     )
     data = norm_vars(data, normalize_vars)
-    model = ols(formula, data=data).fit()
+    if not model:
+        model = ols(formula, data=data).fit()
+        # model.save("~/.LearnedLeague/regression_model.pickle")
+
     data["Exp_PTS"] = model.predict(data)
     data = data.replace([np.inf, -np.inf, np.nan, "--"], 0)
     data["Exp_Rank"] = (
@@ -344,9 +294,15 @@ if __name__ == "__main__":
     matchday = args.matchday
 
     formula = "PTS ~ " + " + ".join(args.formula)
+    # try:
+    #     model = sm.load("regression_model.pickle")
+    # except:
+    #     model = None
 
     data, model = stats_model_luck(
-        get_leaguewide_data(season=args.season, matchday=args.matchday), formula=formula
+        get_leaguewide_data(season=args.season, matchday=args.matchday),
+        # model=model,
+        formula=formula,
     )
     print(model.summary())
 
@@ -357,5 +313,5 @@ if __name__ == "__main__":
     luck_data, window = display_data(
         data, usernames=args.usernames, fields=args.fields, rundle=args.rundle
     )
-    print(data["Luck"].sum())
+    # print(data["Luck"].sum())
     window.read()
