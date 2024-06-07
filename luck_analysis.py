@@ -169,12 +169,7 @@ def norm_vars(data, normalize_vars):
 
 
 def stats_model_luck(data, formula):
-    normalize_vars = [
-        "OE",
-        "DE",
-        "QPct",
-        "CAA",
-    ]
+    normalize_vars = ["OE", "DE", "QPct", "CAA", "FL"]
     data["Level"] = data["Rundle"].str[0]
     data["Matches"] = data["W"] + data["L"] + data["T"]
     data["Played"] = data["Matches"] - data["FL"]
@@ -318,6 +313,7 @@ def get_args():
             "W",
             "L",
             "T",
+            "QPct",
             "PTS",
             "Exp_PTS",
             "Luck",
@@ -325,8 +321,8 @@ def get_args():
             "Rank",
             "Exp_Rank",
             "norm_CAA",
+            "norm_QPct",
             "SOS",
-            "Rundle",
         ],
     )
     parser.add_argument(
@@ -415,6 +411,8 @@ if __name__ == "__main__":
     print(model.summary())
 
     # data = calc_luck(get_leaguewide_data(season))
+    if not args.rundle:
+        args.fields.append("Rundle")
     luck_data, window = specifc_user_field(
         data, usernames=args.usernames, fields=args.fields, rundle=args.rundle
     )
