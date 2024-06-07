@@ -2,12 +2,13 @@ import argparse
 import base64
 import os
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import PySimpleGUI as sg
 import requests
-import seaborn as sns
+
+# import seaborn as sns
 from bs4 import BeautifulSoup as bs
 from scipy.stats import rankdata
 from statsmodels.formula.api import ols
