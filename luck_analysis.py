@@ -336,7 +336,6 @@ def get_args():
 
 if __name__ == "__main__":
     args = get_args()
-    pd.options.display.float_format = "{:,.3f}".format
     icon_file = os.getcwd() + "/resources/ll_app_logo.png"
     sg.theme("Reddit")
     sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
