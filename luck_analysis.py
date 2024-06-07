@@ -8,9 +8,6 @@ import pandas as pd
 import PySimpleGUI as sg
 import requests
 
-# from statsmodels.regression.linear_model import OLSResults
-import statsmodels.api as sm
-
 # import seaborn as sns
 from bs4 import BeautifulSoup as bs
 from scipy.stats import rankdata
@@ -19,6 +16,8 @@ from statsmodels.formula.api import ols
 from src.constants import ALL_DATA_BASE_URL, BASE_URL
 from src.logged_in_tools import login
 
+# from statsmodels.regression.linear_model import OLSResults
+# import statsmodels.api as sm
 # from src.userdata import load
 
 
@@ -159,7 +158,7 @@ def display_data(data, usernames, fields, rundle=False):
             if "Rundle" not in fields:
                 fields.append("Rundle")
             luck_data = (data[data["Rundle"].isin(rundle)][fields]).sort_values(
-                by=["Rundle", "LuckPctile"], ascending=[True, False]
+                by=["LuckPctile"], ascending=False
             )
         else:
             luck_data = (data.loc[usernames][fields]).sort_values(
@@ -294,22 +293,20 @@ if __name__ == "__main__":
     matchday = args.matchday
 
     formula = "PTS ~ " + " + ".join(args.formula)
+    model = None
     # try:
     #     model = sm.load("regression_model.pickle")
     # except:
     #     model = None
 
-    data, model = stats_model_luck(
-        get_leaguewide_data(season=args.season, matchday=args.matchday),
-        # model=model,
-        formula=formula,
-    )
+    data = get_leaguewide_data(season=args.season, matchday=args.matchday)
+    data, model = stats_model_luck(data, model=model, formula=formula)
     print(model.summary())
 
-    # data = calc_luck(get_leaguewide_data(season))
-    if not args.rundle:
+    if not args.rundle and len(args.usernames) == 1:
         args.fields.append("Rundle")
 
+    print(args.fields)
     luck_data, window = display_data(
         data, usernames=args.usernames, fields=args.fields, rundle=args.rundle
     )
