@@ -2,23 +2,23 @@ import argparse
 import base64
 import os
 
-# import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import PySimpleGUI as sg
 import requests
-
-# import seaborn as sns
 from bs4 import BeautifulSoup as bs
 from scipy.stats import rankdata
 from statsmodels.formula.api import ols
 
 from src.constants import ALL_DATA_BASE_URL, BASE_URL
 from src.logged_in_tools import login
+from src.windows.statistics_window import remove_all_rows, sort
 
 # from statsmodels.regression.linear_model import OLSResults
 # import statsmodels.api as sm
 # from src.userdata import load
+# import seaborn as sns
+# import matplotlib.pyplot as plt
 
 
 def get_current_season(season=None):
@@ -188,6 +188,13 @@ def display_data(data, usernames, fields, rundle=False):
                     expand_x=True,
                     expand_y=True,
                     alternating_row_color="light gray",
+                    enable_events=True,
+                    enable_click_events=True,
+                    num_rows=20,
+                    vertical_scroll_only=True,
+                    hide_vertical_scroll=True,
+                    select_mode="browse",
+                    key="stats_table",
                 )
             ]
         ]
@@ -288,7 +295,7 @@ if __name__ == "__main__":
     icon_file = os.getcwd() + "/resources/ll_app_logo.png"
     sg.theme("Reddit")
     sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
-
+    reverse = True
     season = args.season
     matchday = args.matchday
 
@@ -306,9 +313,33 @@ if __name__ == "__main__":
     if not args.rundle and len(args.usernames) == 1:
         args.fields.append("Rundle")
 
-    print(args.fields)
+    # print(args.fields)
     luck_data, window = display_data(
         data, usernames=args.usernames, fields=args.fields, rundle=args.rundle
     )
     # print(data["Luck"].sum())
-    window.read()
+    while True:
+        event, values = window.read()
+        if event in (None, "Quit", sg.WIN_CLOSED):
+            window.close()
+            break
+
+        if "+CLICKED+" in event:
+            # print(event[-1])
+            row, column = event[-1]
+
+            if row is None:
+                continue
+
+            if row == -1:
+                if not window["stats_table"].get():
+                    continue
+                if column == 14:
+                    continue
+
+                table_values, reverse = sort(
+                    window["stats_table"].get(), column, not reverse
+                )
+                current_season = window["stats_table"].get()[0][1]
+                remove_all_rows(window)
+                window["stats_table"].update(values=table_values)
