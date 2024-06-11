@@ -5,10 +5,10 @@ from ..constants import DEFAULT_FONT, STATS_DEFINITION
 
 
 def sort(sub_li, col, reverse=True):
-    if col in [0, 1, 19, 20]:
-        table_values = sorted(sub_li, key=lambda x: x[col], reverse=reverse)
-    else:
+    try:
         table_values = sorted(sub_li, key=lambda x: float(x[col]), reverse=reverse)
+    except:
+        table_values = sorted(sub_li, key=lambda x: x[col], reverse=reverse)
     return table_values, reverse
 
 
