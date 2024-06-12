@@ -1,6 +1,7 @@
 import argparse
 import base64
 import os
+from itertools import pairwise
 
 import numpy as np
 import pandas as pd
@@ -56,16 +57,15 @@ def get_leaguewide_data(season=None, matchday=None):
         season = current_season
     if not matchday:
         matchday = current_matchday
-    player_stats_url = ALL_DATA_BASE_URL.format(season)
     file = (
         os.path.expanduser("~")
-        + "/.LearnedLeague/"
+        + "/.LearnedLeague/league_wide_csvs/"
         + f"LL{season}_Leaguewide_MD_{matchday}.csv"
     )
     if not os.path.isfile(file):
         with open(file, "wb+") as out_file:
             sess = login()
-            content = sess.get(player_stats_url, stream=True).content
+            content = sess.get(ALL_DATA_BASE_URL.format(season), stream=True).content
             out_file.write(content)
     try:
         data = (
@@ -85,7 +85,7 @@ def get_leaguewide_data(season=None, matchday=None):
         print("Empty Data")
         with open(file, "wb+") as out_file:
             sess = login()
-            content = sess.get(player_stats_url, stream=True).content
+            content = sess.get(ALL_DATA_BASE_URL.format(season), stream=True).content
             out_file.write(content)
         data = (
             pd.read_csv(file, encoding="latin1", low_memory=False)
@@ -198,8 +198,7 @@ def display_data(data, usernames, fields, rundleflag=False):
                     enable_click_events=True,
                     num_rows=20,
                     vertical_scroll_only=True,
-                    hide_vertical_scroll=True,
-                    select_mode="browse",
+                    hide_vertical_scroll=False,
                     key="stats_table",
                 )
             ]
@@ -294,6 +293,13 @@ def get_args():
         action="extend",
         nargs="+",
     )
+    parser.add_argument(
+        "-d",
+        "--divide",
+        help="Advanced Usage: select two numerical columns and divide them and display the result in a new column.",
+        nargs="+",
+        action="extend",
+    )
     return parser.parse_args()
 
 
@@ -308,17 +314,24 @@ if __name__ == "__main__":
 
     formula = "PTS ~ " + " + ".join(args.formula)
     model = None
-    # try:
-    #     model = sm.load("regression_model.pickle")
-    # except:
-    #     model = None
-
     data = get_leaguewide_data(season=args.season, matchday=args.matchday)
     data, model = stats_model_luck(data, model=model, formula=formula)
     print(model.summary())
 
     if not args.rundle and len(args.usernames) == 1:
         args.fields.append("Rundle")
+
+    if args.divide:
+        if len(args.divide) == 2:
+            new_field = "/".join(args.divide)
+            data[new_field] = data[args.divide[0]] / data[args.divide[1]]
+            args.fields.append(new_field)
+        else:
+            pairs = [v for v in pairwise(args.divide)][::2]
+            for pair in pairs:
+                new_field = "/".join(pair)
+                data[new_field] = data[pair[0]] / data[pair[1]]
+                args.fields.append(new_field)
 
     # print(args.fields)
     luck_data, window = display_data(
