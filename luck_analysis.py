@@ -151,9 +151,9 @@ def stats_model_luck(data, formula, model=None):
     return data, model
 
 
-def display_data(data, usernames, fields, rundle=False):
+def display_data(data, usernames, fields, rundleflag=False):
     try:
-        if rundle:
+        if rundleflag:
             rundle = data.loc[usernames]["Rundle"]
             if "Rundle" not in fields:
                 fields.append("Rundle")
@@ -165,13 +165,65 @@ def display_data(data, usernames, fields, rundle=False):
                 by=["LuckPctile"], ascending=False
             )
         headers = luck_data.columns.tolist()
-        values = luck_data.round(3).values.tolist()
+        pd.set_option("display.precision", 5)
+        values = luck_data.values.tolist()
+        formatted_values = []
+        for row in values:
+            if rundleflag:
+                name = row[0]
+                rundle = row[-1]
+                wlt = row[1:4]
+                qpct = float(f"{row[4]:.3f}")
+                caa = int(row[5])
+                pts = int(row[6])
+                exp_pts = float(f"{row[7]:.3f}")
+                luck = list(map(lambda d: f"{d:.3f}", row[8:10]))
+                ranks = row[10:12]
+                norms = list(map(lambda d: f"{d:.3f}", row[12:15]))
+            else:
+                name = row[0]
+                wlt = row[1:4]
+                qpct = float(f"{row[4]:.3f}")
+                caa = int(row[5])
+                pts = int(row[6])
+                exp_pts = float(f"{row[7]:.3f}")
+                luck = list(map(lambda d: f"{d:.3f}", row[8:10]))
+                ranks = row[10:12]
+                norms = list(map(lambda d: f"{d:.3f}", row[12:15]))
+
+            if rundleflag:
+                formatted_values.append(
+                    [name]
+                    + wlt
+                    + [qpct]
+                    + [caa]
+                    + [pts]
+                    + [exp_pts]
+                    + luck
+                    + ranks
+                    + norms
+                    + [rundle]
+                )
+            else:
+                formatted_values.append(
+                    [name]
+                    + wlt
+                    + [qpct]
+                    + [caa]
+                    + [pts]
+                    + [exp_pts]
+                    + luck
+                    + ranks
+                    + norms
+                )
+
+        print(formatted_values)
         ind = luck_data.index.get_loc(
             luck_data[
                 luck_data["Player"].str.len() == luck_data["Player"].str.len().max()
             ].values[0][0]
         )
-        calc_widths = list(map(lambda x: len(str(x)) + 1, values[ind]))
+        calc_widths = list(map(lambda x: len(str(x)) + 1, formatted_values[ind]))
         col_widths = [
             max(calc_widths[i], len(headers[i]) + 2) for i in range(0, len(headers))
         ]
@@ -180,8 +232,8 @@ def display_data(data, usernames, fields, rundle=False):
         layout = [
             [
                 sg.Table(
-                    size=(None, len(values)),
-                    values=values,
+                    size=(None, len(formatted_values)),
+                    values=formatted_values,
                     headings=headers,
                     auto_size_columns=False,
                     col_widths=col_widths,
@@ -255,14 +307,15 @@ def get_args():
             "L",
             "T",
             "QPct",
+            "CAA",
             "PTS",
             "Exp_PTS",
             "Luck",
             "LuckPctile",
             "Rank",
             "Exp_Rank",
-            "norm_CAA",
             "norm_QPct",
+            "norm_CAA",
             "SOS",
         ],
     )
@@ -315,7 +368,7 @@ if __name__ == "__main__":
 
     # print(args.fields)
     luck_data, window = display_data(
-        data, usernames=args.usernames, fields=args.fields, rundle=args.rundle
+        data, usernames=args.usernames, fields=args.fields, rundleflag=args.rundle
     )
     # print(data["Luck"].sum())
     while True:
@@ -333,8 +386,6 @@ if __name__ == "__main__":
 
             if row == -1:
                 if not window["stats_table"].get():
-                    continue
-                if column == 14:
                     continue
 
                 table_values, reverse = sort(
