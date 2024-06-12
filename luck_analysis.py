@@ -165,59 +165,13 @@ def display_data(data, usernames, fields, rundleflag=False):
                 by=["LuckPctile"], ascending=False
             )
         headers = luck_data.columns.tolist()
-        pd.set_option("display.precision", 5)
         values = luck_data.values.tolist()
+
         formatted_values = []
         for row in values:
-            if rundleflag:
-                name = row[0]
-                rundle = row[-1]
-                wlt = row[1:4]
-                qpct = float(f"{row[4]:.3f}")
-                caa = int(row[5])
-                pts = int(row[6])
-                exp_pts = float(f"{row[7]:.3f}")
-                luck = list(map(lambda d: f"{d:.3f}", row[8:10]))
-                ranks = row[10:12]
-                norms = list(map(lambda d: f"{d:.3f}", row[12:15]))
-            else:
-                name = row[0]
-                wlt = row[1:4]
-                qpct = float(f"{row[4]:.3f}")
-                caa = int(row[5])
-                pts = int(row[6])
-                exp_pts = float(f"{row[7]:.3f}")
-                luck = list(map(lambda d: f"{d:.3f}", row[8:10]))
-                ranks = row[10:12]
-                norms = list(map(lambda d: f"{d:.3f}", row[12:15]))
-
-            if rundleflag:
-                formatted_values.append(
-                    [name]
-                    + wlt
-                    + [qpct]
-                    + [caa]
-                    + [pts]
-                    + [exp_pts]
-                    + luck
-                    + ranks
-                    + norms
-                    + [rundle]
-                )
-            else:
-                formatted_values.append(
-                    [name]
-                    + wlt
-                    + [qpct]
-                    + [caa]
-                    + [pts]
-                    + [exp_pts]
-                    + luck
-                    + ranks
-                    + norms
-                )
-
-        print(formatted_values)
+            new_row = list(map(lambda d: f"{d:.3f}" if type(d) is float else d, row))
+            formatted_values.append(new_row)
+        # print(formatted_values)
         ind = luck_data.index.get_loc(
             luck_data[
                 luck_data["Player"].str.len() == luck_data["Player"].str.len().max()
