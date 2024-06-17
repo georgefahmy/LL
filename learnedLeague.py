@@ -1913,6 +1913,12 @@ while True:
                     )
                     for i, key in enumerate(list(percents.keys()))
                 ]
+                [
+                    window[f"suggestion_percent_{i+1}"].update(
+                        value=f"{percents[key].percent*100:0.1f}%"
+                    )
+                    for i, key in enumerate(list(percents.keys()))
+                ]
 
             # Clear the categories and points from the window
             if event == "defense_clear":

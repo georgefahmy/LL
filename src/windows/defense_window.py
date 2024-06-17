@@ -47,7 +47,8 @@ def open_defense_window():
                     [
                         sg.Text("Defense Strategy", font=DEFAULT_FONT),
                         sg.Text(expand_x=True),
-                        sg.Text("Suggested Points", font=DEFAULT_FONT),
+                        sg.Text("Rec. Pts", font=DEFAULT_FONT),
+                        sg.Text("% Corr", font=DEFAULT_FONT),
                     ],
                     [
                         sg.Column(
@@ -65,6 +66,12 @@ def open_defense_window():
                                     sg.Text(
                                         "",
                                         key=f"defense_suggestion_{i}",
+                                        font=DEFAULT_FONT,
+                                        justification="c",
+                                    ),
+                                    sg.Text(
+                                        "",
+                                        key=f"suggestion_percent_{i}",
                                         font=DEFAULT_FONT,
                                         justification="r",
                                     ),
