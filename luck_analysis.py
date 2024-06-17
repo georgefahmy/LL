@@ -116,7 +116,7 @@ def norm_vars(data, normalize_vars):
     return data
 
 
-def stats_model_luck(data, formula, model=None):
+def calculate_luck_data(data, formula, printsummary=False):
     normalize_vars = ["OE", "DE", "QPct", "CAA", "FL"]
     data["Level"] = data["Rundle"].str[0]
     data["Matches"] = data["W"] + data["L"] + data["T"]
@@ -128,10 +128,7 @@ def stats_model_luck(data, formula, model=None):
         * data.groupby("Rundle")["QPct"].transform("mean")
     )
     data = norm_vars(data, normalize_vars)
-    if not model:
-        model = ols(formula, data=data).fit()
-        # model.save("~/.LearnedLeague/regression_model.pickle")
-
+    model = ols(formula, data=data).fit()
     data["Exp_PTS"] = model.predict(data)
     data = data.replace([np.inf, -np.inf, np.nan, "--"], 0)
     data["Exp_Rank"] = (
@@ -148,7 +145,9 @@ def stats_model_luck(data, formula, model=None):
         rankdata(data["Luck_Rank_adj"], method="max") / len(data) * 100
     ).round(2)
     data.sort_values(by="LuckPctile", ascending=False, inplace=True)
-    return data, model
+    if printsummary:
+        print(model.summary())
+    return data
 
 
 def display_data(data, usernames, fields, rundleflag=False):
@@ -204,9 +203,32 @@ def display_data(data, usernames, fields, rundleflag=False):
             ]
         ]
         window = sg.Window("Luck Table", layout, resizable=True)
-        return luck_data, window
+        return window
     except Exception as e:
         print(e)
+
+
+def get_individual_luck(username, filterflag=False, dictflag=False):
+    res = data.loc[username]
+    if filterflag:
+        filtres = res[
+            [
+                "Player",
+                "PTS",
+                "Exp_PTS",
+                "Luck",
+                "Rank",
+                "Exp_Rank",
+                "Luck_Rank",
+                "LuckPctile",
+            ]
+        ]
+        if dictflag:
+            return filtres.to_dict()
+        return filtres
+    if dictflag:
+        return res.to_dict()
+    return res
 
 
 def get_args():
@@ -313,10 +335,8 @@ if __name__ == "__main__":
     matchday = args.matchday
 
     formula = "PTS ~ " + " + ".join(args.formula)
-    model = None
     data = get_leaguewide_data(season=args.season, matchday=args.matchday)
-    data, model = stats_model_luck(data, model=model, formula=formula)
-    print(model.summary())
+    data = calculate_luck_data(data, formula=formula, printsummary=True)
 
     if not args.rundle and len(args.usernames) == 1:
         args.fields.append("Rundle")
@@ -334,7 +354,7 @@ if __name__ == "__main__":
                 args.fields.append(new_field)
 
     # print(args.fields)
-    luck_data, window = display_data(
+    window = display_data(
         data, usernames=args.usernames, fields=args.fields, rundleflag=args.rundle
     )
     # print(data["Luck"].sum())
