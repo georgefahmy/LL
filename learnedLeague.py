@@ -324,21 +324,6 @@ try:
 except:
     current_day = 0
 
-total_players = sum(
-    [
-        int(row.find_all("td")[1].text)
-        for row in (
-            bs(
-                requests.get("https://www.learnedleague.com/allrundles.php").content,
-                "html.parser",
-                parse_only=ss("table"),
-            )
-            .find_all("table")[2]
-            .find_all("tr")[1:]
-        )
-    ]
-)
-
 for season in available_seasons:
     season_questions = 0
     for key in all_data.keys():
@@ -348,52 +333,7 @@ for season in available_seasons:
         missing_seasons += [season]
 
 if len(missing_seasons) > 0 and current_day > 0:
-    icon_file = WD + "/resources/ll_app_logo.png"
-    sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
-    max_length = len(missing_seasons)
-    loading_window = sg.Window(
-        "Loading New Questions",
-        [
-            [
-                sg.ProgressBar(
-                    max_length,
-                    orientation="h",
-                    expand_x=True,
-                    size=(20, 20),
-                    key="-PBAR-",
-                )
-            ],
-            [
-                sg.Text(
-                    "",
-                    key="-OUT-",
-                    enable_events=True,
-                    font=("Arial", 16),
-                    justification="center",
-                    expand_x=True,
-                )
-            ],
-        ],
-        disable_close=False,
-        size=(300, 100),
-    )
-    while True:
-        event, values = loading_window.read(timeout=1)
-
-        if event == "Cancel":
-            loading_window["-PBAR-"].update(max=max_length)
-
-        if event == sg.WIN_CLOSED or event == "Exit":
-            break
-
-        for season in missing_seasons:
-            loading_window["-OUT-"].update("Loading New Season: " + str(season))
-            all_data = get_new_data(season)
-            loading_window["-PBAR-"].update(
-                current_count=missing_seasons.index(season) + 1
-            )
-
-        loading_window.close()
+    all_data = get_new_data(season)
 
 
 icon_file = WD + "/resources/ll_app_logo.png"
