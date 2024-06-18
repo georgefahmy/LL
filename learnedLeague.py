@@ -1926,6 +1926,10 @@ while True:
                     window[f"defense_suggestion_{i}"].update(value="")
                     for i in range(1, 7)
                 ]
+                [
+                    window[f"suggestion_percent_{i}"].update(value="")
+                    for i in range(1, 7)
+                ]
                 [window[f"defense_strat_{i}"].update(value="") for i in range(1, 7)]
 
             # Open a popup window to display the current match day's questions
