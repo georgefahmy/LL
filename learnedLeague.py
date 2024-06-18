@@ -173,54 +173,46 @@ def get_new_data(season_number):
     return all_data
 
 
-def filter_questions(
-    all_data,
-    min_threshold,
-    max_threshold,
-    category_filter,
-    season_filter,
-    search_criteria=None,
-):
+def filter_questions(all_data, min_t, max_t, cat_filt, seas_filt, search_criteria=None):
     """_summary_
 
     Args:
         all_data (dict): Unfiltered full data dictionary
-        min_threshold (int): Minimum % correct
-        max_threshold (int): Maximum % correct
-        category_filter (str): Limit questions to specific category
-        season_filter (str): Limit questions to specific season
+        min_t (int): Minimum % correct
+        max_t (int): Maximum % correct
+        cat_filt (str): Limit questions to specific category
+        seas_filt (str): Limit questions to specific season
         search_criteria (str, optional): Keyword to search for in the questions. Defaults to None.
 
     Returns:
         final_filtered_questions_dict: dictionary of the filtered questions
     """
-    min_threshold = int(min_threshold)
-    max_threshold = int(max_threshold)
+    min_t = int(min_t)
+    max_t = int(max_t)
 
-    if max_threshold <= min_threshold:
-        max_threshold = min_threshold + 5
+    if max_t <= min_t:
+        max_t = min_t + 5
 
-    if category_filter == "ALL":
+    if cat_filt == "ALL":
         filtered_questions_dict = {
             question_ids: question
             for question_ids, question in all_data.items()
-            if int(question["percent"]) >= min_threshold
-            and int(question["percent"]) < max_threshold
+            if int(question["percent"]) >= min_t and int(question["percent"]) < max_t
         }
     else:
         filtered_questions_dict = {
             question_ids: question
             for question_ids, question in all_data.items()
-            if int(question["percent"]) >= min_threshold
-            and int(question["percent"]) < max_threshold
-            and question["category"].upper() == category_filter.upper()
+            if int(question["percent"]) >= min_t
+            and int(question["percent"]) < max_t
+            and question["category"].upper() == cat_filt.upper()
         }
 
-    if season_filter != "ALL":
+    if seas_filt != "ALL":
         filtered_questions_dict = {
             question_ids: question
             for question_ids, question in filtered_questions_dict.items()
-            if question["season"] == season_filter
+            if question["season"] == seas_filt
         }
 
     if search_criteria:
@@ -301,7 +293,7 @@ try:
         .split("LL")[-1]
     )
 except Exception:
-    latest_season = 99
+    latest_season = 101
 
 available_seasons = [
     str(season) for season in list(range(60, int(latest_season) + 1, 1))
@@ -331,8 +323,6 @@ try:
     )
 except:
     current_day = 0
-
-season_day = f"S{latest_season}D{current_day}Q6"
 
 total_players = sum(
     [
