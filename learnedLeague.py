@@ -466,7 +466,18 @@ if i < len(list(questions.keys())):
     None,
     None,
 )
-
+open_windows = {
+    "main_window": window.metadata,
+    "oneday_window": None,
+    "minileague_window": None,
+    "stats_window": None,
+    "defense_window": None,
+    "mock_day_window": None,
+    "analysis_window": None,
+    "category_metrics_window": None,
+    "similarity_chart_window": None,
+    "todays_question_window": None,
+}
 score = 0
 num_of_money_questions_left = 5
 submitted_answers = {}
@@ -475,6 +486,7 @@ while True:
     window, event, values = sg.read_all_windows()
     # If the window is closed, break the loop and close the application
     if event in (None, "Quit", sg.WIN_CLOSED):
+        open_windows[window.metadata] = None
         window.close()
         if window == oneday_window:
             oneday_window = None
@@ -555,6 +567,8 @@ while True:
 
             # Open the One Day Specials Interface
             if event in ["onedays_button", "One Days Specials"]:
+                if open_windows["oneday_window"]:
+                    continue
                 (
                     oneday_window,
                     data,
@@ -562,17 +576,22 @@ while True:
                     list_of_onedays,
                     oneday_filtered_results,
                 ) = oneday_main()
-
+                open_windows[oneday_window.metadata] = oneday_window.metadata
             # Open the MiniLeague interface
             if event in ["minileague_button", "Mini Leagues"]:
+                if open_windows["minileague_window"]:
+                    continue
                 (
                     minileague_window,
                     data,
                     minileague_filtered_results,
                     specific_mini,
                 ) = minileague()
+                open_windows[minileague_window.metadata] = minileague_window.metadata
 
             if event in ["mock_day", "Mock Match day"]:
+                if open_windows["mock_day_window"]:
+                    continue
                 (
                     mock_day_window,
                     match_day,
@@ -580,6 +599,7 @@ while True:
                     threshold,
                     mock_day_data,
                 ) = open_mock_day()
+                open_windows[mock_day_window.metadata] = mock_day_window.metadata
 
             # Open the LL homepage
             if event in ["open_ll", "LearnedLeague.com"]:
@@ -587,13 +607,18 @@ while True:
 
             # Open the Statistics interface
             if event in ["stats_button", "Player Tracker"]:
-                stats_window = open_stats_window()
+                if not open_windows["stats_window"]:
+                    stats_window = open_stats_window()
+                    open_windows[stats_window.metadata] = stats_window.metadata
                 stats_window["available_users"].update(
                     values=combo_values, value=user_data.formatted_username
                 )
 
             if event in ["defense_button", "Defense Tactics"]:
+                if open_windows["defense_window"]:
+                    continue
                 defense_window = open_defense_window()
+                open_windows[defense_window.metadata] = defense_window.metadata
                 defense_window["output_questions"].bind("<ButtonPress-2>", "press")
 
                 defense_window["player_1"].update(
@@ -608,7 +633,10 @@ while True:
                 )
 
             if event == "analysis_button":
+                if open_windows["analysis_window"]:
+                    continue
                 analysis_window = open_analysis_window()
+                open_windows[analysis_window.metadata] = analysis_window.metadata
 
                 analysis_window["season_selection"].update(
                     values=available_seasons,
@@ -971,7 +999,9 @@ while True:
                         ],
                         finalize=True,
                         modal=False,
+                        metadata="img_window",
                     )
+                    open_windows[img_window.metadata] = img_window.metadata
 
         if window.metadata == "minileague_window":
             if "Escape" in event:
@@ -1934,11 +1964,15 @@ while True:
 
             # Open a popup window to display the current match day's questions
             if event == "todays_questions":
+                if open_windows["todays_question_window"]:
+                    continue
+
                 question_window = display_todays_questions(
                     latest_season,
                     min(len(user_data.opponents) - 1, current_day) + 1,
                     values["display_todays_answers"],
                 )
+                open_windows[question_window.metadata] = question_window.metadata
                 if question_window.metadata == "continue":
                     continue
 
@@ -2098,7 +2132,11 @@ while True:
                     )
                     continue
 
+                if open_windows["similarity_chart_window"]:
+                    continue
+
                 plot_window = radar_similarity(player_1, player_2)
+                open_windows[plot_window.metadata] = plot_window.metadata
 
                 screen_width, _ = window.GetScreenDimensions()
                 _, q_current_loc_y = plot_window.current_location()
@@ -2117,8 +2155,11 @@ while True:
                 if not logged_in:
                     continue
                 opponent = window["opponent"].get()
+                if open_windows["category_metrics_window"]:
+                    continue
 
-                display_category_metrics(load(opponent, sess=sess))
+                cat_metrics = display_category_metrics(load(opponent, sess=sess))
+                open_windows[cat_metrics.metadata] = cat_metrics.metadata
 
         if window.metadata == "analysis_window":
             if event == "season_selection":

@@ -218,6 +218,7 @@ def radar_similarity(player_1, player_2):
         resizable=True,
         font=("Arial", 14),
         element_justification="c",
+        metadata="similarity_chart_window",
     )
     DPI = fig.get_dpi()
     fig.set_size_inches(804 / float(DPI), 804 / float(DPI))

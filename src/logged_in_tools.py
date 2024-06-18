@@ -123,6 +123,7 @@ def display_category_metrics(user_data):
         ],
         finalize=True,
         modal=False,
+        metadata="category_metrics_window",
     )
     [
         cat_metrics[category].update(
@@ -130,6 +131,8 @@ def display_category_metrics(user_data):
         )
         for category in user_data.category_metrics.keys()
     ]
+
+    return cat_metrics
 
 
 def display_todays_questions(season, day, display_answers=False):

@@ -140,7 +140,7 @@ def get_mini_data(specific_mini, window):
         for j in range(1, 7):
             mini_details["match_days"]["day_" + str(i + 1)][f"Q{j}"]["%_correct"] = [
                 v.text.strip()
-                for v in match_page.find("table", {"class": "std sortable"})
+                for v in match_page.find("table", {"class": "std mini"})
                 .find("tfoot")
                 .find_all("td", {"class": "ind-Q3-t"})
             ][2:-1][j - 1]
