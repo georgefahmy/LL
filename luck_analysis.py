@@ -15,12 +15,6 @@ from src.constants import ALL_DATA_BASE_URL, BASE_URL
 from src.logged_in_tools import login
 from src.windows.statistics_window import remove_all_rows, sort
 
-# from statsmodels.regression.linear_model import OLSResults
-# import statsmodels.api as sm
-# from src.userdata import load
-# import seaborn as sns
-# import matplotlib.pyplot as plt
-
 
 def get_current_season(season=None):
     if season:
