@@ -92,21 +92,20 @@ if __name__ == "__main__":
             scores = match.score_breakdown
             if scores.opp_correct == "F" or scores.correct == "F":
                 continue
-            else:
-                ufpa, pufpa = calc_DE(int(scores.opp_correct), int(scores.opp_points))
-                UfPA.append(ufpa)
-                pUfPA.append(pufpa)
-                ufpe, pufpe = calc_OE(int(scores.correct), int(scores.points))
-                UfPE.append(ufpe)
-                pUfPE.append(pufpe)
+            ufpa, pufpa = calc_DE(int(scores.opp_correct), int(scores.opp_points))
+            UfPA.append(ufpa)
+            pUfPA.append(pufpa)
+            ufpe, pufpe = calc_OE(int(scores.correct), int(scores.points))
+            UfPE.append(ufpe)
+            pUfPE.append(pufpe)
             if debug:
                 try:
                     oe = ufpe / pufpe
-                except:
+                except Exception:
                     oe = 0
                 try:
                     de = 1 - (ufpa / pufpa)
-                except:
+                except Exception:
                     de = 0
                 print(
                     f"{key.capitalize()}\n"

@@ -51,6 +51,11 @@ def get_current_season(season=None):
 
 
 def get_leaguewide_data(season=None, matchday=None):
+    def _extracted_from_get_leaguewide_data(season, out_file):
+        sess = login()
+        content = sess.get(ALL_DATA_BASE_URL.format(season), stream=True).content
+        out_file.write(content)
+
     if not season or not matchday:
         current_season, current_matchday = get_current_season(season)
     if not season:
@@ -64,9 +69,7 @@ def get_leaguewide_data(season=None, matchday=None):
     )
     if not os.path.isfile(file):
         with open(file, "wb+") as out_file:
-            sess = login()
-            content = sess.get(ALL_DATA_BASE_URL.format(season), stream=True).content
-            out_file.write(content)
+            _extracted_from_get_leaguewide_data(season, out_file)
     try:
         data = (
             pd.read_csv(file, encoding="latin1", low_memory=False)
@@ -84,9 +87,7 @@ def get_leaguewide_data(season=None, matchday=None):
     except pd.errors.EmptyDataError:
         print("Empty Data")
         with open(file, "wb+") as out_file:
-            sess = login()
-            content = sess.get(ALL_DATA_BASE_URL.format(season), stream=True).content
-            out_file.write(content)
+            _extracted_from_get_leaguewide_data(season, out_file)
         data = (
             pd.read_csv(file, encoding="latin1", low_memory=False)
             .set_index("Player", drop=False)
@@ -178,7 +179,7 @@ def display_data(data, usernames, fields, rundleflag=False):
         )
         calc_widths = list(map(lambda x: len(str(x)) + 1, formatted_values[ind]))
         col_widths = [
-            max(calc_widths[i], len(headers[i]) + 2) for i in range(0, len(headers))
+            max(calc_widths[i], len(headers[i]) + 2) for i in range(len(headers))
         ]
         sg.theme("Reddit")
         sg.set_options(font=("Arial", 16))
@@ -195,15 +196,14 @@ def display_data(data, usernames, fields, rundleflag=False):
                     alternating_row_color="light gray",
                     enable_events=True,
                     enable_click_events=True,
-                    num_rows=min(26, len(usernames)),
+                    num_rows=min(26, len(values)),
                     vertical_scroll_only=True,
                     hide_vertical_scroll=False,
                     key="stats_table",
                 )
             ]
         ]
-        window = sg.Window("Luck Table", layout, resizable=True)
-        return window
+        return sg.Window("Luck Table", layout, resizable=True)
     except Exception as e:
         print(e)
 
@@ -223,12 +223,8 @@ def get_individual_luck(username, filterflag=False, dictflag=False):
                 "LuckPctile",
             ]
         ]
-        if dictflag:
-            return filtres.to_dict()
-        return filtres
-    if dictflag:
-        return res.to_dict()
-    return res
+        return filtres.to_dict() if dictflag else filtres
+    return res.to_dict() if dictflag else res
 
 
 def get_args():
@@ -327,7 +323,7 @@ def get_args():
 
 if __name__ == "__main__":
     args = get_args()
-    icon_file = os.getcwd() + "/resources/ll_app_logo.png"
+    icon_file = f"{os.getcwd()}/resources/ll_app_logo.png"
     sg.theme("Reddit")
     sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
     reverse = True
@@ -347,7 +343,7 @@ if __name__ == "__main__":
             data[new_field] = data[args.divide[0]] / data[args.divide[1]]
             args.fields.append(new_field)
         else:
-            pairs = [v for v in pairwise(args.divide)][::2]
+            pairs = list(pairwise(args.divide))[::2]
             for pair in pairs:
                 new_field = "/".join(pair)
                 data[new_field] = data[pair[0]] / data[pair[1]]

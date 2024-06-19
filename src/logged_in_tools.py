@@ -137,31 +137,32 @@ def display_category_metrics(user_data):
 
 def display_todays_questions(season, day, display_answers=False):
     sess = login()
-    current_match_day = BASE_URL + f"/match.php?{season}&{day}"
+    current_match_day = f"{BASE_URL}/match.php?{season}&{day}"
     match_day_page = bs(
         sess.get(current_match_day).content,
         "html.parser",
     )
-    if match_day_page.find("h1"):
-        if "Results" in match_day_page.find("h1").parent.text:
-            sg.popup_no_titlebar(
-                "No Active Match Day in play",
-                title="No Active Match",
-                modal=False,
-                auto_close=True,
-                auto_close_duration=10,
-            )
-            return DotMap(metadata="continue")
-    if match_day_page.find("h2"):
-        if "not yet active" in match_day_page.find("h2").parent.text:
-            sg.popup_no_titlebar(
-                f"Match Day {day} is not yet active.",
-                title=f"Warning - Match Day {day} not active.",
-                modal=False,
-                auto_close=True,
-                auto_close_duration=10,
-            )
-            return DotMap(metadata="continue")
+    if match_day_page.find("h1") and "Results" in match_day_page.find("h1").parent.text:
+        sg.popup_no_titlebar(
+            "No Active Match Day in play",
+            title="No Active Match",
+            modal=False,
+            auto_close=True,
+            auto_close_duration=10,
+        )
+        return DotMap(metadata="continue")
+    if (
+        match_day_page.find("h2")
+        and "not yet active" in match_day_page.find("h2").parent.text
+    ):
+        sg.popup_no_titlebar(
+            f"Match Day {day} is not yet active.",
+            title=f"Warning - Match Day {day} not active.",
+            modal=False,
+            auto_close=True,
+            auto_close_duration=10,
+        )
+        return DotMap(metadata="continue")
     questions_ans = DotMap()
     questions = [
         val.text
@@ -179,7 +180,7 @@ def display_todays_questions(season, day, display_answers=False):
         val.text.strip()
         for val in match_day_page.find_all("div", {"class": re.compile("ans_3")})
     ]
-    for i in range(0, 6):
+    for i in range(6):
         questions_ans[i + 1].id = i + 1
         questions_ans[i + 1].question = questions[i]
         questions_ans[i + 1].submitted_ans = (

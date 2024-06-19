@@ -29,7 +29,8 @@ def get_full_list_of_onedays():
             "date": info.find("td", {"class": "std-midleft"}).text,
         }
         for info in bs(
-            requests.get(BASE_URL + "/oneday/onedaysalpha.php").content, "html.parser"
+            requests.get(f"{BASE_URL}/oneday/onedaysalpha.php").content,
+            "html.parser",
         ).find_all("tr")[1:-1]
     }
 
@@ -42,15 +43,13 @@ def get_full_list_of_onedays():
 
     for key in list(data.keys()):
         if any(
-            [
-                val in key
-                for val in [
-                    "Just Audio",
-                    "Just Images",
-                    "Just Memes",
-                    "Just GIFs",
-                    "Just Fuzzy Images",
-                ]
+            val in key
+            for val in [
+                "Just Audio",
+                "Just Images",
+                "Just Memes",
+                "Just GIFs",
+                "Just Fuzzy Images",
             ]
         ):
             del data[key]
@@ -91,7 +90,7 @@ def get_oneday_data(oneday):
             ).content,
             "lxml",
         )
-    except:
+    except Exception:
         metrics_page = None
     try:
         questions = [
@@ -100,7 +99,7 @@ def get_oneday_data(oneday):
                 "div", {"id": "qs_close", "class": "qdivshow_wide"}
             ).find_all("p")
         ]
-    except:
+    except Exception:
         return None
     answers = [
         a.text.strip().split("\n")[-1]
@@ -139,30 +138,24 @@ def get_oneday_data(oneday):
             != " "
         }
         number_of_players = sum(
-            [
-                int(row.find_all("td")[1].text)
-                for row in metrics_page.find(
-                    "div", {"class": "byl_container"}
-                ).find_all("tr")[1:]
-            ]
+            int(row.find_all("td")[1].text)
+            for row in metrics_page.find("div", {"class": "byl_container"}).find_all(
+                "tr"
+            )[1:]
         )
-    check_blurb = page.find("div", {"id": "blurb_close"})
-    if check_blurb:
+    if check_blurb := page.find("div", {"id": "blurb_close"}):
         blurb = re.sub(
             "[\r\n]+", "\n", "".join(check_blurb.text.split("blurb")[1:]).strip()
         )
     else:
         blurb = ""
     if "ModKos" in blurb.split():
-        ratings = set(["G", "PG", "PG-13", "R", "X"])
-        ind = [
+        ratings = {"G", "PG", "PG-13", "R", "X"}
+        if ind := [
             i
-            for i, e in enumerate(
-                [val.replace(".", "").strip() for val in blurb.split()]
-            )
+            for i, e in enumerate(val.replace(".", "").strip() for val in blurb.split())
             if e in ratings
-        ]
-        if ind:
+        ]:
             modkos_rating = blurb.split()[ind[0]].replace(".", "").strip()
         else:
             modkos_rating = "None"
@@ -176,14 +169,15 @@ def get_oneday_data(oneday):
     oneday["10th_percentile"] = percentile_info.get(10) or ""
     oneday["all_percentile"] = percentile_info
     oneday["number_of_players"] = number_of_players
-    oneday_data = {}
-    for j, question in enumerate(questions):
-        oneday_data[str(j + 1)] = {
+    oneday_data = {
+        str(j + 1): {
             "_question": question,
             "answer": answers[j],
             "percent": question_metrics[j],
             "question_num": str(j + 1),
         }
+        for j, question in enumerate(questions)
+    }
     oneday["data"] = oneday_data
     return oneday
 
@@ -217,7 +211,9 @@ def oneday_main():
                     ],
                     [
                         sg.Text(
-                            "OneDay:", font=font, tooltip="Choose a OneDay to load"
+                            "OneDay:",
+                            font=font,
+                            tooltip="Choose a OneDay to load",
                         ),
                         sg.Combo(
                             values=[],
@@ -268,7 +264,9 @@ def oneday_main():
                     ],
                     [
                         sg.Text(
-                            "% Correct: ", font=("Arial", 14), pad=((5, 0), (5, 5))
+                            "% Correct: ",
+                            font=("Arial", 14),
+                            pad=((5, 0), (5, 5)),
                         ),
                         sg.Text(
                             "",
@@ -278,7 +276,9 @@ def oneday_main():
                         ),
                         sg.Text(expand_x=True),
                         sg.Text(
-                            "Num Players: ", font=("Arial", 14), pad=((5, 0), (5, 5))
+                            "Num Players: ",
+                            font=("Arial", 14),
+                            pad=((5, 0), (5, 5)),
                         ),
                         sg.Text(
                             "",
@@ -308,20 +308,29 @@ def oneday_main():
                         sg.Text("Pts Percentile:", font=("Arial Bold", 14)),
                         sg.Text("90th:", font=("Arial", 14), pad=0),
                         sg.Text(
-                            "", key="90th_percent", font=("Arial Italic", 14), pad=0
+                            "",
+                            key="90th_percent",
+                            font=("Arial Italic", 14),
+                            pad=0,
                         ),
                         sg.Text("50th:", font=("Arial", 14), pad=0),
                         sg.Text(
-                            "", key="50th_percent", font=("Arial Italic", 14), pad=0
+                            "",
+                            key="50th_percent",
+                            font=("Arial Italic", 14),
+                            pad=0,
                         ),
                         sg.Text("10th:", font=("Arial", 14), pad=0),
                         sg.Text(
-                            "", key="10th_percent", font=("Arial Italic", 14), pad=0
+                            "",
+                            key="10th_percent",
+                            font=("Arial Italic", 14),
+                            pad=0,
                         ),
                     ],
                     [
                         sg.Text("Money Questions Remaining: ", font=font),
-                        sg.Text(f"({5})", font=font, key="num_of_money_questions_left"),
+                        sg.Text("(5)", font=font, key="num_of_money_questions_left"),
                     ],
                 ],
             ),
@@ -388,7 +397,10 @@ def oneday_main():
                                         size=(12, 1),
                                         tooltip="Reveal the Answer - (s)",
                                         mouseover_colors=("black", "white"),
-                                        disabled_button_color=("black", "gray"),
+                                        disabled_button_color=(
+                                            "black",
+                                            "gray",
+                                        ),
                                     ),
                                     sg.Text(
                                         text="*******",
@@ -427,11 +439,15 @@ def oneday_main():
                                     sg.Button(
                                         "Submit Answer",
                                         key=f"submit_answer_button_{i}",
-                                        disabled_button_color=("black", "gray"),
+                                        disabled_button_color=(
+                                            "black",
+                                            "gray",
+                                        ),
                                         bind_return_key=True,
                                     ),
                                     sg.Text(
-                                        expand_x=True, background_color=background_color
+                                        expand_x=True,
+                                        background_color=background_color,
                                     ),
                                     sg.Checkbox(
                                         "Ans Override",
@@ -474,7 +490,7 @@ def oneday_main():
     )  # one time use? store this data in a json file?
     font = "Arial", 16
 
-    icon_file = WD + "/resources/ll_app_logo.png"
+    icon_file = f"{WD}/resources/ll_app_logo.png"
     sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
     window = sg.Window(
         "OneDay Trivia",

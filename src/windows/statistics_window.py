@@ -7,16 +7,14 @@ from ..constants import DEFAULT_FONT, STATS_DEFINITION
 def sort(sub_li, col, reverse=True):
     try:
         table_values = sorted(sub_li, key=lambda x: float(x[col]), reverse=reverse)
-    except:
+    except Exception:
         table_values = sorted(sub_li, key=lambda x: x[col], reverse=reverse)
     return table_values, reverse
 
 
 def add_stats_row(user_data, window, season="total"):
     current_values = window["stats_table"].get()
-    loaded_stats = window["stats_table"].metadata
-    if not loaded_stats:
-        loaded_stats = DotMap()
+    loaded_stats = window["stats_table"].metadata or DotMap()
     loaded_stats[user_data.formatted_username] = DotMap(
         {"formatted_username": user_data.formatted_username, "stats": user_data.stats}
     )
@@ -86,10 +84,9 @@ def open_stats_window():
         [
             sg.Table(
                 values=[],
-                headings=[
-                    key
-                    for key in ["Username"] + list(STATS_DEFINITION.keys()) + ["Remove"]
-                ],
+                headings=list(
+                    ["Username"] + list(STATS_DEFINITION.keys()) + ["Remove"]
+                ),
                 alternating_row_color="light gray",
                 header_font=("Arial Bold", 14),
                 font=DEFAULT_FONT,

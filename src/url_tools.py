@@ -27,7 +27,7 @@ def get_season_and_day():
         current_day = int(day_header.h3.text.split()[-1])
         current_season = int(season_header.text.split(":")[0].split("LL")[-1])
         return (current_season, current_day)
-    except:
+    except Exception:
         return (101, 0)
 
 
@@ -46,9 +46,9 @@ def get_new_data(season_number):
     except Exception:
         all_data = {}
 
-    url = BASE_URL + "/match.php?" + str(season_number)
+    url = f"{BASE_URL}/match.php?{str(season_number)}"
     for i in range(1, 26):
-        question_url = url + "&" + str(i)
+        question_url = f"{url}&{str(i)}"
         page = bs(requests.get(question_url).content, "html.parser")
 
         if not page.find_all("tr"):
@@ -92,8 +92,8 @@ def get_new_data(season_number):
         ]
 
         for j, question in enumerate(questions):
-            question_num_code = "D" + str(i).zfill(2) + "Q" + str(j + 1)
-            combined_season_num_code = "S" + season_number + question_num_code
+            question_num_code = f"D{str(i).zfill(2)}Q{str(j + 1)}"
+            combined_season_num_code = f"S{season_number}{question_num_code}"
             question_url = (
                 BASE_URL
                 + "/question.php?"

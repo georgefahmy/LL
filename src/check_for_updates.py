@@ -57,12 +57,11 @@ def get_sudo_password():
                 # cwd="/Volumes/LearnedLeague/",
             )
 
-            if "incorrect password attempts" in p.stderr or p.returncode != 0:
-                sg.popup("Password incorrect")
-                attempts += 1
-
-            else:
+            if "incorrect password attempts" not in p.stderr and p.returncode == 0:
                 break
+
+            sg.popup("Password incorrect")
+            attempts += 1
 
     window.close()
     return sudo_password
@@ -85,10 +84,10 @@ def check_for_update():
             if version_response.ok
             else None
         )
-    except:
+    except Exception:
         return restart
 
-    current_version = open(WD + "/resources/VERSION", "r").read().strip()
+    current_version = open(f"{WD}/resources/VERSION", "r").read().strip()
     current_version = re.compile("[^0-9.]").sub(
         "",
         (
@@ -103,7 +102,7 @@ def check_for_update():
 
     elif version.parse(current_version) < version.parse(new_version):
         print("New Version available")
-        icon_file = WD + "/resources/ll_app_logo.png"
+        icon_file = f"{WD}/resources/ll_app_logo.png"
         sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
         update_window = sg.Window(
             "Learned League Practice Tool Update Available",

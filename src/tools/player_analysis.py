@@ -11,9 +11,7 @@ def mscore(score_u, score_t):
         return -1
     if score_u < score_t:
         return 0
-    if score_u > score_t:
-        return 2
-    return 1
+    return 2 if score_u > score_t else 1
 
 
 def score_wonder(scores):
@@ -38,11 +36,7 @@ def score_wonder(scores):
         scores = [[int(scores[0]), int(scores[2])], [int(scores[5]), int(scores[7])]]
     # first compare questions correct return 0 if forfeit
     reg = mscore(scores[0][1], scores[1][1])
-    if reg < 0:
-        return 0
-    # then compare points and subtract question difference to get wonder value
-    # if 0 then defense doesnt play a roll in points (i.e. more questions and more points)
-    return mscore(scores[0][0], scores[1][0]) - reg
+    return 0 if reg < 0 else mscore(scores[0][0], scores[1][0]) - reg
 
 
 if __name__ == "__main__":

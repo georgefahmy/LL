@@ -26,12 +26,10 @@ def generate_random_day(mock_day_data, seed=None, threshold=0):
 
     if seed:
         random.seed(
-            seed + int(datetime.datetime.today().date().strftime("%s")) + int(threshold)
+            seed + int(datetime.datetime.now().date().strftime("%s")) + int(threshold)
         )
     else:
-        random.seed(
-            int(datetime.datetime.today().date().strftime("%s")) + int(threshold)
-        )
+        random.seed(int(datetime.datetime.now().date().strftime("%s")) + int(threshold))
 
     while len(random_list) < 6:
         random_list.append(random.choice(list(mock_day_data.keys())))
@@ -45,7 +43,7 @@ def generate_random_day(mock_day_data, seed=None, threshold=0):
     match_day = DotMap(questions=chosen)
     match_day.code = "-".join(sorted(list(match_day.questions.keys())))
     match_day.uuid = str(uuid.uuid3(namespace, match_day.code))
-    match_day.date = str(datetime.datetime.today().date())
+    match_day.date = str(datetime.datetime.now().date())
     for i, key in enumerate(
         sorted(match_day.questions.items(), key=lambda item: item[1].percent)
     ):
@@ -87,7 +85,7 @@ def open_mock_day(seed=None, threshold=0):
                 sg.Text("Percent  Threshold:", font=DEFAULT_FONT),
                 sg.Combo(
                     default_value=0,
-                    values=list(range(0, 96, 1)),
+                    values=list(range(96)),
                     readonly=True,
                     key="perc_threshold",
                     font=DEFAULT_FONT,
@@ -288,11 +286,7 @@ if __name__ == "__main__":
                 )
 
         if "New" in event:
-            if values["random_seed"]:
-                seed = random.randint(0, 999)
-            else:
-                seed = None
-
+            seed = random.randint(0, 999) if values["random_seed"] else None
             match_day = generate_random_day(
                 mock_day_data, seed=seed, threshold=values["perc_threshold"]
             )

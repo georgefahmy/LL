@@ -111,7 +111,7 @@ def draw_figure_w_toolbar(canvas, fig, canvas_toolbar):
 def radar_similarity(player_1, player_2):
     player_1_categories = OrderedDict(sorted(player_1.category_metrics.items()))
     player_2_categories = OrderedDict(sorted(player_2.category_metrics.items()))
-    theta = radar_factory(len([category for category in player_1_categories.keys()]))
+    theta = radar_factory(len(list(player_1_categories.keys())))
     data = [
         [category.percent * 100 for category in player_1_categories.values()],
         [category.percent * 100 for category in player_2_categories.values()],
@@ -120,7 +120,7 @@ def radar_similarity(player_1, player_2):
         figsize=(9, 9),
         subplot_kw=dict(projection="radar"),
     )
-    labels = [category for category in player_1_categories.keys()]
+    labels = list(player_1_categories.keys())
     colors = ["b", "r"]
 
     ax.set_rgrids([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100])

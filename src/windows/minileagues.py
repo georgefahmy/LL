@@ -38,7 +38,7 @@ def get_full_list_of_mini_leagues():
             "date": info.find("td", {"class": "std-midleft"}).text,
             "number_of_players": info.find("td", {"class": "std-mid"}).text,
         }
-        for info in bs(requests.get(BASE_URL + "/mini/").content, "html.parser")
+        for info in bs(requests.get(f"{BASE_URL}/mini/").content, "html.parser")
         .find("table", {"class": "std min"})
         .find("tbody")
         .find_all("tr")[3:-1]
@@ -52,15 +52,13 @@ def get_full_list_of_mini_leagues():
 
     for key in list(data.keys()):
         if any(
-            [
-                val in key
-                for val in [
-                    "Just Audio",
-                    "Just Images",
-                    "Just Memes",
-                    "Just GIFs",
-                    "Just Fuzzy Images",
-                ]
+            val in key
+            for val in [
+                "Just Audio",
+                "Just Images",
+                "Just Memes",
+                "Just GIFs",
+                "Just Fuzzy Images",
             ]
         ):
             del data[key]
@@ -119,16 +117,15 @@ def get_mini_data(specific_mini, window):
     for key in list(matches.keys()):
         if "12" in matches[key]:
             del matches[key]
-    mini_details = {"raw_matches": matches}
-    mini_details["match_days"] = OrderedDict()
+    mini_details = {"raw_matches": matches, "match_days": OrderedDict()}
     for i, match in enumerate(mini_details["raw_matches"].values()):
-        mini_details["match_days"]["day_" + str(i + 1)] = {}
+        mini_details["match_days"][f"day_{str(i + 1)}"] = {}
         match_page = bs(requests.get(match).content, "lxml")
         for q, a in zip(
-            match_page.find_all(True, {"class": ["ind-Q20", "a-red"]})[0::2],
+            match_page.find_all(True, {"class": ["ind-Q20", "a-red"]})[::2],
             match_page.find_all(True, {"class": ["ind-Q20", "a-red"]})[1::2],
         ):
-            mini_details["match_days"]["day_" + str(i + 1)][
+            mini_details["match_days"][f"day_{str(i + 1)}"][
                 q.text.strip().split("-")[0].strip().split(".")[0]
             ] = {
                 "question": "-".join(q.text.strip().split("-")[1:]).strip(),
@@ -138,7 +135,7 @@ def get_mini_data(specific_mini, window):
             window["pbar"].update(current_count=p)
 
         for j in range(1, 7):
-            mini_details["match_days"]["day_" + str(i + 1)][f"Q{j}"]["%_correct"] = [
+            mini_details["match_days"][f"day_{str(i + 1)}"][f"Q{j}"]["%_correct"] = [
                 v.text.strip()
                 for v in match_page.find("table", {"class": "std mini"})
                 .find("tfoot")
@@ -165,7 +162,7 @@ def get_mini_data(specific_mini, window):
 
 def q_num_finder(match_days, i):
     if int(i) % 6 == 0:
-        return match_days[f"day_{int(i)//6}"][f"Q{6}"]
+        return match_days[f"day_{int(i)//6}"]["Q6"]
     else:
         return match_days[f"day_{int(i)//6+1}"][f"Q{int(i)%6}"]
 
@@ -187,7 +184,7 @@ def load_questions(specific_mini, window):
     window["number_of_players"].update(value=specific_mini.number_of_players)
 
     specific_mini = get_mini_data(specific_mini, window)
-    window["percent_correct"].update(value=str(specific_mini.overall_correct) + "%")
+    window["percent_correct"].update(value=f"{str(specific_mini.overall_correct)}%")
     for day in specific_mini.data.match_days.keys():
         for q in specific_mini.data.match_days[day]:
             question_object = specific_mini.data.match_days[day][q]
@@ -456,7 +453,7 @@ def minileague():
 
     font = "Arial", 16
 
-    icon_file = WD + "/resources/ll_app_logo.png"
+    icon_file = f"{WD}/resources/ll_app_logo.png"
     sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
     window = sg.Window(
         "LL Mini Leagues",

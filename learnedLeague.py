@@ -57,8 +57,8 @@ BASE_URL = "https://www.learnedleague.com"
 WD = os.getcwd()
 USER_DATA_DIR = os.path.expanduser("~") + "/.LearnedLeague/user_data/"
 
-restart = check_for_update()
-if restart:
+
+if restart := check_for_update():
     restart = False
     os.execv(sys.executable, ["python"] + sys.argv)
 
@@ -112,14 +112,12 @@ def filter_questions(all_data, min_t, max_t, cat_filt, seas_filt, search_criteri
             if search_criteria.lower() in question["_question"].lower()
         }
 
-    final_filtered_questions_dict = {
+    return {
         i + 1: val
         for i, val in enumerate(
-            [filtered_questions_dict[key] for key in filtered_questions_dict.keys()]
+            filtered_questions_dict[key] for key in filtered_questions_dict
         )
     }
-
-    return final_filtered_questions_dict
 
 
 def update_question(questions, window, i):
@@ -182,11 +180,11 @@ def setup_window(window, questions):
     window["question"].bind("<ButtonPress-1>", "click_here")
     window["answer_submission"].bind("<Return>", "_submit_answer_button")
     window["category_selection"].update(
-        values=["ALL"] + sorted(list(set([q["category"] for q in all_data.values()]))),
+        values=["ALL"] + sorted(list({q["category"] for q in all_data.values()})),
         value="ALL",
     )
     window["season"].update(
-        values=["ALL"] + sorted(list(set([q["season"] for q in all_data.values()]))),
+        values=["ALL"] + sorted(list({q["season"] for q in all_data.values()})),
         value="ALL",
     )
     window["next"].update(disabled=False)
@@ -196,9 +194,7 @@ def setup_window(window, questions):
 
 latest_season, current_day = get_season_and_day()
 
-available_seasons = [
-    str(season) for season in list(range(60, int(latest_season) + 1, 1))
-]
+available_seasons = [str(season) for season in list(range(60, int(latest_season) + 1))]
 
 datapath = os.path.expanduser("~") + "/.LearnedLeague/all_data.json"
 all_data = {}
@@ -207,7 +203,7 @@ if os.path.isfile(datapath):
         all_data = json.load(fp)
 
 season_in_data = sorted(
-    list(set([val.split("D")[0].strip("S") for val in list(all_data.keys())]))
+    list({val.split("D")[0].strip("S") for val in list(all_data.keys())})
 )
 
 missing_seasons = sorted(
@@ -215,10 +211,7 @@ missing_seasons = sorted(
 )
 
 for season in available_seasons:
-    season_questions = 0
-    for key in all_data.keys():
-        if season in key:
-            season_questions += 1
+    season_questions = sum(season in key for key in all_data.keys())
     if season_questions < (current_day * 6) and current_day > 0:
         missing_seasons += [season]
 
@@ -771,23 +764,16 @@ while True:
                 webbrowser.open(window["question_number"].metadata)
 
             # Open the question item in your browser
-            if "click_here" in event:
-                if window["question"].metadata:
-                    png_data = get_image_data(window["question"].metadata)
-                    img_window = sg.Window(
-                        title="Image",
-                        layout=[
-                            [
-                                sg.Image(
-                                    data=png_data,
-                                )
-                            ],
-                        ],
-                        finalize=True,
-                        modal=False,
-                        metadata="img_window",
-                    )
-                    open_windows[img_window.metadata] = img_window.metadata
+            if "click_here" in event and window["question"].metadata:
+                png_data = get_image_data(window["question"].metadata)
+                img_window = sg.Window(
+                    title="Image",
+                    layout=[[sg.Image(data=png_data)]],
+                    finalize=True,
+                    modal=False,
+                    metadata="img_window",
+                )
+                open_windows[img_window.metadata] = img_window.metadata
 
         if window.metadata == "minileague_window":
             if "Escape" in event:

@@ -9,7 +9,7 @@ def open_analysis_window():
         [
             sg.Text("Season: ", font=("Arial Bold", 14), expand_x=True),
             sg.Combo(
-                list(range(60, 100, 1)),
+                list(range(60, 100)),
                 font=DEFAULT_FONT,
                 key="season_selection",
                 size=(10, 1),
@@ -104,7 +104,7 @@ def open_analysis_window():
 
 
 def stats_filter(field, value, operator="in", user_stats=DotMap()):
-    if not set([True for u in user_stats.values() if field in u.toDict().keys()]):
+    if not {True for u in user_stats.values() if field in u.toDict().keys()}:
         return user_stats
 
     if operator not in VALID_OPERATORS:

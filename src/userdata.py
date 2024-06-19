@@ -1,3 +1,4 @@
+import contextlib
 import json
 import os
 import re
@@ -18,7 +19,7 @@ def load(username, sess=None):
         print("Sess not provided, creating new session...")
         sess = login()
     username = username.lower()
-    filename = USER_DATA_DIR + f"/{username}.json"
+    filename = f"{USER_DATA_DIR}/{username}.json"
     if os.path.isfile(filename):
         with open(filename, "r") as fp:
             # print(f"Loaded user {username} from file")
@@ -67,7 +68,7 @@ class UserData(DotMap):
                         .find("h1", {"class": "namecss"})
                         .text
                     ).lower()
-                except:
+                except Exception:
                     return None
                 self.formatted_username = (
                     self.format_username(self.username) if self.username else None
@@ -81,22 +82,60 @@ class UserData(DotMap):
             self._save(other_folder)
 
     def _save(self, other_folder=None):
-        if other_folder:
-            folder = other_folder
-        else:
-            folder = ""
-
+        folder = other_folder or ""
         if "question_history" not in self._map.keys():
             return
 
-        with open(USER_DATA_DIR + "/" + folder + f"/{self.username}.json", "w") as fp:
-            try:
+        with open(f"{USER_DATA_DIR}/{folder}" + f"/{self.username}.json", "w") as fp:
+            with contextlib.suppress(KeyError):
                 del self.sess
-            except KeyError:
-                pass
             json.dump(self._map, fp, indent=4)
 
     def _get_full_data(self):
+        def _get_question_history(self, all_categories):
+            question_history = DotMap()
+            for category in all_categories:
+                category_name = re.sub(
+                    " ", "_", category.find("span", {"class": "catname"}).text
+                )
+                questions = category.find("table", {"class": "qh"}).find_all("tr")[1:]
+                for question in questions:
+                    q_id = (
+                        question.find_all("td")[0]
+                        .find_all("a")[2]
+                        .get("href")
+                        .split("?")[-1]
+                    )
+                    q_id = f'S{q_id.split("&")[0]}D{q_id.split("&")[1]}Q{q_id.split("&")[2]}'
+                    correct = "green" in question.find_all("td")[2].img.get("src")
+                    question_text = question.find_all("td")[1].text
+
+                    question_history[q_id] = DotMap(
+                        question_category=category_name,
+                        correct=correct,
+                        question=question_text,
+                        url=BASE_URL
+                        + question.find_all("td")[0].find_all("a")[2].get("href"),
+                    )
+            return question_history
+
+        def _get_category_metrics(self, categories):
+            for category in categories:
+                cells = category.find_all("td")
+                cat_name = cells[0].text
+                correct, total = cells[1].text.split("-")
+                if not correct:
+                    correct = 0
+                if not total:
+                    total = 0
+                category_metrics[cat_name].correct = int(correct)
+                category_metrics[cat_name].total = int(total)
+                try:
+                    category_metrics[cat_name].percent = int(correct) / int(total)
+                except ZeroDivisionError:
+                    category_metrics[cat_name].percent = 0.0
+            return category_metrics
+
         question_page = bs(
             self.sess.get(
                 f"https://learnedleague.com/profiles.php?{self.profile_id}&9"
@@ -107,32 +146,8 @@ class UserData(DotMap):
         all_categories = question_page.find_all("ul", {"class": "mktree"})
         if not all_categories:
             return None
-        question_history = DotMap()
-        for category in all_categories:
-            category_name = re.sub(
-                " ", "_", category.find("span", {"class": "catname"}).text
-            )
-            questions = category.find("table", {"class": "qh"}).find_all("tr")[1:]
-            for question in questions:
-                q_id = (
-                    question.find_all("td")[0]
-                    .find_all("a")[2]
-                    .get("href")
-                    .split("?")[-1]
-                )
-                q_id = (
-                    f'S{q_id.split("&")[0]}D{q_id.split("&")[1]}Q{q_id.split("&")[2]}'
-                )
-                correct = "green" in question.find_all("td")[2].img.get("src")
-                question_text = question.find_all("td")[1].text
 
-                question_history[q_id] = DotMap(
-                    question_category=category_name,
-                    correct=correct,
-                    question=question_text,
-                    url=BASE_URL
-                    + question.find_all("td")[0].find_all("a")[2].get("href"),
-                )
+        question_history = _get_question_history(all_categories)
         self.question_history = question_history
         self.ok = True
 
@@ -189,22 +204,8 @@ class UserData(DotMap):
         categories = latest_page.find(
             "table", {"class": "std sortable this_sea std_bord"}
         ).tbody.find_all("tr")
-        for category in categories:
-            cells = category.find_all("td")
-            cat_name = cells[0].text
-            correct, total = cells[1].text.split("-")
-            if not correct:
-                correct = 0
-            if not total:
-                total = 0
-            category_metrics[cat_name].correct = int(correct)
-            category_metrics[cat_name].total = int(total)
-            try:
-                category_metrics[cat_name].percent = int(correct) / int(total)
-            except ZeroDivisionError:
-                category_metrics[cat_name].percent = 0.0
 
-        self.category_metrics = category_metrics
+        self.category_metrics = _get_category_metrics(categories)
 
         self.opponents = [
             val.img.get("title")
@@ -228,7 +229,7 @@ class UserData(DotMap):
             details["season"]["name"] = season.h2.text.split(" ")[0]
             details["season"]["link"] = BASE_URL + season.h2.a.get("href")
             details["rundle"]["name"] = season.h3.text.strip()
-            details["rundle"]["link"] = BASE_URL + "/" + season.h3.a.get("href")
+            details["rundle"]["link"] = f"{BASE_URL}/" + season.h3.a.get("href")
             details["matches"] = DotMap()
             details["results"]["wins"] = 0
             details["results"]["ties"] = 0
@@ -291,9 +292,7 @@ class UserData(DotMap):
         )
         if not data_table:
             print("Data table issue, loading full data")
-            self.formatted_username = self.format_username(self.username)
-            self._get_full_data()
-            self._save()
+            self._extracted_from__update_data_13()
             return
 
         rows = data_table.find_all("tr")[1:]
@@ -309,12 +308,10 @@ class UserData(DotMap):
             win_loss[current_day] = win_loss_text
 
         if not win_loss:
-            self.formatted_username = self.format_username(self.username)
-            self._get_full_data()
-            self._save()
+            self._extracted_from__update_data_13()
             return
 
-        _key_lookup = current_day + "Q1"
+        _key_lookup = f"{current_day}Q1"
 
         if not any(
             [
@@ -323,9 +320,12 @@ class UserData(DotMap):
             ]
         ):
             print(f"Retrieved Latest Data for {self.username}")
-            self.formatted_username = self.format_username(self.username)
-            self._get_full_data()
-            self._save()
+            self._extracted_from__update_data_13()
+
+    def _extracted_from__update_data_13(self):
+        self.formatted_username = self.format_username(self.username)
+        self._get_full_data()
+        self._save()
 
     def calc_hun(self, opponent, show=False):
         raw = 0
@@ -343,10 +343,7 @@ class UserData(DotMap):
                 ):
                     raw += 1
 
-        if not total:
-            hun_score = 0
-        else:
-            hun_score = raw / total
+        hun_score = raw / total if total else 0
         if "hun" not in self.keys():
             self.hun = DotMap()
         if "hun" not in opponent.keys():

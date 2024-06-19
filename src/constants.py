@@ -8,8 +8,8 @@ USER_DATA_DIR = os.path.expanduser("~") + "/.LearnedLeague/user_data/"
 MODKOS = "https://www.learnedleague.com/images/misc/ModKos.png?t=1649"
 
 BASE_URL = "https://www.learnedleague.com"
-LOGIN_URL = BASE_URL + "/ucp.php?mode=login"
-USER_QHIST = BASE_URL + "/profiles.php?%s&9"
+LOGIN_URL = f"{BASE_URL}/ucp.php?mode=login"
+USER_QHIST = f"{BASE_URL}/profiles.php?%s&9"
 
 FILENAME = "LearnedLeague.dmg"
 VOLUME_NAME = FILENAME.split(".")[0]
