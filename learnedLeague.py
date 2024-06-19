@@ -172,6 +172,28 @@ def update_question(questions, window, i):
     return question_object
 
 
+def setup_window(window, questions):
+    window["dropdown"].update(values=list(questions.keys()))
+    window.bind("<Command-s>", "show_key")
+    window.bind("<Command-r>", "random_key")
+    window.bind("<Command-n>", "next_key")
+    window.bind("<Command-p>", "previous_key")
+    window["question"].bind("<ButtonPress-2>", "press")
+    window["question"].bind("<ButtonPress-1>", "click_here")
+    window["answer_submission"].bind("<Return>", "_submit_answer_button")
+    window["category_selection"].update(
+        values=["ALL"] + sorted(list(set([q["category"] for q in all_data.values()]))),
+        value="ALL",
+    )
+    window["season"].update(
+        values=["ALL"] + sorted(list(set([q["season"] for q in all_data.values()]))),
+        value="ALL",
+    )
+    window["next"].update(disabled=False)
+    window["previous"].update(disabled=False)
+    return window
+
+
 latest_season, current_day = get_season_and_day()
 
 available_seasons = [
@@ -203,6 +225,13 @@ for season in available_seasons:
 if len(missing_seasons) > 0 and current_day > 0:
     all_data = get_new_data(season)
 
+sess = None
+values = None
+logged_in = False
+reverse = True
+score = 0
+num_of_money_questions_left = 5
+submitted_answers = {}
 
 icon_file = WD + "/resources/ll_app_logo.png"
 sg.theme("Reddit")
@@ -218,67 +247,34 @@ window = sg.Window(
     metadata="main_window",
 )
 
-categories = ["ALL"] + sorted(list(set([q["category"] for q in all_data.values()])))
-seasons = ["ALL"] + sorted(list(set([q["season"] for q in all_data.values()])))
-
-# window["season_title"].update(value=seasons[0])
-window["category_selection"].update(values=categories, value="ALL")
-window["season"].update(values=seasons, value="ALL")
-
-questions = filter_questions(all_data, 0, 100, "ALL", "ALL")
-window["dropdown"].update(values=list(questions.keys()))
-window.bind("<Command-s>", "show_key")
-window.bind("<Command-r>", "random_key")
-window.bind("<Command-n>", "next_key")
-window.bind("<Command-p>", "previous_key")
-window["question"].bind("<ButtonPress-2>", "press")
-window["question"].bind("<ButtonPress-1>", "click_here")
-window["answer_submission"].bind("<Return>", "_submit_answer_button")
-sess = None
-values = None
-logged_in = False
-reverse = True
-i = choice(list(questions.keys()))
+questions = filter_questions(
+    all_data, min_t=0, max_t=101, cat_filt="ALL", seas_filt="ALL"
+)
+i = min(max(2, choice(list(questions.keys()))), len(list(questions.keys())) - 1)
 question_object = update_question(questions, window, i)
-
-if i > 1:
-    window["previous"].update(disabled=False)
-
-if i < len(list(questions.keys())):
-    window["next"].update(disabled=False)
+main_window = setup_window(window, questions)
 
 (
-    main_window,
     oneday_window,
     minileague_window,
     stats_window,
     defense_window,
     mock_day_window,
     analysis_window,
-) = (
-    window,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-)
+) = (None, None, None, None, None, None)
+
 open_windows = {
     "main_window": window.metadata,
-    "oneday_window": None,
-    "minileague_window": None,
-    "stats_window": None,
-    "defense_window": None,
-    "mock_day_window": None,
-    "analysis_window": None,
+    "oneday_window": oneday_window,
+    "minileague_window": minileague_window,
+    "stats_window": stats_window,
+    "defense_window": defense_window,
+    "mock_day_window": mock_day_window,
+    "analysis_window": analysis_window,
     "category_metrics_window": None,
     "similarity_chart_window": None,
     "todays_question_window": None,
 }
-score = 0
-num_of_money_questions_left = 5
-submitted_answers = {}
 
 while True:
     window, event, values = sg.read_all_windows()
@@ -286,11 +282,7 @@ while True:
     if event in (None, "Quit", sg.WIN_CLOSED):
         open_windows[window.metadata] = None
         window.close()
-        if window == oneday_window:
-            oneday_window = None
-        elif window == minileague_window:
-            minileague_window = None
-        elif window == main_window:
+        if window == main_window:
             if sess:
                 sess.close()
             break
