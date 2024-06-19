@@ -1,6 +1,5 @@
 import base64
 import datetime
-import io
 import json
 import os
 import re
@@ -11,12 +10,8 @@ from textwrap import wrap
 
 import pandas as pd
 import PySimpleGUI as sg
-import requests
 import wikipedia
-from bs4 import BeautifulSoup as bs
-from bs4 import SoupStrainer as ss
 from dotmap import DotMap
-from PIL import Image
 from PyDictionary import PyDictionary
 
 from src.answer_correctness import combined_correctness
@@ -29,6 +24,7 @@ from src.logged_in_tools import (
     login,
 )
 from src.radar_chart import radar_similarity
+from src.url_tools import get_image_data, get_new_data, get_season_and_day
 from src.userdata import UserData, load
 from src.windows.analysis_window import calc_pct, open_analysis_window, stats_filter
 from src.windows.defense_window import open_defense_window
@@ -65,112 +61,6 @@ restart = check_for_update()
 if restart:
     restart = False
     os.execv(sys.executable, ["python"] + sys.argv)
-
-
-def get_new_data(season_number):
-    """Get the latest data from the season number provided
-
-    Args:
-        season_number (int): Season number
-
-    Returns:
-        all_data: Data structure of all questions and answers (and metrics)
-    """
-    try:
-        with open(os.path.expanduser("~") + "/.LearnedLeague/all_data.json", "r") as fp:
-            all_data = json.load(fp)
-    except Exception:
-        all_data = {}
-
-    url = BASE_URL + "/match.php?" + str(season_number)
-    for i in range(1, 26):
-        question_url = url + "&" + str(i)
-        page = bs(requests.get(question_url).content, "html.parser")
-
-        if not page.find_all("tr"):
-            continue
-
-        categories = [
-            link.text.strip().split("-")[0].split(".")[-1].strip()
-            for link in page.find_all("div", {"class": "ind-Q20 dont-break-out"})
-        ]
-
-        percentages = [
-            cell.text
-            for cell in page.find_all("tr")[-2].find_all("td", {"class": "ind-Q3"})
-        ][2:-1]
-
-        question_defense = [
-            cell.text
-            for cell in page.find_all("tr")[-1].find_all("td", {"class": "ind-Q3"})
-        ][2:-1]
-
-        question_clickable_links = [
-            clickable_link.find_all("a")
-            for clickable_link in [
-                link
-                for link in page.find_all("div", {"class": "ind-Q20 dont-break-out"})
-                if not link.span.clear()
-            ]
-        ]
-
-        questions = [
-            "-".join(link.text.strip().split("-")[1:]).strip()
-            for link in page.find_all("div", {"class": "ind-Q20 dont-break-out"})
-        ]
-        answers = [
-            link.text.strip() for link in page.find_all("div", {"class": "a-red"})
-        ]
-        date = page.find_all("h1", {"class": "matchday"})[0].text.strip().split(":")[0]
-
-        rundles = [
-            row.find_all("td", {"class": "ind-Q3"}) for row in page.find_all("tr")[1:8]
-        ]
-
-        for j, question in enumerate(questions):
-            question_num_code = "D" + str(i).zfill(2) + "Q" + str(j + 1)
-            combined_season_num_code = "S" + season_number + question_num_code
-            question_url = (
-                BASE_URL
-                + "/question.php?"
-                + str(season_number)
-                + "&"
-                + str(i)
-                + "&"
-                + str(j + 1)
-            )
-
-            if len(question_clickable_links[j]) == 1:
-                clickable_link = question_clickable_links[j][0].get("href")
-                clickable_link = BASE_URL + str(clickable_link)
-            else:
-                clickable_link = ""
-
-            answer = answers[j]
-
-            all_data[combined_season_num_code] = {
-                "_question": question,
-                "answer": answer,
-                "season": season_number,
-                "date": date,
-                "category": categories[j],
-                "percent": percentages[j],
-                "question_num": question_num_code,
-                "defense": question_defense[j],
-                "url": question_url,
-                "clickable_link": str(clickable_link),
-                "A": [cell.text for cell in rundles[0]][2:-1][j],
-                "B": [cell.text for cell in rundles[1]][2:-1][j],
-                "C": [cell.text for cell in rundles[2]][2:-1][j],
-                "D": [cell.text for cell in rundles[3]][2:-1][j],
-                "E": [cell.text for cell in rundles[4]][2:-1][j],
-                "R": [cell.text for cell in rundles[5]][2:-1][j],
-            }
-
-    with open(os.path.expanduser("~") + "/.LearnedLeague/all_data.json", "w+") as fp:
-        json.dump(all_data, fp, sort_keys=True, indent=4)
-
-    return all_data
 
 
 def filter_questions(all_data, min_t, max_t, cat_filt, seas_filt, search_criteria=None):
@@ -282,18 +172,29 @@ def update_question(questions, window, i):
     return question_object
 
 
-try:
-    latest_season = (
-        bs(
-            requests.get("https://www.learnedleague.com/allrundles.php").content,
-            "html.parser",
-            parse_only=ss("h1"),
-        )
-        .text.split(":")[0]
-        .split("LL")[-1]
+def setup_window(window, questions):
+    window["dropdown"].update(values=list(questions.keys()))
+    window.bind("<Command-s>", "show_key")
+    window.bind("<Command-r>", "random_key")
+    window.bind("<Command-n>", "next_key")
+    window.bind("<Command-p>", "previous_key")
+    window["question"].bind("<ButtonPress-2>", "press")
+    window["question"].bind("<ButtonPress-1>", "click_here")
+    window["answer_submission"].bind("<Return>", "_submit_answer_button")
+    window["category_selection"].update(
+        values=["ALL"] + sorted(list(set([q["category"] for q in all_data.values()]))),
+        value="ALL",
     )
-except Exception:
-    latest_season = 101
+    window["season"].update(
+        values=["ALL"] + sorted(list(set([q["season"] for q in all_data.values()]))),
+        value="ALL",
+    )
+    window["next"].update(disabled=False)
+    window["previous"].update(disabled=False)
+    return window
+
+
+latest_season, current_day = get_season_and_day()
 
 available_seasons = [
     str(season) for season in list(range(60, int(latest_season) + 1, 1))
@@ -313,17 +214,6 @@ missing_seasons = sorted(
     list(set(available_seasons).symmetric_difference(set(season_in_data)))
 )
 
-try:
-    current_day = int(
-        bs(
-            requests.get("https://www.learnedleague.com/allrundles.php").content,
-            "html.parser",
-            parse_only=ss("h3"),
-        ).h3.text.split()[-1]
-    )
-except:
-    current_day = 0
-
 for season in available_seasons:
     season_questions = 0
     for key in all_data.keys():
@@ -335,6 +225,13 @@ for season in available_seasons:
 if len(missing_seasons) > 0 and current_day > 0:
     all_data = get_new_data(season)
 
+sess = None
+values = None
+logged_in = False
+reverse = True
+score = 0
+num_of_money_questions_left = 5
+submitted_answers = {}
 
 icon_file = WD + "/resources/ll_app_logo.png"
 sg.theme("Reddit")
@@ -350,67 +247,34 @@ window = sg.Window(
     metadata="main_window",
 )
 
-categories = ["ALL"] + sorted(list(set([q["category"] for q in all_data.values()])))
-seasons = ["ALL"] + sorted(list(set([q["season"] for q in all_data.values()])))
-
-# window["season_title"].update(value=seasons[0])
-window["category_selection"].update(values=categories, value="ALL")
-window["season"].update(values=seasons, value="ALL")
-
-questions = filter_questions(all_data, 0, 100, "ALL", "ALL")
-window["dropdown"].update(values=list(questions.keys()))
-window.bind("<Command-s>", "show_key")
-window.bind("<Command-r>", "random_key")
-window.bind("<Command-n>", "next_key")
-window.bind("<Command-p>", "previous_key")
-window["question"].bind("<ButtonPress-2>", "press")
-window["question"].bind("<ButtonPress-1>", "click_here")
-window["answer_submission"].bind("<Return>", "_submit_answer_button")
-sess = None
-values = None
-logged_in = False
-reverse = True
-i = choice(list(questions.keys()))
+questions = filter_questions(
+    all_data, min_t=0, max_t=101, cat_filt="ALL", seas_filt="ALL"
+)
+i = min(max(2, choice(list(questions.keys()))), len(list(questions.keys())) - 1)
 question_object = update_question(questions, window, i)
-
-if i > 1:
-    window["previous"].update(disabled=False)
-
-if i < len(list(questions.keys())):
-    window["next"].update(disabled=False)
+main_window = setup_window(window, questions)
 
 (
-    main_window,
     oneday_window,
     minileague_window,
     stats_window,
     defense_window,
     mock_day_window,
     analysis_window,
-) = (
-    window,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-)
+) = (None, None, None, None, None, None)
+
 open_windows = {
     "main_window": window.metadata,
-    "oneday_window": None,
-    "minileague_window": None,
-    "stats_window": None,
-    "defense_window": None,
-    "mock_day_window": None,
-    "analysis_window": None,
+    "oneday_window": oneday_window,
+    "minileague_window": minileague_window,
+    "stats_window": stats_window,
+    "defense_window": defense_window,
+    "mock_day_window": mock_day_window,
+    "analysis_window": analysis_window,
     "category_metrics_window": None,
     "similarity_chart_window": None,
     "todays_question_window": None,
 }
-score = 0
-num_of_money_questions_left = 5
-submitted_answers = {}
 
 while True:
     window, event, values = sg.read_all_windows()
@@ -418,11 +282,7 @@ while True:
     if event in (None, "Quit", sg.WIN_CLOSED):
         open_windows[window.metadata] = None
         window.close()
-        if window == oneday_window:
-            oneday_window = None
-        elif window == minileague_window:
-            minileague_window = None
-        elif window == main_window:
+        if window == main_window:
             if sess:
                 sess.close()
             break
@@ -913,11 +773,7 @@ while True:
             # Open the question item in your browser
             if "click_here" in event:
                 if window["question"].metadata:
-                    img_data = requests.get(window["question"].metadata).content
-                    pil_image = Image.open(io.BytesIO(img_data))
-                    png_bio = io.BytesIO()
-                    pil_image.save(png_bio, format="PNG")
-                    png_data = png_bio.getvalue()
+                    png_data = get_image_data(window["question"].metadata)
                     img_window = sg.Window(
                         title="Image",
                         layout=[
@@ -1136,11 +992,7 @@ while True:
             if "click_here" in event:
                 q_id = event.split("click_here")[0]
                 if window[q_id].metadata:
-                    img_data = requests.get(window[q_id].metadata).content
-                    pil_image = Image.open(io.BytesIO(img_data))
-                    png_bio = io.BytesIO()
-                    pil_image.save(png_bio, format="PNG")
-                    png_data = png_bio.getvalue()
+                    png_data = get_image_data(window[q_id].metadata)
                     img_window = sg.Window(
                         title="Image",
                         layout=[
