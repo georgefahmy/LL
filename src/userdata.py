@@ -92,7 +92,7 @@ class UserData(DotMap):
             json.dump(self._map, fp, indent=4)
 
     def _get_full_data(self):
-        def _get_question_history(self, all_categories):
+        def _get_question_history():
             question_history = DotMap()
             for category in all_categories:
                 category_name = re.sub(
@@ -119,7 +119,7 @@ class UserData(DotMap):
                     )
             return question_history
 
-        def _get_category_metrics(self, categories):
+        def _get_category_metrics():
             for category in categories:
                 cells = category.find_all("td")
                 cat_name = cells[0].text
@@ -147,8 +147,7 @@ class UserData(DotMap):
         if not all_categories:
             return None
 
-        question_history = _get_question_history(all_categories)
-        self.question_history = question_history
+        self.question_history = _get_question_history()
         self.ok = True
 
         stats_page = bs(
@@ -205,7 +204,7 @@ class UserData(DotMap):
             "table", {"class": "std sortable this_sea std_bord"}
         ).tbody.find_all("tr")
 
-        self.category_metrics = _get_category_metrics(categories)
+        self.category_metrics = _get_category_metrics()
 
         self.opponents = [
             val.img.get("title")
@@ -292,7 +291,7 @@ class UserData(DotMap):
         )
         if not data_table:
             print("Data table issue, loading full data")
-            self._extracted_from__update_data_13()
+            self._extracted_from__update_data()
             return
 
         rows = data_table.find_all("tr")[1:]
@@ -308,7 +307,7 @@ class UserData(DotMap):
             win_loss[current_day] = win_loss_text
 
         if not win_loss:
-            self._extracted_from__update_data_13()
+            self._extracted_from__update_data()
             return
 
         _key_lookup = f"{current_day}Q1"
@@ -320,9 +319,9 @@ class UserData(DotMap):
             ]
         ):
             print(f"Retrieved Latest Data for {self.username}")
-            self._extracted_from__update_data_13()
+            self._extracted_from__update_data()
 
-    def _extracted_from__update_data_13(self):
+    def _extracted_from__update_data(self):
         self.formatted_username = self.format_username(self.username)
         self._get_full_data()
         self._save()
