@@ -112,7 +112,7 @@ def norm_vars(data, normalize_vars):
 
 
 def calculate_luck_data(data, formula, printsummary=False):
-    normalize_vars = ["OE", "DE", "QPct", "CAA", "FL"]
+    normalize_vars = ["OE", "DE", "QPct", "CAA", "FL", "MPD"]
     data["Level"] = data["Rundle"].str[0]
     data["Matches"] = data["W"] + data["L"] + data["T"]
     data["Played"] = data["Matches"] - data["FL"]
@@ -272,6 +272,7 @@ def get_args():
             "L",
             "T",
             "QPct",
+            "TCA",
             "CAA",
             "PTS",
             "Exp_PTS",
