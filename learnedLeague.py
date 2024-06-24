@@ -42,6 +42,7 @@ from src.windows.onedays import (
     oneday_main,
     search_onedays,
 )
+from src.windows.single_question_popup import open_single_question
 from src.windows.statistics_window import (
     add_stats_row,
     open_stats_window,
@@ -192,6 +193,12 @@ def setup_window(window, questions):
     return window
 
 
+def get_specific_question(all_data, season, day, question):
+    key = f"S{season}D{day.zfill(2)}Q{question}"
+    dmap = DotMap(all_data)
+    return dmap[key]
+
+
 latest_season, current_day = get_season_and_day()
 
 available_seasons = [str(season) for season in list(range(60, int(latest_season) + 1))]
@@ -267,6 +274,7 @@ open_windows = {
     "category_metrics_window": None,
     "similarity_chart_window": None,
     "todays_question_window": None,
+    "single_quesiton_window": None,
 }
 
 while True:
@@ -404,6 +412,9 @@ while True:
                 defense_window = open_defense_window()
                 open_windows[defense_window.metadata] = defense_window.metadata
                 defense_window["output_questions"].bind("<ButtonPress-2>", "press")
+                defense_window["output_questions"].bind(
+                    "<Double-Button-1>", "left_press"
+                )
 
                 defense_window["player_1"].update(
                     values=user_data.opponents,
@@ -1813,17 +1824,28 @@ while True:
                 window["output_questions"].update(value=result)
 
             # Clicking a question number in the history box can open the question
-            if event == "output_questionspress":
+            if (
+                event == "output_questionspress"
+                or event == "output_questionsleft_press"
+            ):
+                if open_windows["single_quesiton_window"]:
+                    continue
                 history_widget = window["output_questions"].Widget
                 history_selection_ranges = history_widget.tag_ranges(sg.tk.SEL)
                 if history_selection_ranges:
                     pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
                     selected_text = history_widget.get(*history_selection_ranges)
-                    if re.match(pattern, selected_text):
+                    match = re.match(pattern, selected_text)
+                    if match:
                         window["output_questions"].set_right_click_menu(
                             ["&Right", ["Open Question"]]
                         )
-
+                        season, day, question_num = match.groups()
+                        qd = get_specific_question(all_data, season, day, question_num)
+                        single_question_window = open_single_question(qd)
+                        open_windows["single_quesiton_window"] = (
+                            single_question_window.metadata
+                        )
                 else:
                     window["output_questions"].set_right_click_menu(
                         ["&Right", ["!Open Question"]]
@@ -1832,12 +1854,19 @@ while True:
 
             # Open the question link in a web browser
             if event == "Open Question":
+                if open_windows["single_quesiton_window"]:
+                    continue
                 pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
                 match = re.match(pattern, selected_text)
                 if match:
-                    season, day, question = match.groups()
-                    url = f"https://www.learnedleague.com/question.php?{season}&{day}&{question}"
-                    webbrowser.open(url)
+                    season, day, question_num = match.groups()
+                    qd = get_specific_question(all_data, season, day, question_num)
+                    single_question_window = open_single_question(qd)
+                    # url = f"https://www.learnedleague.com/question.php?{season}&{day}&{question_num}"
+                    # webbrowser.open(url)
+                    open_windows["single_quesiton_window"] = (
+                        single_question_window.metadata
+                    )
 
             # Calculate the HUN similarity between the two players (player 1 and opponent)
             if event in ["calc_hun", "Calculate HUN"]:

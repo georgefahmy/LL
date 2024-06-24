@@ -124,6 +124,11 @@ def calculate_luck_data(data, formula, printsummary=False):
     )
     data = norm_vars(data, normalize_vars)
     model = ols(formula, data=data).fit()
+    mean_rundle_size = (
+        data.groupby("Rundle", as_index=True)
+        .agg({"Player": lambda x: len(set(x))})
+        .mean()
+    )
     data["Exp_PTS"] = model.predict(data)
     data = data.replace([np.inf, -np.inf, np.nan, "--"], 0)
     data["Exp_Rank"] = (
@@ -133,9 +138,10 @@ def calculate_luck_data(data, formula, printsummary=False):
     )
     data["Luck"] = data["PTS"] - data["Exp_PTS"]
     data["Luck_Rank"] = (data["Exp_Rank"] - data["Rank"]).astype(int)
-    data["Luck_Rank_adj"] = (data["Luck_Rank"] / data["Player_count"]) * data[
-        "Player_count"
-    ].mean()
+    data["Luck_Rank_adj"] = (
+        data["Luck_Rank"] / data["Player_count"]
+    ) * mean_rundle_size
+
     data["LuckPctile"] = (
         rankdata(data["Luck_Rank_adj"], method="max") / len(data) * 100
     ).round(2)
