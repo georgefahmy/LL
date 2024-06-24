@@ -319,7 +319,8 @@ while True:
                         window["login_button"].update(text="Logout")
                         window["stats_button"].update(disabled=False)
                         window["defense_button"].update(disabled=False)
-                        window["analysis_button"].update(disabled=False)
+                        # TODO change to False to enable analysis once analysis window is sufficiently good
+                        window["analysis_button"].update(disabled=True)
                         combo_values = sorted(
                             list(
                                 set(
