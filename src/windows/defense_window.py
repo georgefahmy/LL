@@ -41,6 +41,7 @@ def open_defense_window():
         [
             sg.Frame(
                 title="Defense Strategy",
+                size=(320, 250),
                 expand_x=True,
                 vertical_alignment="t",
                 layout=[
@@ -88,6 +89,7 @@ def open_defense_window():
             ),
             sg.Frame(
                 title="Question History Search",
+                size=(320, 250),
                 expand_x=True,
                 expand_y=True,
                 layout=[
@@ -97,7 +99,7 @@ def open_defense_window():
                             "",
                             font=DEFAULT_FONT,
                             key="defense_question_search_term",
-                            size=(15, 1),
+                            size=(16, 1),
                             expand_x=True,
                         ),
                         sg.Button("Search", key="search_questions_button"),
@@ -113,7 +115,7 @@ def open_defense_window():
                             expand_y=True,
                             expand_x=True,
                             disabled=True,
-                            size=(25, 5),
+                            size=(35, 7),
                             tooltip="Highlight question and right click to open in browswer",
                             right_click_menu=["&Right", ["!Open Question"]],
                         ),

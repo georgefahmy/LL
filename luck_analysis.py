@@ -124,7 +124,7 @@ def calculate_luck_data(data, formula, printsummary=False):
     )
     data = norm_vars(data, normalize_vars)
     model = ols(formula, data=data).fit()
-    mean_rundle_size = (
+    mean_rundle_size = float(
         data.groupby("Rundle", as_index=True)
         .agg({"Player": lambda x: len(set(x))})
         .mean()
