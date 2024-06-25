@@ -1842,9 +1842,20 @@ while True:
                         match = re.match(pattern, val)
                         if match:
                             if event == "output_questionspress":
-                                window["output_questions"].set_right_click_menu(
-                                    ["&Right", ["Open Question", "Open Multiple"]]
-                                )
+                                if len(selected_text) > 1:
+                                    window["output_questions"].set_right_click_menu(
+                                        [
+                                            "&Right",
+                                            ["Open Question on LL", "Open Multiple"],
+                                        ]
+                                    )
+                                else:
+                                    window["output_questions"].set_right_click_menu(
+                                        [
+                                            "&Right",
+                                            ["Open Question on LL", "!Open Multiple"],
+                                        ]
+                                    )
                             elif event == "output_questions_double_click":
                                 season, day, question_num = match.groups()
                                 qd = get_specific_question(
@@ -1856,7 +1867,7 @@ while True:
                                 # )
                 else:
                     window["output_questions"].set_right_click_menu(
-                        ["&Right", ["!Open Question", "!Open Multiple"]]
+                        ["&Right", ["!Open Question on LL", "!Open Multiple"]]
                     )
                     continue
 
@@ -1866,7 +1877,7 @@ while True:
                 j = 0
                 for val in selected_text:
                     match = re.match(pattern, val)
-                    if j == 6 and i == 2:
+                    if j > 5:
                         continue
                     if match:
                         size = int(screen_width / 3) - 50, int(screen_height / 6) - 50
@@ -1884,7 +1895,7 @@ while True:
                             i = 0
 
             # Open the question link in a web browser
-            if event == "Open Question":
+            if event == "Open Question on LL":
                 pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
                 match = re.match(pattern, selected_text[0])
                 if match:
