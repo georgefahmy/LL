@@ -88,7 +88,7 @@ def open_single_question(question_data):
             ],
         ],
         # size=(600, 400),
-        relative_location=(0, 400),
+        relative_location=(0, 300),
         resizable=True,
         finalize=True,
         metadata="single_quesiton_window",

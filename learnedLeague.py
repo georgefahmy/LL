@@ -413,7 +413,7 @@ while True:
                 open_windows[defense_window.metadata] = defense_window.metadata
                 defense_window["output_questions"].bind("<ButtonPress-2>", "press")
                 defense_window["output_questions"].bind(
-                    "<Double-Button-1>", "left_press"
+                    "<Double-Button-1>", "_double_click"
                 )
 
                 defense_window["player_1"].update(
@@ -1826,7 +1826,7 @@ while True:
             # Clicking a question number in the history box can open the question
             if (
                 event == "output_questionspress"
-                or event == "output_questionsleft_press"
+                or event == "output_questions_double_click"
             ):
                 if open_windows["single_quesiton_window"]:
                     continue
@@ -1835,17 +1835,23 @@ while True:
                 if history_selection_ranges:
                     pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
                     selected_text = history_widget.get(*history_selection_ranges)
-                    match = re.match(pattern, selected_text)
-                    if match:
-                        window["output_questions"].set_right_click_menu(
-                            ["&Right", ["Open Question"]]
-                        )
-                        season, day, question_num = match.groups()
-                        qd = get_specific_question(all_data, season, day, question_num)
-                        single_question_window = open_single_question(qd)
-                        open_windows["single_quesiton_window"] = (
-                            single_question_window.metadata
-                        )
+                    print(selected_text.split("\n"))
+                    for val in selected_text.split("\n"):
+                        match = re.match(pattern, val)
+                        if match:
+                            if event == "output_questionspress":
+                                window["output_questions"].set_right_click_menu(
+                                    ["&Right", ["Open Question"]]
+                                )
+                            elif event == "output_questions_double_click":
+                                season, day, question_num = match.groups()
+                                qd = get_specific_question(
+                                    all_data, season, day, question_num
+                                )
+                                single_question_window = open_single_question(qd)
+                                # open_windows["single_quesiton_window"] = (
+                                #     single_question_window.metadata
+                                # )
                 else:
                     window["output_questions"].set_right_click_menu(
                         ["&Right", ["!Open Question"]]
@@ -1854,19 +1860,12 @@ while True:
 
             # Open the question link in a web browser
             if event == "Open Question":
-                if open_windows["single_quesiton_window"]:
-                    continue
                 pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
                 match = re.match(pattern, selected_text)
                 if match:
                     season, day, question_num = match.groups()
-                    qd = get_specific_question(all_data, season, day, question_num)
-                    single_question_window = open_single_question(qd)
-                    # url = f"https://www.learnedleague.com/question.php?{season}&{day}&{question_num}"
-                    # webbrowser.open(url)
-                    open_windows["single_quesiton_window"] = (
-                        single_question_window.metadata
-                    )
+                    url = f"https://www.learnedleague.com/question.php?{season}&{day}&{question_num}"
+                    webbrowser.open(url)
 
             # Calculate the HUN similarity between the two players (player 1 and opponent)
             if event in ["calc_hun", "Calculate HUN"]:
