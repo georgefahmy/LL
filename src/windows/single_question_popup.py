@@ -20,9 +20,15 @@ def get_specific_question(season, day, question):
     return dmap[key]
 
 
-def open_single_question(question_data):
+def open_single_question(question_data, location=None, size=None):
     qcode = f"S{question_data.season}{question_data.question_num}"
     sg.theme("reddit")
+    if not size:
+        size = (550, 144)
+    if not location:
+        screen_size = sg.Window.get_screen_size()
+        center = (int(screen_size[0] / 2), int(screen_size[1] / 2))
+        location = (center[0] - size[0] / 2, (center[1] - size[1] / 2) + 300)
     window = sg.Window(
         f"Question {qcode}",
         layout=[
@@ -87,8 +93,8 @@ def open_single_question(question_data):
                 )
             ],
         ],
-        # size=(600, 400),
-        relative_location=(0, 300),
+        size=size,
+        location=location,
         resizable=True,
         finalize=True,
         metadata="single_quesiton_window",
