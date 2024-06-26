@@ -181,6 +181,7 @@ def display_data(data, usernames, fields, rundleflag=False):
         col_widths = [
             max(calc_widths[i], len(headers[i]) + 2) for i in range(len(headers))
         ]
+        print(col_widths)
         sg.theme("Reddit")
         sg.set_options(font=("Arial", 16))
         layout = [

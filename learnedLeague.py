@@ -164,7 +164,7 @@ def update_question(questions, window, i):
     text = window["question"].get()
     if "Click here" in text:
         index = text.index("Click here")
-        indexes = (f"1.{index}", f"1.{index+10}")
+        indexes = (f"1.{index}", f"1.{index + 10}")
         widget.tag_add("HIGHLIGHT", indexes[0], indexes[1])
     window.refresh()
 
@@ -1015,21 +1015,21 @@ while True:
                 )
 
                 for i, v in enumerate(match_day.questions.values()):
-                    window[f"Q{i+1}"].update(value=v._question)
-                    window[f"Q{i+1}"].metadata = v.clickable_link
+                    window[f"Q{i + 1}"].update(value=v._question)
+                    window[f"Q{i + 1}"].metadata = v.clickable_link
                     window[f"assigned_points_{i}"].update(value="")
                     window[f"correct_answer_{i}"].update(value="")
                     window[f"percent_correct_{i}"].update(value="")
                     window[f"submitted_answer_{i}"].update(disabled=False, value="")
                     window["Submit"].update(disabled=False)
-                    widget = window[f"Q{i+1}"].Widget
+                    widget = window[f"Q{i + 1}"].Widget
                     widget.tag_config(
                         "HIGHLIGHT", foreground="blue", font=("Arial", 14, "underline")
                     )
-                    text = window[f"Q{i+1}"].get()
+                    text = window[f"Q{i + 1}"].get()
                     if "Click here" in text:
                         index = text.index("Click here")
-                        indexes = (f"1.{index}", f"1.{index+10}")
+                        indexes = (f"1.{index}", f"1.{index + 10}")
                         widget.tag_add("HIGHLIGHT", indexes[0], indexes[1])
 
         if window.metadata == "oneday_window":
@@ -1385,7 +1385,7 @@ while True:
 
                     with open(
                         os.path.expanduser("~")
-                        + f"/.LearnedLeague/onedays/{re.sub(' ','_', oneday['title'])}"
+                        + f"/.LearnedLeague/onedays/{re.sub(' ', '_', oneday['title'])}"
                         + ".json",
                         "w",
                     ) as fp:
@@ -1491,7 +1491,7 @@ while True:
 
                     with open(
                         os.path.expanduser("~")
-                        + f"/.LearnedLeague/onedays/{re.sub(' ','_', oneday['title'])}"
+                        + f"/.LearnedLeague/onedays/{re.sub(' ', '_', oneday['title'])}"
                         + ".json",
                         "w",
                     ) as fp:
@@ -1699,7 +1699,7 @@ while True:
                 raw_scores = [3, 2, 2, 1, 1, 0]
                 percents = DotMap(
                     {
-                        f"question_{i+1}": {
+                        f"question_{i + 1}": {
                             "percent": (
                                 player_2.category_metrics.get(key).percent
                                 if player_2.category_metrics.get(key)
@@ -1718,14 +1718,14 @@ while True:
                     percents[key]["score"] = raw_scores[i]
 
                 [
-                    window[f"defense_suggestion_{i+1}"].update(
+                    window[f"defense_suggestion_{i + 1}"].update(
                         value=percents[key].score
                     )
                     for i, key in enumerate(list(percents.keys()))
                 ]
                 [
-                    window[f"suggestion_percent_{i+1}"].update(
-                        value=f"{percents[key].percent*100:0.1f}%"
+                    window[f"suggestion_percent_{i + 1}"].update(
+                        value=f"{percents[key].percent * 100:0.1f}%"
                     )
                     for i, key in enumerate(list(percents.keys()))
                 ]
