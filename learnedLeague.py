@@ -248,7 +248,7 @@ window = sg.Window(
 )
 
 questions = filter_questions(
-    all_data, min_t=0, max_t=101, cat_filt="ALL", seas_filt="ALL"
+    all_data, min_t=0, max_t=102, cat_filt="ALL", seas_filt="ALL"
 )
 i = min(max(2, choice(list(questions.keys()))), len(list(questions.keys())) - 1)
 question_object = update_question(questions, window, i)

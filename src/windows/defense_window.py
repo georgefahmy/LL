@@ -53,6 +53,7 @@ def open_defense_window():
                     ],
                     [
                         sg.Column(
+                            expand_x=True,
                             layout=[
                                 [
                                     sg.Text(f"Q{i}:", font=DEFAULT_FONT),

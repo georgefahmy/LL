@@ -22,13 +22,25 @@ def get_season_and_day():
         "html.parser",
         parse_only=ss("h1"),
     )
+    md_table = bs(
+        raw,
+        "html.parser",
+        parse_only=ss("table"),
+    ).find_all("table",{"class":"MDTable"})[0].find_all("tr")
+
+    current_day_table = [i-1 for i, row in enumerate(md_table) if "Active" in row.text][0]
 
     try:
         current_day = int(day_header.h3.text.split()[-1])
         current_season = int(season_header.text.split(":")[0].split("LL")[-1])
         return (current_season, current_day)
     except Exception:
-        return (101, 0)
+        try:
+            current_day = current_day_table
+            current_season = int(season_header.text.split(":")[0].split("LL")[-1])
+            return (current_season, current_day)
+        except:
+            return (102, 0)
 
 
 def get_new_data(season_number):
