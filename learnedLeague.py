@@ -328,7 +328,7 @@ while True:
                         window["stats_button"].update(disabled=False)
                         window["defense_button"].update(disabled=False)
                         # TODO change to False to enable analysis once analysis window is sufficiently good
-                        window["analysis_button"].update(disabled=True)
+                        window["analysis_button"].update(disabled=False)
                         combo_values = sorted(
                             list(
                                 set(
@@ -428,6 +428,35 @@ while True:
                 )
 
             if event == "analysis_button":
+                os.system("python luck_analysis.py -u FahmyG -r")
+                continue
+                #TODO turn into luck analysis window
+                # Make everything appropriatle choosable, and have the default values be clear
+                # start with a small window for the options, and then a submit button that opens
+                # the resulting window
+                # -h, --help            show this help message and exit
+                #
+                # -s SEASON, --season SEASON
+                #                         Enter the Season Number you want to get stats data for. (ex. -s 100) Default == Latest
+                #
+                # -m MATCHDAY, --matchday MATCHDAY
+                #                         Enter the Matchday Number you want to get stats data for. (ex. -m 8) Default == Latest
+                #
+                # -u USERNAMES [USERNAMES ...], --usernames USERNAMES [USERNAMES ...]
+                #                         Enter the username(s) that you want to get information on. (ex. -u FrielP)
+                #
+                # -f FIELDS [FIELDS ...], --fields FIELDS [FIELDS ...]
+                #                         Enter any optional data fields that you want to display in the output table. Available Fields: 'MPD', 'TMP', 'TCA', 'PCA', 'UfPE',
+                #                         'OE', 'QPct', 'TPA', 'CAA', 'PCAA', 'UfPA', 'DE', 'NUfP', 'QPO', 'QPD', 'OPD', 'FW', 'FL', '3PT', 'MCW', 'Rank', 'League', 'Branch',
+                #                         'Level', 'Matches', 'Played', 'Player_count', 'norm_OE', 'norm_DE', 'norm_QPct', 'norm_CAA', 'norm_3PT', 'Luck_Rank_adj'
+                #
+                # -r, --rundle          Default: False. Set flag to display rundle information for specified Usernames
+                #
+                # -F FORMULA [FORMULA ...], --formula FORMULA [FORMULA ...]
+                #                         Advanced Usage for adding variables to the model. Default: Played, FL*norm_OE, FL*norm_QPct, norm_DE
+                #
+                # -d DIVIDE [DIVIDE ...], --divide DIVIDE [DIVIDE ...]
+                #                         Advanced Usage: select two numerical columns and divide them and display the result in a new column.
                 if open_windows["analysis_window"]:
                     continue
                 analysis_window = open_analysis_window()
