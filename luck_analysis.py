@@ -259,7 +259,6 @@ def get_args():
             "HammondM",
             "PantaloneG",
             "JenkinsK",
-            "MooneyJ2",
         ],
     )
     parser.add_argument(
