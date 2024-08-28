@@ -14,6 +14,7 @@ def open_analysis_window(season=102):
                 key="season_selection",
                 size=(10, 1),
                 enable_events=True,
+                readonly=True,
             ),
         ],
         [
@@ -24,6 +25,7 @@ def open_analysis_window(season=102):
                 key="user",
                 size=(15, 10),
                 select_mode=sg.LISTBOX_SELECT_MODE_MULTIPLE,
+                no_scrollbar=True,
             ),
         ],
         [sg.HorizontalSeparator()],
@@ -36,6 +38,7 @@ def open_analysis_window(season=102):
                 size=(15, 10),
                 enable_events=True,
                 select_mode=sg.LISTBOX_SELECT_MODE_MULTIPLE,
+                no_scrollbar=True,
             ),
         ],
         [

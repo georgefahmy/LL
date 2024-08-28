@@ -333,7 +333,7 @@ if __name__ == "__main__":
 
     formula = "PTS ~ " + " + ".join(args.formula)
     data = get_leaguewide_data(season=args.season, matchday=args.matchday)
-    data = calculate_luck_data(data, formula=formula, printsummary=True)
+    data = calculate_luck_data(data, formula=formula, printsummary=False)
 
     if not args.rundle and len(args.usernames) == 1:
         args.fields.append("Rundle")
