@@ -106,7 +106,7 @@ def open_single_question(question_data, location=None, size=None):
     text = window["Q"].get()
     if "Click here" in text:
         index = text.index("Click here")
-        indexes = (f"1.{index}", f"1.{index+10}")
+        indexes = (f"1.{index}", f"1.{index + 10}")
         widget.tag_add("HIGHLIGHT", indexes[0], indexes[1])
     return window
 

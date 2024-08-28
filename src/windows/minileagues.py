@@ -162,9 +162,9 @@ def get_mini_data(specific_mini, window):
 
 def q_num_finder(match_days, i):
     if int(i) % 6 == 0:
-        return match_days[f"day_{int(i)//6}"]["Q6"]
+        return match_days[f"day_{int(i) // 6}"]["Q6"]
     else:
-        return match_days[f"day_{int(i)//6+1}"][f"Q{int(i)%6}"]
+        return match_days[f"day_{int(i) // 6 + 1}"][f"Q{int(i) % 6}"]
 
 
 def load_questions(specific_mini, window):

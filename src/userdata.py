@@ -301,9 +301,7 @@ class UserData(DotMap):
             if win_loss_text == "\xa0":
                 continue
 
-            current_day = (
-                f'S{re.sub("&","D",row.find_all("td")[0].a.get("href").split("?")[-1])}'
-            )
+            current_day = f'S{re.sub("&", "D", row.find_all("td")[0].a.get("href").split("?")[-1])}'
             win_loss[current_day] = win_loss_text
 
         if not win_loss:

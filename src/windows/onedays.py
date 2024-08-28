@@ -71,12 +71,12 @@ def get_specific_oneday(data, onedaykey):
 def get_oneday_data(oneday):
     if os.path.isfile(
         os.path.expanduser("~")
-        + f"/.LearnedLeague/onedays/{re.sub(' ','_', oneday['title'])}.json"
+        + f"/.LearnedLeague/onedays/{re.sub(' ', '_', oneday['title'])}.json"
     ):
         print("file exists")
         with open(
             os.path.expanduser("~")
-            + f"/.LearnedLeague/onedays/{re.sub(' ','_', oneday['title'])}.json",
+            + f"/.LearnedLeague/onedays/{re.sub(' ', '_', oneday['title'])}.json",
             "r",
         ) as fp:
             oneday = json.load(fp)

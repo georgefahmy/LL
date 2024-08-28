@@ -107,7 +107,7 @@ def display_category_metrics(user_data):
                         font=DEFAULT_FONT,
                     ),
                     sg.Text(
-                        f"{user_data.category_metrics[category].percent*100:3.2f}%",
+                        f"{user_data.category_metrics[category].percent * 100:3.2f}%",
                         font=DEFAULT_FONT,
                         justification="r",
                     ),

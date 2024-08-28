@@ -111,7 +111,7 @@ def open_mock_day(seed=None, threshold=0):
                                             layout=[
                                                 [
                                                     sg.Text(
-                                                        f"Q{i+1}:",
+                                                        f"Q{i + 1}:",
                                                         font=DEFAULT_FONT,
                                                         background_color="light gray",
                                                         key="",
@@ -135,7 +135,7 @@ def open_mock_day(seed=None, threshold=0):
                                             expand_y=True,
                                             border_width=0,
                                             font=DEFAULT_FONT,
-                                            key=f"Q{i+1}",
+                                            key=f"Q{i + 1}",
                                             size=(None, 4),
                                             metadata=str(v.clickable_link),
                                         ),
@@ -220,7 +220,7 @@ def open_mock_day(seed=None, threshold=0):
         text = window[f"Q{i}"].get()
         if "Click here" in text:
             index = text.index("Click here")
-            indexes = (f"1.{index}", f"1.{index+10}")
+            indexes = (f"1.{index}", f"1.{index + 10}")
             widget.tag_add("HIGHLIGHT", indexes[0], indexes[1])
     return window, match_day, seed, threshold, mock_day_data
 
@@ -292,19 +292,19 @@ if __name__ == "__main__":
             )
 
             for i, v in enumerate(match_day.questions.values()):
-                window[f"Q{i+1}"].update(value=v._question)
-                window[f"Q{i+1}"].metadata = v.clickable_link
+                window[f"Q{i + 1}"].update(value=v._question)
+                window[f"Q{i + 1}"].metadata = v.clickable_link
                 window[f"assigned_points_{i}"].update(value="")
                 window[f"correct_answer_{i}"].update(value="")
                 window[f"percent_correct_{i}"].update(value="")
                 window[f"submitted_answer_{i}"].update(disabled=False, value="")
                 window["Submit"].update(disabled=False)
-                widget = window[f"Q{i+1}"].Widget
+                widget = window[f"Q{i + 1}"].Widget
                 widget.tag_config(
                     "HIGHLIGHT", foreground="blue", font=("Arial", 14, "underline")
                 )
-                text = window[f"Q{i+1}"].get()
+                text = window[f"Q{i + 1}"].get()
                 if "Click here" in text:
                     index = text.index("Click here")
-                    indexes = (f"1.{index}", f"1.{index+10}")
+                    indexes = (f"1.{index}", f"1.{index + 10}")
                     widget.tag_add("HIGHLIGHT", indexes[0], indexes[1])
