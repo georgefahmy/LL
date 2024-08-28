@@ -8,7 +8,6 @@ import webbrowser
 from random import choice, randint
 from textwrap import wrap
 
-import pandas as pd
 import PySimpleGUI as sg
 import wikipedia
 from dotmap import DotMap
@@ -16,7 +15,7 @@ from PyDictionary import PyDictionary
 
 from src.answer_correctness import combined_correctness
 from src.check_for_updates import check_for_update
-from src.constants import ALL_DATA_BASE_URL, DEFAULT_FONT
+from src.constants import DEFAULT_FONT
 from src.layout import super_layout
 from src.logged_in_tools import (
     display_category_metrics,
@@ -26,7 +25,7 @@ from src.logged_in_tools import (
 from src.radar_chart import radar_similarity
 from src.url_tools import get_image_data, get_new_data, get_season_and_day
 from src.userdata import UserData, load
-from src.windows.analysis_window import calc_pct, open_analysis_window, stats_filter
+from src.windows.analysis_window import open_analysis_window
 from src.windows.defense_window import open_defense_window
 from src.windows.minileagues import (
     get_mini_data,
@@ -428,30 +427,11 @@ while True:
                 )
 
             if event == "analysis_button":
-                os.system("python luck_analysis.py -u FahmyG -r")
-                continue
-                #TODO turn into luck analysis window
+                # TODO turn into luck analysis window
                 # Make everything appropriatle choosable, and have the default values be clear
                 # start with a small window for the options, and then a submit button that opens
                 # the resulting window
                 # -h, --help            show this help message and exit
-                #
-                # -s SEASON, --season SEASON
-                #                         Enter the Season Number you want to get stats data for. (ex. -s 100) Default == Latest
-                #
-                # -m MATCHDAY, --matchday MATCHDAY
-                #                         Enter the Matchday Number you want to get stats data for. (ex. -m 8) Default == Latest
-                #
-                # -u USERNAMES [USERNAMES ...], --usernames USERNAMES [USERNAMES ...]
-                #                         Enter the username(s) that you want to get information on. (ex. -u FrielP)
-                #
-                # -f FIELDS [FIELDS ...], --fields FIELDS [FIELDS ...]
-                #                         Enter any optional data fields that you want to display in the output table. Available Fields: 'MPD', 'TMP', 'TCA', 'PCA', 'UfPE',
-                #                         'OE', 'QPct', 'TPA', 'CAA', 'PCAA', 'UfPA', 'DE', 'NUfP', 'QPO', 'QPD', 'OPD', 'FW', 'FL', '3PT', 'MCW', 'Rank', 'League', 'Branch',
-                #                         'Level', 'Matches', 'Played', 'Player_count', 'norm_OE', 'norm_DE', 'norm_QPct', 'norm_CAA', 'norm_3PT', 'Luck_Rank_adj'
-                #
-                # -r, --rundle          Default: False. Set flag to display rundle information for specified Usernames
-                #
                 # -F FORMULA [FORMULA ...], --formula FORMULA [FORMULA ...]
                 #                         Advanced Usage for adding variables to the model. Default: Played, FL*norm_OE, FL*norm_QPct, norm_DE
                 #
@@ -459,43 +439,40 @@ while True:
                 #                         Advanced Usage: select two numerical columns and divide them and display the result in a new column.
                 if open_windows["analysis_window"]:
                     continue
-                analysis_window = open_analysis_window()
+                analysis_window = open_analysis_window(season=latest_season)
                 open_windows[analysis_window.metadata] = analysis_window.metadata
 
-                analysis_window["season_selection"].update(
-                    values=available_seasons,
-                    value=latest_season,
-                )
                 analysis_window["user"].update(
-                    values=user_data.opponents,
-                    value=user_data.formatted_username,
+                    values=[user_data.formatted_username] + user_data.opponents,
+                    set_to_index=0,
+                    # value=user_data.formatted_username,
                 )
+                # os.system("python luck_analysis.py -u FahmyG -r")
+                # player_stats_url = ALL_DATA_BASE_URL.format(latest_season)
+                # file = (
+                #     os.path.expanduser("~")
+                #     + "/.LearnedLeague/"
+                #     + f"LL{latest_season}_Leaguewide.csv"
+                # )
+                # if not os.path.isfile(file):
+                #     with open(file, "wb+") as out_file:
+                #         sess = login()
+                #         content = sess.get(player_stats_url, stream=True).content
+                #         out_file.write(content)
 
-                player_stats_url = ALL_DATA_BASE_URL.format(latest_season)
-                file = (
-                    os.path.expanduser("~")
-                    + "/.LearnedLeague/"
-                    + f"LL{latest_season}_Leaguewide.csv"
-                )
-                if not os.path.isfile(file):
-                    with open(file, "wb+") as out_file:
-                        sess = login()
-                        content = sess.get(player_stats_url, stream=True).content
-                        out_file.write(content)
+                # raw = pd.read_csv(file, encoding="latin1")
+                # raw.columns = [x.lower() for x in raw.columns]
 
-                raw = pd.read_csv(file, encoding="latin1")
-                raw.columns = [x.lower() for x in raw.columns]
+                # match_day = raw.matchday.iloc[0]
 
-                match_day = raw.matchday.iloc[0]
+                # if match_day < current_day:
+                #     with open(file, "wb+") as out_file:
+                #         sess = login()
+                #         content = sess.get(player_stats_url, stream=True).content
+                #         out_file.write(content)
 
-                if match_day < current_day:
-                    with open(file, "wb+") as out_file:
-                        sess = login()
-                        content = sess.get(player_stats_url, stream=True).content
-                        out_file.write(content)
-
-                user_stats = DotMap(raw.set_index("player").to_dict(orient="index"))
-                df = pd.DataFrame().from_dict(user_stats.toDict(), orient="index")
+                # user_stats = DotMap(raw.set_index("player").to_dict(orient="index"))
+                # df = pd.DataFrame().from_dict(user_stats.toDict(), orient="index")
 
             # Trigger the right click menu for searching text within a question
             if event == "questionpress":
@@ -2023,69 +2000,25 @@ while True:
                 cat_metrics = display_category_metrics(load(opponent, sess=sess))
                 open_windows[cat_metrics.metadata] = cat_metrics.metadata
 
-        if window.metadata == "analysis_window":
-            if event == "season_selection":
-                player_stats_url = ALL_DATA_BASE_URL.format(values["season_selection"])
-                file = (
-                    os.path.expanduser("~")
-                    + "/.LearnedLeague/"
-                    + f"LL{values['season_selection']}_Leaguewide.csv"
+        if window.metadata == "analysis_window" and event == "submit_luck":
+            print(
+                values["season_selection"],
+                values["user"],
+                values["field_selection"],
+                values["rundle_flag"],
+                values["optional_formula"],
+            )
+
+            command = (
+                "python luck_analysis.py"
+                + f' -s {values["season_selection"]}'
+                + f' -u {" ".join(values["user"])}'
+                + (
+                    f' -f {" ".join(values["field_selection"])}'
+                    if len(values["field_selection"])
+                    else ""
                 )
-                if not os.path.isfile(file):
-                    with open(file, "wb+") as out_file:
-                        sess = login()
-                        content = sess.get(player_stats_url, stream=True).content
-                        out_file.write(content)
-
-                raw = pd.read_csv(file, encoding="latin1", low_memory=False)
-                raw.columns = [x.lower() for x in raw.columns]
-
-                match_day = raw.matchday.iloc[0]
-
-                if match_day < current_day:
-                    with open(file, "wb+") as out_file:
-                        sess = login()
-                        content = sess.get(player_stats_url, stream=True).content
-                        out_file.write(content)
-
-                user_stats = DotMap(raw.set_index("player").to_dict(orient="index"))
-                df = pd.DataFrame().from_dict(user_stats.toDict(), orient="index")
-
-            if event == "overall_filter_button":
-                filtered_user_stats = stats_filter(
-                    values["field"],
-                    values["overall_field_value"],
-                    operator=values["operator"],
-                    user_stats=user_stats,
-                )
-                print(len(filtered_user_stats))
-
-            if event == "user_filter_button":
-
-                def is_float(string):
-                    try:
-                        float(string)
-                        return True
-                    except ValueError:
-                        return False
-
-                user_field_val = (
-                    float(values["user_field_value"])
-                    if is_float(values["user_field_value"])
-                    else None
-                )
-                if not (0 < user_field_val <= 1):
-                    continue
-
-                if not user_field_val and values["mode"] == "quant":
-                    continue
-
-                res = calc_pct(
-                    values["user"],
-                    values["user_field"],
-                    user_stats,
-                    df,
-                    value=user_field_val,
-                    mode=values["mode"],
-                )
-                print(res)
+                + (" -r" if values["rundle_flag"] else "")
+            )
+            print(command)
+            os.system(command)
