@@ -22,13 +22,19 @@ def get_season_and_day():
         "html.parser",
         parse_only=ss("h1"),
     )
-    md_table = bs(
-        raw,
-        "html.parser",
-        parse_only=ss("table"),
-    ).find_all("table",{"class":"MDTable"})[0].find_all("tr")
+    md_table = (
+        bs(
+            raw,
+            "html.parser",
+            parse_only=ss("table"),
+        )
+        .find_all("table", {"class": "MDTable"})[0]
+        .find_all("tr")
+    )
 
-    current_day_table = [i-1 for i, row in enumerate(md_table) if "Active" in row.text][0]
+    current_day_table = [
+        i - 1 for i, row in enumerate(md_table) if "Active" in row.text
+    ][0]
 
     try:
         current_day = int(day_header.h3.text.split()[-1])
