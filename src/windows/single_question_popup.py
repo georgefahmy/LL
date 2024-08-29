@@ -20,7 +20,7 @@ def get_specific_question(season, day, question):
     return dmap[key]
 
 
-def open_single_question(question_data, location=None, size=None):
+def open_single_question(question_data, location=None, size=None, correct=None):
     qcode = f"S{question_data.season}{question_data.question_num}"
     sg.theme("reddit")
     if not size:
@@ -64,12 +64,24 @@ def open_single_question(question_data, location=None, size=None):
                                 font=DEFAULT_FONT,
                             ),
                             sg.Text(
+                                f"({correct})",
+                                expand_x=True,
+                                key="correct_answer",
+                                justification="c",
+                                background_color=(
+                                    "light green" if correct == "Correct" else "#FF474C"
+                                ),
+                                font=DEFAULT_FONT,
+                                pad=0,
+                            ),
+                            sg.Text(
                                 question_data.answer,
                                 expand_x=True,
                                 key="correct_answer",
                                 justification="r",
                                 background_color="light green",
                                 font=DEFAULT_FONT,
+                                pad=0,
                             ),
                             sg.Text(
                                 "% Correct:",

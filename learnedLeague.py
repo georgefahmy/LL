@@ -1822,7 +1822,7 @@ while True:
                 result = "\n".join(
                     [
                         f"{key} - {filtered_dict[key].question_category}"
-                        + f" - : {'Correct' if filtered_dict[key].correct else 'Incorrect'}"
+                        + f" - {'Correct' if filtered_dict[key].correct else 'Incorrect'}"
                         for key in sorted(list(filtered_dict.keys()), reverse=True)
                     ]
                 )
@@ -1842,10 +1842,22 @@ while True:
                 history_selection_ranges = history_widget.tag_ranges(sg.tk.SEL)
                 if history_selection_ranges:
                     pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
+                    correctpattern = "Correct|Incorrect"
                     selected_text = history_widget.get(*history_selection_ranges)
+
+                    full_output = window["output_questions"].get().split("\n")
+                    # print(full_output)
                     selected_text = [
                         val.split(" - ")[0] for val in selected_text.split("\n")
                     ]
+
+                    result = [
+                        v.split(" - ")[-1]
+                        for v in full_output
+                        for sel in selected_text
+                        if v.startswith(sel)
+                    ]
+
                     for val in selected_text:
                         match = re.match(pattern, val)
                         if match:
@@ -1869,7 +1881,9 @@ while True:
                                 qd = get_specific_question(
                                     all_data, season, day, question_num
                                 )
-                                single_question_window = open_single_question(qd)
+                                single_question_window = open_single_question(
+                                    qd, correct=result[0]
+                                )
                                 # open_windows["single_quesiton_window"] = (
                                 #     single_question_window.metadata
                                 # )
@@ -1883,7 +1897,7 @@ while True:
                 pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
                 i = 0
                 j = 0
-                for val in selected_text:
+                for i, val in enumerate(selected_text):
                     match = re.match(pattern, val)
                     if j > 5:
                         continue
@@ -1893,9 +1907,7 @@ while True:
                         season, day, question_num = match.groups()
                         qd = get_specific_question(all_data, season, day, question_num)
                         single_question_window = open_single_question(
-                            qd,
-                            location,
-                            size,
+                            qd, location, size, result[i]
                         )
                         i += 1
                         if i == 3:
