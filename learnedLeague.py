@@ -13,6 +13,7 @@ import wikipedia
 from dotmap import DotMap
 from PyDictionary import PyDictionary
 
+from luck_analysis import calculate_luck_data, display_data, get_leaguewide_data
 from src.answer_correctness import combined_correctness
 from src.check_for_updates import check_for_update
 from src.constants import DEFAULT_FONT
@@ -274,6 +275,7 @@ open_windows = {
     "similarity_chart_window": None,
     "todays_question_window": None,
     "single_quesiton_window": None,
+    "luck_analysis_window": None,
 }
 
 while True:
@@ -444,7 +446,7 @@ while True:
 
                 analysis_window["user"].update(
                     values=[user_data.formatted_username] + user_data.opponents,
-                    set_to_index=0,
+                    # set_to_index=0,
                     # value=user_data.formatted_username,
                 )
                 # os.system("python luck_analysis.py -u FahmyG -r")
@@ -2000,25 +2002,83 @@ while True:
                 cat_metrics = display_category_metrics(load(opponent, sess=sess))
                 open_windows[cat_metrics.metadata] = cat_metrics.metadata
 
-        if window.metadata == "analysis_window" and event == "submit_luck":
-            print(
-                values["season_selection"],
-                values["user"],
-                values["field_selection"],
-                values["rundle_flag"],
-                values["optional_formula"],
-            )
+        if window.metadata == "analysis_window":
+            if event == "submit_luck":
 
-            command = (
-                "python luck_analysis.py"
-                + f' -s {values["season_selection"]}'
-                + f' -u {" ".join(values["user"])}'
-                + (
-                    f' -f {" ".join(values["field_selection"])}'
-                    if len(values["field_selection"])
-                    else ""
+                usernames = values["single_user"].split() or values["user"]
+                reverse = True
+                season = int(values["season_selection"])
+                matchday = None
+                fields = [
+                    "Player",
+                    "W",
+                    "L",
+                    "T",
+                    "QPct",
+                    "TCA",
+                    "CAA",
+                    "PTS",
+                    "Exp_PTS",
+                    "Luck",
+                    "LuckPctile",
+                    "Rank",
+                    "Exp_Rank",
+                    "norm_QPct",
+                    "norm_CAA",
+                    "SOS",
+                ]
+                fields = fields + list(set(values["field_selection"]) - set(fields))
+
+                formula = [
+                    "0",
+                    "Played",
+                    "norm_OE*FL",
+                    "norm_QPct*FL",
+                    "norm_DE",
+                ]
+                formula = "PTS ~ " + " + ".join(formula)
+                data = get_leaguewide_data(season=season, matchday=matchday)
+                data = calculate_luck_data(data, formula=formula, printsummary=False)
+
+                if not values["rundle_flag"] and len(values["user"]) == 0:
+                    fields.append("Rundle")
+
+                luck_window = display_data(
+                    data,
+                    usernames=usernames,
+                    fields=fields,
+                    rundleflag=values["rundle_flag"],
                 )
-                + (" -r" if values["rundle_flag"] else "")
-            )
-            print(command)
-            os.system(command)
+                open_windows[luck_window.metadata] = luck_window.metadata
+
+            if event == "luck_username_clear":
+                window["single_user"].update(value="")
+
+            if event == "luck_load_favorites":
+                fav_file = os.path.expanduser("~") + "/.LearnedLeague/favorites.json"
+                if not os.path.isfile(fav_file):
+                    with open(fav_file, "w") as fp:
+                        json.dump(["FahmyG"], fp, indent=4)
+
+                with open(fav_file, "r") as fp:
+                    favorites = json.load(fp)
+
+                window["single_user"].update(value=" ".join(favorites))
+
+        if window.metadata == "luck_analysis_window" and "+CLICKED+" in event:
+            # print(event[-1])
+            row, column = event[-1]
+
+            if row is None:
+                continue
+
+            if row == -1:
+                if not window["stats_table"].get():
+                    continue
+
+                table_values, reverse = sort(
+                    window["stats_table"].get(), column, not reverse
+                )
+                current_season = window["stats_table"].get()[0][1]
+                remove_all_rows(window)
+                window["stats_table"].update(values=table_values)

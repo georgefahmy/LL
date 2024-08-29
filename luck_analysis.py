@@ -124,11 +124,13 @@ def calculate_luck_data(data, formula, printsummary=False):
     )
     data = norm_vars(data, normalize_vars)
     model = ols(formula, data=data).fit()
-    mean_rundle_size = float(
+    mean_rundle_size = (
         data.groupby("Rundle", as_index=True)
         .agg({"Player": lambda x: len(set(x))})
         .mean()
-    )
+        .astype(float)
+    ).Player
+
     data["Exp_PTS"] = model.predict(data)
     data = data.replace([np.inf, -np.inf, np.nan, "--"], 0)
     data["Exp_Rank"] = (
@@ -204,9 +206,15 @@ def display_data(data, usernames, fields, rundleflag=False):
                 )
             ]
         ]
-        return sg.Window("Luck Table", layout, resizable=True)
+        return sg.Window(
+            "Luck Table",
+            layout,
+            resizable=True,
+            metadata="luck_analysis_window",
+            finalize=True,
+        )
     except Exception as e:
-        print(e)
+        print("error:", e)
 
 
 def get_individual_luck(username, filterflag=False, dictflag=False):

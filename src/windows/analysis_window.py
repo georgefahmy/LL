@@ -8,7 +8,7 @@ def open_analysis_window(season=102):
         [
             sg.Text("Season: ", font=("Arial Bold", 14), expand_x=True),
             sg.Combo(
-                list(range(60, season)),
+                list(range(60, season + 1)),
                 default_value=season,
                 font=DEFAULT_FONT,
                 key="season_selection",
@@ -17,8 +17,17 @@ def open_analysis_window(season=102):
                 readonly=True,
             ),
         ],
+        [sg.HorizontalSeparator()],
         [
             sg.Text("Username: ", font=("Arial Bold", 14), expand_x=True),
+            sg.Text(expand_x=True),
+            sg.Button("Load Favorites", key="luck_load_favorites", font=DEFAULT_FONT),
+        ],
+        [
+            sg.Input(key="single_user", font=DEFAULT_FONT, expand_x=True),
+            sg.Button("Clear", key="luck_username_clear", font=DEFAULT_FONT),
+        ],
+        [
             sg.Listbox(
                 [],
                 font=DEFAULT_FONT,
@@ -29,8 +38,8 @@ def open_analysis_window(season=102):
             ),
         ],
         [sg.HorizontalSeparator()],
+        [sg.Text("Opt. Fields: ", font=("Arial Bold", 14), expand_x=True)],
         [
-            sg.Text("Opt. Fields: ", font=("Arial Bold", 14), expand_x=True),
             sg.Listbox(
                 LUCK_FIELDS,
                 font=DEFAULT_FONT,
@@ -44,24 +53,12 @@ def open_analysis_window(season=102):
         [
             sg.Checkbox(
                 "Display Rundle",
-                font=DEFAULT_FONT,
+                font=("Arial Bold", 14),
                 default=False,
                 key="rundle_flag",
             ),
         ],
         [sg.HorizontalSeparator()],
-        [
-            sg.Text(
-                "Custom Formula (optional): ", font=("Arial Bold", 14), expand_x=True
-            )
-        ],
-        [
-            sg.Input(
-                key="optional_formula",
-                font=DEFAULT_FONT,
-                expand_x=True,
-            ),
-        ],
         [
             sg.Button(
                 button_text="Submit",
