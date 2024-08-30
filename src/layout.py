@@ -364,9 +364,16 @@ super_layout = [
                         disabled_button_color=("black", "gray"),
                     ),
                     sg.Button(
-                        "Analysis",
+                        "Luck Analysis",
                         key="analysis_button",
                         tooltip="Open the Match Analysis window",
+                        disabled=True,
+                        disabled_button_color=("black", "gray"),
+                    ),
+                    sg.Button(
+                        "Question History",
+                        key="question_history_button",
+                        tooltip="Open a Window for the question history of a user",
                         disabled=True,
                         disabled_button_color=("black", "gray"),
                     ),

@@ -42,6 +42,7 @@ from src.windows.onedays import (
     oneday_main,
     search_onedays,
 )
+from src.windows.question_history_window import open_question_history_window
 from src.windows.single_question_popup import open_single_question
 from src.windows.statistics_window import (
     add_stats_row,
@@ -261,7 +262,8 @@ main_window = setup_window(window, questions)
     defense_window,
     mock_day_window,
     analysis_window,
-) = (None, None, None, None, None, None)
+    question_history_window,
+) = (None, None, None, None, None, None, None)
 
 open_windows = {
     "main_window": window.metadata,
@@ -276,6 +278,7 @@ open_windows = {
     "todays_question_window": None,
     "single_quesiton_window": None,
     "luck_analysis_window": None,
+    "question_history_window": question_history_window,
 }
 
 while True:
@@ -328,8 +331,8 @@ while True:
                         window["login_button"].update(text="Logout")
                         window["stats_button"].update(disabled=False)
                         window["defense_button"].update(disabled=False)
-                        # TODO change to False to enable analysis once analysis window is sufficiently good
                         window["analysis_button"].update(disabled=False)
+                        window["question_history_button"].update(disabled=False)
                         combo_values = sorted(
                             list(
                                 set(
@@ -428,17 +431,8 @@ while True:
                     ],
                 )
 
+            # Open the luck analysis window
             if event == "analysis_button":
-                # TODO turn into luck analysis window
-                # Make everything appropriatle choosable, and have the default values be clear
-                # start with a small window for the options, and then a submit button that opens
-                # the resulting window
-                # -h, --help            show this help message and exit
-                # -F FORMULA [FORMULA ...], --formula FORMULA [FORMULA ...]
-                #                         Advanced Usage for adding variables to the model. Default: Played, FL*norm_OE, FL*norm_QPct, norm_DE
-                #
-                # -d DIVIDE [DIVIDE ...], --divide DIVIDE [DIVIDE ...]
-                #                         Advanced Usage: select two numerical columns and divide them and display the result in a new column.
                 if open_windows["analysis_window"]:
                     continue
                 analysis_window = open_analysis_window(season=latest_season)
@@ -446,35 +440,21 @@ while True:
 
                 analysis_window["user"].update(
                     values=[user_data.formatted_username] + user_data.opponents,
-                    # set_to_index=0,
-                    # value=user_data.formatted_username,
                 )
-                # os.system("python luck_analysis.py -u FahmyG -r")
-                # player_stats_url = ALL_DATA_BASE_URL.format(latest_season)
-                # file = (
-                #     os.path.expanduser("~")
-                #     + "/.LearnedLeague/"
-                #     + f"LL{latest_season}_Leaguewide.csv"
-                # )
-                # if not os.path.isfile(file):
-                #     with open(file, "wb+") as out_file:
-                #         sess = login()
-                #         content = sess.get(player_stats_url, stream=True).content
-                #         out_file.write(content)
 
-                # raw = pd.read_csv(file, encoding="latin1")
-                # raw.columns = [x.lower() for x in raw.columns]
-
-                # match_day = raw.matchday.iloc[0]
-
-                # if match_day < current_day:
-                #     with open(file, "wb+") as out_file:
-                #         sess = login()
-                #         content = sess.get(player_stats_url, stream=True).content
-                #         out_file.write(content)
-
-                # user_stats = DotMap(raw.set_index("player").to_dict(orient="index"))
-                # df = pd.DataFrame().from_dict(user_stats.toDict(), orient="index")
+            if event == "question_history_button":
+                if open_windows["question_history_window"]:
+                    continue
+                question_history_window = open_question_history_window()
+                open_windows[question_history_window.metadata] = (
+                    question_history_window.metadata
+                )
+                question_history_window["output_questions"].bind(
+                    "<ButtonPress-2>", "press"
+                )
+                question_history_window["output_questions"].bind(
+                    "<Double-Button-1>", "_double_click"
+                )
 
             # Trigger the right click menu for searching text within a question
             if event == "questionpress":
@@ -2094,3 +2074,174 @@ while True:
                 current_season = window["stats_table"].get()[0][1]
                 remove_all_rows(window)
                 window["stats_table"].update(values=table_values)
+
+        if window.metadata == "question_history_window":
+            if event == "get_history_button":
+                if "user_history" not in locals():
+                    user_history = load(values.get("username_history"), sess=sess)
+                else:
+                    if values.get("username_history").lower() != user_history.username:
+                        user_history = load(values.get("username_history"), sess=sess)
+
+                if not user_history.profile_id.isnumeric():
+                    sg.popup_auto_close(
+                        "Player Not Found.", no_titlebar=True, modal=False
+                    )
+                    continue
+
+                filtered_dict = DotMap(
+                    {
+                        k: v
+                        for k, v in user_history.question_history.iteritems()
+                        if "".lower() in v.question.lower()
+                    }
+                )
+                total_filtered_questions = len(list(filtered_dict.keys()))
+                total_filtered_correct = len(
+                    [key for key, value in filtered_dict.items() if value.correct]
+                )
+                # filtered_dict.pprint(pformat="json")
+                result = "\n".join(
+                    [
+                        f"{key} - {filtered_dict[key].question_category}"
+                        + f" - {'Correct' if filtered_dict[key].correct else 'Incorrect'}"
+                        for key in sorted(list(filtered_dict.keys()), reverse=True)
+                    ]
+                )
+                window["filtered_metrics"].update(
+                    value=f"Total Correct: {total_filtered_correct}/{total_filtered_questions}"
+                )
+                window["output_questions"].update(value=result)
+
+            if event == "search_questions_button":
+                if not logged_in:
+                    continue
+
+                if "user_history" not in locals():
+                    user_history = load(values.get("username_history"), sess=sess)
+                else:
+                    if values.get("username_history").lower() != user_history.username:
+                        user_history = load(values.get("username_history"), sess=sess)
+
+                if not user_history.profile_id.isnumeric():
+                    sg.popup_auto_close(
+                        "Player Not Found.", no_titlebar=True, modal=False
+                    )
+                    continue
+
+                search_term = values["defense_question_search_term"]
+                filtered_dict = DotMap(
+                    {
+                        k: v
+                        for k, v in user_history.question_history.iteritems()
+                        if search_term.lower() in v.question.lower()
+                    }
+                )
+                total_filtered_questions = len(list(filtered_dict.keys()))
+                total_filtered_correct = len(
+                    [key for key, value in filtered_dict.items() if value.correct]
+                )
+                # filtered_dict.pprint(pformat="json")
+                result = "\n".join(
+                    [
+                        f"{key} - {filtered_dict[key].question_category}"
+                        + f" - {'Correct' if filtered_dict[key].correct else 'Incorrect'}"
+                        for key in sorted(list(filtered_dict.keys()), reverse=True)
+                    ]
+                )
+                window["filtered_metrics"].update(
+                    value=f"Total Correct: {total_filtered_correct}/{total_filtered_questions}"
+                )
+                window["output_questions"].update(value=result)
+
+            # Clicking a question number in the history box can open the question
+            if (
+                event == "output_questionspress"
+                or event == "output_questions_double_click"
+            ):
+                if open_windows["single_quesiton_window"]:
+                    continue
+                history_widget = window["output_questions"].Widget
+                history_selection_ranges = history_widget.tag_ranges(sg.tk.SEL)
+                if history_selection_ranges:
+                    pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
+                    correctpattern = "Correct|Incorrect"
+                    selected_text = history_widget.get(*history_selection_ranges)
+
+                    full_output = window["output_questions"].get().split("\n")
+                    # print(full_output)
+                    selected_text = [
+                        val.split(" - ")[0] for val in selected_text.split("\n")
+                    ]
+
+                    result = [
+                        v.split(" - ")[-1]
+                        for v in full_output
+                        for sel in selected_text
+                        if v.startswith(sel)
+                    ]
+
+                    for val in selected_text:
+                        match = re.match(pattern, val)
+                        if match:
+                            if event == "output_questionspress":
+                                if len(selected_text) > 1:
+                                    window["output_questions"].set_right_click_menu(
+                                        [
+                                            "&Right",
+                                            ["Open Question on LL", "Open Multiple"],
+                                        ]
+                                    )
+                                else:
+                                    window["output_questions"].set_right_click_menu(
+                                        [
+                                            "&Right",
+                                            ["Open Question on LL", "!Open Multiple"],
+                                        ]
+                                    )
+                            elif event == "output_questions_double_click":
+                                season, day, question_num = match.groups()
+                                qd = get_specific_question(
+                                    all_data, season, day, question_num
+                                )
+                                single_question_window = open_single_question(
+                                    qd, correct=result[0]
+                                )
+                                # open_windows["single_quesiton_window"] = (
+                                #     single_question_window.metadata
+                                # )
+                else:
+                    window["output_questions"].set_right_click_menu(
+                        ["&Right", ["!Open Question on LL", "!Open Multiple"]]
+                    )
+                    continue
+
+            if event == "Open Multiple":
+                pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
+                i = 0
+                j = 0
+                for i, val in enumerate(selected_text):
+                    match = re.match(pattern, val)
+                    if j > 5:
+                        continue
+                    if match:
+                        size = int(screen_width / 3) - 50, int(screen_height / 6) - 50
+                        location = (80 + i * (size[0] + 30), 80 + j * (size[1] + 30))
+                        season, day, question_num = match.groups()
+                        qd = get_specific_question(all_data, season, day, question_num)
+                        single_question_window = open_single_question(
+                            qd, location, size, result[i]
+                        )
+                        i += 1
+                        if i == 3:
+                            j += 1
+                            i = 0
+
+            # Open the question link in a web browser
+            if event == "Open Question on LL":
+                pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
+                match = re.match(pattern, selected_text[0])
+                if match:
+                    season, day, question_num = match.groups()
+                    url = f"https://www.learnedleague.com/question.php?{season}&{day}&{question_num}"
+                    webbrowser.open(url)
