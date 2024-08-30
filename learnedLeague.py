@@ -1995,6 +1995,7 @@ while True:
                 open_windows[cat_metrics.metadata] = cat_metrics.metadata
 
         if window.metadata == "analysis_window":
+            # Using the provided parameters, generate a table displaying assessed luck
             if event == "submit_luck":
 
                 usernames = values["single_user"].split() or values["user"]
@@ -2043,9 +2044,11 @@ while True:
                 )
                 open_windows[luck_window.metadata] = luck_window.metadata
 
+            # Clear the username field
             if event == "luck_username_clear":
                 window["single_user"].update(value="")
 
+            # Populate the username field with all favorites
             if event == "luck_load_favorites":
                 fav_file = os.path.expanduser("~") + "/.LearnedLeague/favorites.json"
                 if not os.path.isfile(fav_file):
@@ -2058,7 +2061,7 @@ while True:
                 window["single_user"].update(value=" ".join(favorites))
 
         if window.metadata == "luck_analysis_window" and "+CLICKED+" in event:
-            # print(event[-1])
+
             row, column = event[-1]
 
             if row is None:
@@ -2076,6 +2079,8 @@ while True:
                 window["stats_table"].update(values=table_values)
 
         if window.metadata == "question_history_window":
+
+            # get the history for the specied username and display a popup if failed
             if event == "get_history_button":
                 if "user_history" not in locals():
                     user_history = load(values.get("username_history"), sess=sess)
@@ -2113,6 +2118,7 @@ while True:
                 )
                 window["output_questions"].update(value=result)
 
+            # filter the question history based on the search term provided
             if event == "search_questions_button":
                 if not logged_in:
                     continue
@@ -2154,7 +2160,7 @@ while True:
                 )
                 window["output_questions"].update(value=result)
 
-            # Clicking a question number in the history box can open the question
+            # Double clicking a question number in the history box can open the question
             if (
                 event == "output_questionspress"
                 or event == "output_questions_double_click"
@@ -2216,6 +2222,7 @@ while True:
                     )
                     continue
 
+            # If multiple questions are highlighted, open all of them when right clicked
             if event == "Open Multiple":
                 pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
                 i = 0
