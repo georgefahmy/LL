@@ -34,7 +34,7 @@ def get_season_and_day():
 
     current_day_table = [
         i - 1 for i, row in enumerate(md_table) if "Active" in row.text
-    ][0]
+    ]
 
     try:
         current_day = int(day_header.h3.text.split()[-1])
@@ -42,10 +42,10 @@ def get_season_and_day():
         return (current_season, current_day)
     except Exception:
         try:
-            current_day = current_day_table
+            current_day = current_day_table[0]
             current_season = int(season_header.text.split(":")[0].split("LL")[-1])
             return (current_season, current_day)
-        except:
+        except Exception:
             return (102, 0)
 
 
