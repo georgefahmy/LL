@@ -2010,6 +2010,7 @@ while True:
                     "QPct",
                     "TCA",
                     "CAA",
+                    "DE",
                     "PTS",
                     "Exp_PTS",
                     "Luck",
