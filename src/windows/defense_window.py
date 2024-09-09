@@ -117,7 +117,6 @@ def open_defense_window():
                             expand_x=True,
                             disabled=True,
                             size=(35, 7),
-                            tooltip="Highlight question and right click to open in browswer",
                             right_click_menu=["&Right", ["!Open Question"]],
                         ),
                     ],
