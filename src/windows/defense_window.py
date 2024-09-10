@@ -103,7 +103,11 @@ def open_defense_window():
                             size=(16, 1),
                             expand_x=True,
                         ),
-                        sg.Button("Search", key="search_questions_button"),
+                        sg.Button(
+                            "Search",
+                            key="search_questions_button",
+                            bind_return_key=True,
+                        ),
                     ],
                     [
                         sg.Text("", key="filtered_metrics", font=DEFAULT_FONT),

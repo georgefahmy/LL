@@ -253,7 +253,6 @@ questions = filter_questions(
 )
 i = min(max(2, choice(list(questions.keys()))), len(list(questions.keys())) - 1)
 question_object = update_question(questions, window, i)
-main_window = setup_window(window, questions)
 
 (
     oneday_window,
@@ -280,6 +279,8 @@ open_windows = {
     "luck_analysis_window": None,
     "question_history_window": question_history_window,
 }
+
+main_window = setup_window(window, questions)
 
 while True:
     window, event, values = sg.read_all_windows()
@@ -419,6 +420,7 @@ while True:
                 defense_window["output_questions"].bind(
                     "<Double-Button-1>", "_double_click"
                 )
+                # defense_window.bind("<Return>", "search_questions_button")
 
                 defense_window["player_1"].update(
                     values=user_data.opponents,
@@ -1877,7 +1879,7 @@ while True:
                 pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
                 i = 0
                 j = 0
-                for i, val in enumerate(selected_text):
+                for val in selected_text:
                     match = re.match(pattern, val)
                     if j > 5:
                         continue
