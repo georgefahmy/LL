@@ -233,6 +233,7 @@ reverse = True
 score = 0
 num_of_money_questions_left = 5
 submitted_answers = {}
+open_question_popups = []
 
 icon_file = WD + "/resources/ll_app_logo.png"
 sg.theme("Reddit")
@@ -420,7 +421,6 @@ while True:
                 defense_window["output_questions"].bind(
                     "<Double-Button-1>", "_double_click"
                 )
-                # defense_window.bind("<Return>", "search_questions_button")
 
                 defense_window["player_1"].update(
                     values=user_data.opponents,
@@ -1866,9 +1866,7 @@ while True:
                                 single_question_window = open_single_question(
                                     qd, correct=result[0]
                                 )
-                                # open_windows["single_quesiton_window"] = (
-                                #     single_question_window.metadata
-                                # )
+                                open_question_popups.append(single_question_window)
                 else:
                     window["output_questions"].set_right_click_menu(
                         ["&Right", ["!Open Question on LL", "!Open Multiple"]]
@@ -1891,10 +1889,16 @@ while True:
                         single_question_window = open_single_question(
                             qd, location, size, result[i]
                         )
+                        open_question_popups.append(single_question_window)
                         i += 1
                         if i == 3:
                             j += 1
                             i = 0
+
+            if event == "close_all_question_popups_button":
+                for window_value in open_question_popups:
+                    window_value.close()
+                open_question_popups = []
 
             # Open the question link in a web browser
             if event == "Open Question on LL":
@@ -2216,9 +2220,7 @@ while True:
                                 single_question_window = open_single_question(
                                     qd, correct=result[0]
                                 )
-                                # open_windows["single_quesiton_window"] = (
-                                #     single_question_window.metadata
-                                # )
+                                open_question_popups.append(single_question_window)
                 else:
                     window["output_questions"].set_right_click_menu(
                         ["&Right", ["!Open Question on LL", "!Open Multiple"]]
@@ -2230,7 +2232,7 @@ while True:
                 pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
                 i = 0
                 j = 0
-                for i, val in enumerate(selected_text):
+                for val in selected_text:
                     match = re.match(pattern, val)
                     if j > 5:
                         continue
@@ -2242,10 +2244,16 @@ while True:
                         single_question_window = open_single_question(
                             qd, location, size, result[i]
                         )
+                        open_question_popups.append(single_question_window)
                         i += 1
                         if i == 3:
                             j += 1
                             i = 0
+
+            if event == "close_all_question_popups_button":
+                for window_value in open_question_popups:
+                    window_value.close()
+                open_question_popups = []
 
             # Open the question link in a web browser
             if event == "Open Question on LL":

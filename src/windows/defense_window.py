@@ -111,6 +111,11 @@ def open_defense_window():
                     ],
                     [
                         sg.Text("", key="filtered_metrics", font=DEFAULT_FONT),
+                        sg.Text("", expand_x=True),
+                        sg.Button(
+                            "Close All Questions",
+                            key="close_all_question_popups_button",
+                        ),
                     ],
                     [
                         sg.Multiline(

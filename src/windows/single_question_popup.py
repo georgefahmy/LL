@@ -109,7 +109,7 @@ def open_single_question(question_data, location=None, size=None, correct=None):
         location=location,
         resizable=True,
         finalize=True,
-        metadata="single_quesiton_window",
+        metadata=f"single_quesiton_window_{qcode}",
     )
 
     window["Q"].bind("<ButtonPress-1>", "click_here")
