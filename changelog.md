@@ -6,12 +6,12 @@ Download the LearnedLeague.dmg file below.
 
 ## Installation
 
-Double Click the newly downloaded dmg file to open it, **Right click** the Installation Package and select Open (LearnedLeague.pkg). This will install it to your computer. Once the installation finishes, you can move the dmg to the trash. Open the application up from your Applications folder.
+Double Click the newly downloaded dmg file to open it. Drag the LearnedLeague app to the applications folder. This will install it to your computer. Once the installation finishes, you can move the dmg to the trash. Open the application up from your Applications folder. (you may need to right click and open to allow it to work on your computer).
 
 # Changelog
 
-All notable changes to this project will be documented in this file.
+Fixed bug with the data directory
 
-### [v7.0.1] - 2024-09-11
+### [v7.0.2] - 2024-09-11
 
 Minor bug fix in update checks

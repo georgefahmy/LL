@@ -7,8 +7,11 @@ from bs4 import BeautifulSoup as bs
 from bs4 import SoupStrainer as ss
 from dotmap import DotMap
 
-from .constants import BASE_URL, USER_DATA_DIR
+from .constants import BASE_URL, BASE_USER_DATA_DIR, USER_DATA_DIR
 from .logged_in_tools import login
+
+if not os.path.isdir(BASE_USER_DATA_DIR):
+    os.mkdir(BASE_USER_DATA_DIR)
 
 if not os.path.isdir(USER_DATA_DIR):
     os.mkdir(USER_DATA_DIR)

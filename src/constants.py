@@ -2,8 +2,8 @@ import os
 
 WD = os.getcwd()
 DEFAULT_FONT = ("Arial", 14)
-
-USER_DATA_DIR = os.path.expanduser("~") + "/.LearnedLeague/user_data/"
+BASE_USER_DATA_DIR = os.path.expanduser("~") + "/.LearnedLeague/"
+USER_DATA_DIR = f"{BASE_USER_DATA_DIR}user_data/"
 
 MODKOS = "https://www.learnedleague.com/images/misc/ModKos.png?t=1649"
 
