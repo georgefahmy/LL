@@ -206,9 +206,11 @@ available_seasons = [str(season) for season in list(range(60, int(latest_season)
 
 datapath = os.path.expanduser("~") + "/.LearnedLeague/all_data.json"
 all_data = {}
-if os.path.isfile(datapath):
-    with open(datapath, "r") as fp:
-        all_data = json.load(fp)
+if not os.path.isfile(datapath):
+    datapath = f"{WD}/resources/all_data.json"
+
+with open(datapath, "r") as fp:
+    all_data = json.load(fp)
 
 season_in_data = sorted(
     list({val.split("D")[0].strip("S") for val in list(all_data.keys())})
@@ -223,7 +225,7 @@ for season in available_seasons:
     if season_questions < (current_day * 6) and current_day > 0:
         missing_seasons += [season]
 
-if len(missing_seasons) > 0 and current_day > 0:
+for season in missing_seasons:
     all_data = get_new_data(season)
 
 sess = None

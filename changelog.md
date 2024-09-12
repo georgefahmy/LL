@@ -10,8 +10,8 @@ Double Click the newly downloaded dmg file to open it. Drag the LearnedLeague ap
 
 # Changelog
 
-Fixed bug with the data directory
+Fixed bug with all_data being available at the start of a new app install
 
-### [v7.0.2] - 2024-09-11
+### [v7.0.3] - 2024-09-11
 
 Minor bug fix in update checks

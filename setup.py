@@ -20,6 +20,7 @@ APP = ["learnedLeague.py"]
 DATA_FILES = [
     "src",
     "resources",
+    "resources/all_data.json",
     "resources/VERSION",
     "resources/ll_logo.icns",
 ]
@@ -51,7 +52,7 @@ setup(
     options={"py2app": OPTIONS},
     author="George Fahmy",
     description="LearnedLeague",
-    python_requires=">=3.10",
+    python_requires=">=3.12",
     long_description="""The Learned League app allows access to the learned league
         seasons from the past and allows users to experience difficult trivia.
         Some stats are provided about the difficulty of each question based on the % of
