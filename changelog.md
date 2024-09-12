@@ -12,6 +12,6 @@ Double Click the newly downloaded dmg file to open it, **Right click** the Insta
 
 All notable changes to this project will be documented in this file.
 
-### [v7.0.0] - 2024-08-28
+### [v7.0.1] - 2024-09-11
 
-Added Luck analysis to main application
+Minor bug fix in update checks

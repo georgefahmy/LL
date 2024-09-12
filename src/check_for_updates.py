@@ -1,12 +1,9 @@
 import base64
 import os
-import re
 import subprocess
 
 import PySimpleGUI as sg
 import requests
-from bs4 import BeautifulSoup
-from markdown import markdown
 from packaging import version
 
 from .constants import WD
@@ -88,14 +85,6 @@ def check_for_update():
         return restart
 
     current_version = open(f"{WD}/resources/VERSION", "r").read().strip()
-    current_version = re.compile("[^0-9.]").sub(
-        "",
-        (
-            BeautifulSoup(markdown(open("changelog.md", "r").read()), "html.parser")
-            .find_all(string=re.compile("v[.0-9]+"))[0]
-            .split()[0]
-        ),
-    )
 
     if version.parse(current_version) >= version.parse(new_version):
         print(f"LearnedLeague App version: {current_version}")
