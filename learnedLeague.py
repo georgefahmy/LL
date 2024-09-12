@@ -16,7 +16,7 @@ from PyDictionary import PyDictionary
 from luck_analysis import calculate_luck_data, display_data, get_leaguewide_data
 from src.answer_correctness import combined_correctness
 from src.check_for_updates import check_for_update
-from src.constants import DEFAULT_FONT
+from src.constants import BASE_USER_DATA_DIR, DEFAULT_FONT
 from src.layout import super_layout
 from src.logged_in_tools import (
     display_category_metrics,
@@ -57,7 +57,7 @@ print(sg.get_versions())
 BASE_URL = "https://www.learnedleague.com"
 
 WD = os.getcwd()
-USER_DATA_DIR = os.path.expanduser("~") + "/.LearnedLeague/user_data/"
+USER_DATA_DIR = f"{BASE_USER_DATA_DIR}user_data/"
 
 
 if restart := check_for_update():
@@ -204,7 +204,7 @@ latest_season, current_day = get_season_and_day()
 
 available_seasons = [str(season) for season in list(range(60, int(latest_season) + 1))]
 
-datapath = os.path.expanduser("~") + "/.LearnedLeague/all_data.json"
+datapath = f"{BASE_USER_DATA_DIR}all_data.json"
 all_data = {}
 if not os.path.isfile(datapath):
     datapath = f"{WD}/resources/all_data.json"
@@ -726,9 +726,7 @@ while True:
                 all_data[data_code]["answers"] = past_answers
                 if not os.path.isdir(os.path.expanduser("~") + "/.LearnedLeague"):
                     os.mkdir(os.path.expanduser("~") + "/.LearnedLeague")
-                with open(
-                    os.path.expanduser("~") + "/.LearnedLeague/all_data.json", "w+"
-                ) as fp:
+                with open(f"{BASE_USER_DATA_DIR}all_data.json", "w+") as fp:
                     json.dump(all_data, fp, sort_keys=True, indent=4)
                 correct = []
 
@@ -759,9 +757,7 @@ while True:
                 if not os.path.isdir(os.path.expanduser("~") + "/.LearnedLeague"):
                     os.mkdir(os.path.expanduser("~") + "/.LearnedLeague")
 
-                with open(
-                    os.path.expanduser("~") + "/.LearnedLeague/all_data.json", "w+"
-                ) as fp:
+                with open(f"{BASE_USER_DATA_DIR}all_data.json", "w+") as fp:
                     json.dump(all_data, fp, sort_keys=True, indent=4)
 
             # if the question number is clicked, open the link
@@ -1371,10 +1367,8 @@ while True:
                             )
                         )
                     ]
-                    if not os.path.isdir(
-                        os.path.expanduser("~") + "/.LearnedLeague/onedays/"
-                    ):
-                        os.mkdir(os.path.expanduser("~") + "/.LearnedLeague/onedays")
+                    if not os.path.isdir(f"{BASE_USER_DATA_DIR}onedays/"):
+                        os.mkdir(f"{BASE_USER_DATA_DIR}onedays")
 
                     with open(
                         os.path.expanduser("~")
@@ -1477,10 +1471,8 @@ while True:
                     )
                     oneday["submission_date"] = (datetime.datetime.now().isoformat(),)
 
-                    if not os.path.isdir(
-                        os.path.expanduser("~") + "/.LearnedLeague/onedays/"
-                    ):
-                        os.mkdir(os.path.expanduser("~") + "/.LearnedLeague/onedays/")
+                    if not os.path.isdir(f"{BASE_USER_DATA_DIR}onedays/"):
+                        os.mkdir(f"{BASE_USER_DATA_DIR}onedays/")
 
                     with open(
                         os.path.expanduser("~")
@@ -1546,7 +1538,7 @@ while True:
 
             # load favorites into stats window
             if event == "load_favorites":
-                fav_file = os.path.expanduser("~") + "/.LearnedLeague/favorites.json"
+                fav_file = f"{BASE_USER_DATA_DIR}favorites.json"
                 if not os.path.isfile(fav_file):
                     with open(fav_file, "w") as fp:
                         json.dump(["FahmyG"], fp, indent=4)
@@ -2086,7 +2078,7 @@ while True:
 
             # Populate the username field with all favorites
             if event == "luck_load_favorites":
-                fav_file = os.path.expanduser("~") + "/.LearnedLeague/favorites.json"
+                fav_file = f"{BASE_USER_DATA_DIR}favorites.json"
                 if not os.path.isfile(fav_file):
                     with open(fav_file, "w") as fp:
                         json.dump(["FahmyG"], fp, indent=4)
@@ -2095,6 +2087,15 @@ while True:
                     favorites = json.load(fp)
 
                 window["single_user"].update(value=" ".join(favorites))
+
+            if event == "save_luck_favorites":
+                usernames = values["single_user"].split() or values["user"]
+                fav_file = f"{BASE_USER_DATA_DIR}favorites.json"
+                with open(fav_file, "r") as fp:
+                    favorites = json.load(fp)
+                favorites = list(set(favorites + usernames))
+                with open(fav_file, "w") as fp:
+                    json.dump(favorites, fp, indent=4)
 
         if window.metadata == "luck_analysis_window" and "+CLICKED+" in event:
 

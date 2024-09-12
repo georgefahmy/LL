@@ -22,6 +22,7 @@ def open_analysis_window(season=102):
             sg.Text("Username: ", font=("Arial Bold", 14), expand_x=True),
             sg.Text(expand_x=True),
             sg.Button("Load Favorites", key="luck_load_favorites", font=DEFAULT_FONT),
+            sg.Button("Save Favorites", key="save_luck_favorites", font=DEFAULT_FONT),
         ],
         [
             sg.Input(key="single_user", font=DEFAULT_FONT, expand_x=True),
