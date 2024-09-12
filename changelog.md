@@ -10,8 +10,8 @@ Double Click the newly downloaded dmg file to open it. Drag the LearnedLeague ap
 
 # Changelog
 
-Fixed all open bugs
+Fixed bug with updating to latest app
 
-### [v7.0.4] - 2024-09-11
+### [v7.0.5] - 2024-09-11
 
 Minor bug fix in update checks

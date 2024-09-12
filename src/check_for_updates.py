@@ -139,19 +139,18 @@ def check_for_update():
                 update_window["d_b"].update(visible=False)
                 update_window["c_b"].update(visible=False)
                 update_window["progress"].update(10)
-                os.system("cd $HOME/Downloads")
                 os.system(
-                    "cd  $HOME/Downloads; curl -L -o LearnedLeague.dmg "
-                    + '"https://github.com/georgefahmy/LL/releases'
-                    + '/latest/download/LearnedLeague.dmg"'
+                    f"""cd  {os.path.expanduser('~')}/Downloads; curl -L -o LearnedLeague.dmg "https://github.com/georgefahmy/LL/releases/latest/download/LearnedLeague.dmg\""""
                 )
                 update_window["progress"].update(30)
                 update_window["p_status"].update(value="Installing...")
-                os.system("cd $HOME/Downloads; hdiutil attach LearnedLeague.dmg")
+                os.system(
+                    f"cd {os.path.expanduser('~')}/Downloads; hdiutil attach LearnedLeague.dmg"
+                )
                 update_window["progress"].update(50)
                 update_window["p_status"].update(value="Removing old files...")
-                command = ["cp", "-rf", "Learned League.app", "/Applications"]
                 sudo_password = get_sudo_password()
+                command = ["cp", "-rf", "Learned League.app", "/Applications"]
                 _ = subprocess.run(
                     ["sudo", "-Sk"] + command,
                     stdout=subprocess.PIPE,
@@ -167,7 +166,9 @@ def check_for_update():
                 os.system('hdiutil detach "/Volumes/LearnedLeague"')
                 update_window["progress"].update(80)
                 update_window["p_status"].update(value="Done!...Restarting...")
-                os.system("cd $HOME/Downloads; rm -rf LearnedLeague.dmg")
+                os.system(
+                    f"cd {os.path.expanduser('~')}/Downloads; rm -rf LearnedLeague.dmg"
+                )
                 update_window["progress"].update(100)
                 restart = True
                 update_window.close()

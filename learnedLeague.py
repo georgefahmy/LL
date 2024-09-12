@@ -225,6 +225,7 @@ for season in available_seasons:
     if season_questions < (current_day * 6) and current_day > 0:
         missing_seasons += [season]
 
+print(missing_seasons)
 for season in missing_seasons:
     all_data = get_new_data(season)
 

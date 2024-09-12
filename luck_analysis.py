@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup as bs
 from scipy.stats import rankdata
 from statsmodels.formula.api import ols
 
-from src.constants import ALL_DATA_BASE_URL, BASE_URL
+from src.constants import ALL_DATA_BASE_URL, BASE_URL, BASE_USER_DATA_DIR
 from src.logged_in_tools import login
 from src.windows.statistics_window import remove_all_rows, sort
 
@@ -56,17 +56,17 @@ def get_leaguewide_data(season=None, matchday=None):
         season = current_season
     if not matchday:
         matchday = current_matchday
-    file = (
-        os.path.expanduser("~")
-        + "/.LearnedLeague/league_wide_csvs/"
-        + f"LL{season}_Leaguewide_MD_{matchday}.csv"
-    )
-    if not os.path.isfile(file):
-        with open(file, "wb+") as out_file:
+    csv_folder = BASE_USER_DATA_DIR + "league_wide_csvs/"
+    if not os.path.isdir(csv_folder):
+        os.mkdir(csv_folder)
+
+    csv_file = f"{csv_folder}LL{season}_Leaguewide_MD_{matchday}.csv"
+    if not os.path.isfile(csv_file):
+        with open(csv_file, "wb+") as out_file:
             _extracted_from_get_leaguewide_data(season, out_file)
     try:
         data = (
-            pd.read_csv(file, encoding="latin1", low_memory=False)
+            pd.read_csv(csv_file, encoding="latin1", low_memory=False)
             .set_index("Player", drop=False)
             .rename(
                 columns={
@@ -80,10 +80,10 @@ def get_leaguewide_data(season=None, matchday=None):
         )
     except pd.errors.EmptyDataError:
         print("Empty Data")
-        with open(file, "wb+") as out_file:
+        with open(csv_file, "wb+") as out_file:
             _extracted_from_get_leaguewide_data(season, out_file)
         data = (
-            pd.read_csv(file, encoding="latin1", low_memory=False)
+            pd.read_csv(csv_file, encoding="latin1", low_memory=False)
             .set_index("Player", drop=False)
             .rename(
                 columns={
