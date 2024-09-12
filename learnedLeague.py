@@ -1650,6 +1650,32 @@ while True:
                 display_category_metrics(load(opponent, sess=sess))
 
         if window.metadata == "defense_window":
+
+            if event == "load_user_for_defense":
+                if "player_1" not in locals():
+                    player_1 = load(values.get("player_1"), sess=sess)
+                else:
+                    if values.get("player_1").lower() != player_1.username:
+                        player_1 = load(values.get("player_1"), sess=sess)
+
+                if not player_1.profile_id.isnumeric():
+                    sg.popup_auto_close(
+                        "Player Not Found.", no_titlebar=True, modal=False
+                    )
+                    continue
+
+                defense_window["player_1"].update(
+                    values=player_1.opponents,
+                    value=player_1.formatted_username,
+                )
+
+                defense_window["opponent"].update(
+                    values=player_1.opponents,
+                    value=player_1.opponents[
+                        min(len(player_1.opponents) - 1, current_day)
+                    ],
+                )
+
             # Submit the category selections and compare against the opponent's metrics for
             # suggested point assignment
             if event == "submit_defense":

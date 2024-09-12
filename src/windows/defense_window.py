@@ -7,11 +7,13 @@ def open_defense_window():
     defense_layout = [
         [
             sg.Text("You: ", font=("Arial Bold", 14), expand_x=True),
+            sg.Button("Load Opponents", key="load_user_for_defense"),
             sg.Combo(
                 [],
                 font=DEFAULT_FONT,
                 key="player_1",
                 size=(10, 1),
+                enable_events=True,
             ),
         ],
         [
