@@ -10,6 +10,6 @@ Double Click the newly downloaded dmg file to open it. Drag the LearnedLeague ap
 
 # Changelog
 
-update dependencies
+fixing bug for updating
 
-### [v7.0.7] - 2024-09-12
+### [v7.0.8] - 2024-09-12
