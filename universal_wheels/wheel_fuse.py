@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 
 import requests
@@ -17,10 +18,13 @@ np_files = numpy_page.find_all("div", {"class": "card file__card"})
 pillow_files = pillow_page.find_all("div", {"class": "card file__card"})
 
 python_version = str(v.major) + str(v.minor)
+python_version = "312"
 numpy_links = [
     link
     for link in [link.a.get("href") for link in np_files if "whl" in link.a.get("href")]
-    if "macosx" in link and python_version in link and (arm64 in link or x86 in link)
+    if "macosx_14" in link
+    and re.search(f"cp{python_version}", link)
+    and (arm64 in link or x86 in link)
 ]
 np_filenames = [
     f"{os.getcwd()}/universal_wheels/" + url.split("/")[-1] for url in numpy_links
@@ -31,7 +35,9 @@ pillow_links = [
     for link in [
         link.a.get("href") for link in pillow_files if "whl" in link.a.get("href")
     ]
-    if "macosx" in link and python_version in link and (arm64 in link or x86 in link)
+    if "macosx" in link
+    and f"cp{python_version}" in link
+    and (arm64 in link or x86 in link)
 ]
 pillow_filenames = [
     f"{os.getcwd()}/universal_wheels/" + url.split("/")[-1] for url in pillow_links

@@ -10,8 +10,6 @@ Double Click the newly downloaded dmg file to open it. Drag the LearnedLeague ap
 
 # Changelog
 
-Added save favorites button to luck analysis
+update dependencies
 
-### [v7.0.6] - 2024-09-11
-
-Minor bug fix in update checks
+### [v7.0.7] - 2024-09-12
