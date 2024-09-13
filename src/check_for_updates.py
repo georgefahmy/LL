@@ -140,7 +140,8 @@ def check_for_update():
                 update_window["c_b"].update(visible=False)
                 update_window["progress"].update(10)
                 os.system(
-                    f"""cd  {os.path.expanduser('~')}/Downloads; curl -L -o LearnedLeague.dmg "https://github.com/georgefahmy/LL/releases/latest/download/LearnedLeague.dmg\""""
+                    f"cd {os.path.expanduser('~')}/Downloads; "
+                    + " curl -L -o LearnedLeague.dmg https://github.com/georgefahmy/LL/releases/latest/download/LearnedLeague.dmg"
                 )
                 update_window["progress"].update(30)
                 update_window["p_status"].update(value="Installing...")
