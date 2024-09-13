@@ -1894,10 +1894,22 @@ while True:
                     )
                     continue
 
+            def to_matrix(lst, n):
+                return [lst[i : i + n] for i in range(0, len(lst), n)]
+
             if event == "Open Multiple":
                 pattern = "S([0-9]+)D([0-9]+)Q([1-6])"
                 i = 0
                 j = 0
+
+                num_open_popups = len(open_question_popups)
+                if num_open_popups > 0:
+                    open_array = to_matrix(open_question_popups, 3)
+                    i, j = (len(open_array[-1]), len(open_array) - 1)
+                    if i == 3:
+                        i = 0
+                        j += 1
+
                 for val in selected_text:
                     match = re.match(pattern, val)
                     if j > 5:
