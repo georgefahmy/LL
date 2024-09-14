@@ -50,6 +50,8 @@ numpy_version = list(
     {v.split("-cp")[0] for v in [link.split("/")[-1] for link in numpy_links]}
 )[0]
 print([link.split("/")[-1] for link in pillow_links])
+print([link.split("/")[-1] for link in numpy_links])
+
 
 for url in links:
     filename = f"{os.getcwd()}/universal_wheels/" + url.split("/")[-1]
@@ -60,7 +62,7 @@ for url in links:
 
 cwd = os.getcwd()
 
-numpy_universal = f"{os.getcwd()}/universal_wheels/{numpy_version}-cp{python_version}-cp{python_version}-macosx_11_0_universal2.whl"
+numpy_universal = f"{os.getcwd()}/universal_wheels/{numpy_version}-cp{python_version}-cp{python_version}-macosx_14_0_universal2.whl"
 fuse_wheels(np_filenames[0], np_filenames[1], numpy_universal)
 pillow_universal = f"{os.getcwd()}/universal_wheels/{pillow_version}-cp{python_version}-cp{python_version}-macosx_11_0_universal2.whl"
 fuse_wheels(pillow_filenames[0], pillow_filenames[1], pillow_universal)
