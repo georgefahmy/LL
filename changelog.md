@@ -10,6 +10,6 @@ Double Click the newly downloaded dmg file to open it. Drag the LearnedLeague ap
 
 # Changelog
 
-Added support for opening multiple question windows multiple times.
+Update dependencies
 
-### [v7.1.0] - 2024-09-12
+### [v7.1.1] - 2024-09-14

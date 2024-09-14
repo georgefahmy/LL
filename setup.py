@@ -31,6 +31,7 @@ OPTIONS = {
         "levenshtein",
         "numpy",
         "PIL",
+        "pillow",
         "wikipedia",
         "requests",
         "rapidfuzz",
