@@ -26,6 +26,7 @@ def load(username, sess=None):
     if os.path.isfile(filename):
         with open(filename, "r") as fp:
             # print(f"Loaded user {username} from file")
+            # TODO if load=False, do the json loading and mapping internally automatically so that user_data can be loaded/updated inside the UserData call
             user_data = UserData(username=username, sess=sess, load=False)
             user_data._map.update(DotMap(json.load(fp)))
             user_data._update_data()
@@ -36,7 +37,7 @@ def load(username, sess=None):
 
 
 class UserData(DotMap):
-
+    # TODO separate out the stuff that doesn't change and the stuff that does. create dynamic vs static data updates
     def __init__(
         self,
         username=None,
@@ -50,6 +51,8 @@ class UserData(DotMap):
         super().__init__(*args, **kwargs)
         self.sess = sess
         self.username = username.lower() if username else None
+        # TODO remove the formatted username function and call. load the latest page for the user profile to get all the static information once.
+        # TODO split out the static and dynamic data for a user into a separate functions
         self.formatted_username = (
             self.format_username(self, self.username) if self.username else None
         )
@@ -94,6 +97,7 @@ class UserData(DotMap):
                 del self.sess
             json.dump(self._map, fp, indent=4)
 
+    # TODO try to simplify the nested function nature throughout this file.
     def _get_full_data(self):
         def _get_question_history():
             question_history = DotMap()
@@ -196,6 +200,7 @@ class UserData(DotMap):
 
         category_metrics = DotMap()
 
+        # TODO this probably should be at the start. organize all profile page calls in one area (function?) and return the page objects from that function
         latest_page = bs(
             self.sess.get(
                 f"https://learnedleague.com/profiles.php?{self.profile_id}"
@@ -282,6 +287,7 @@ class UserData(DotMap):
 
         self.hun = self.hun if self.get("hun") else DotMap()
 
+    # TODO maybe get rid of this? seems redundant as it just pulls the same data anyway?
     def _update_data(self):
         profile_id_page = self.sess.get(
             f"https://learnedleague.com/profiles.php?{self.profile_id}"
@@ -322,11 +328,13 @@ class UserData(DotMap):
             print(f"Retrieved Latest Data for {self.username}")
             self._extracted_from__update_data()
 
+    # TODO definitely clean this up
     def _extracted_from__update_data(self):
         self.formatted_username = self.format_username(self, self.username)
         self._get_full_data()
         self._save()
 
+    # TODO this is probably fine, but look into efficiency
     def calc_hun(self, opponent, show=False):
         raw = 0
         total = 0
@@ -358,6 +366,7 @@ class UserData(DotMap):
                 f"Hun Score for {self.username} and {opponent.username}: {hun_score: 0.3f}"
             )
 
+    # TODO can hopefully get rid of this staticmethod
     @staticmethod
     def format_username(self, username):
         return bs(
