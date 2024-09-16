@@ -25,7 +25,7 @@ from src.logged_in_tools import (
 )
 from src.radar_chart import radar_similarity
 from src.url_tools import get_image_data, get_new_data, get_season_and_day
-from src.userdata import UserData, load
+from src.userdata import load
 from src.windows.analysis_window import open_analysis_window
 from src.windows.defense_window import open_defense_window
 from src.windows.minileagues import (
@@ -342,13 +342,12 @@ while True:
                             list(
                                 set(
                                     [
-                                        UserData.format_username(name.split(".")[0])
+                                        json.load(open(USER_DATA_DIR + name))[
+                                            "formatted_username"
+                                        ]
                                         for name in os.listdir(USER_DATA_DIR)
                                     ]
-                                    + [
-                                        UserData.format_username(name)
-                                        for name in user_data.opponents
-                                    ]
+                                    + user_data.opponents
                                 )
                             )
                         )

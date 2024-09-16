@@ -51,7 +51,7 @@ class UserData(DotMap):
         self.sess = sess
         self.username = username.lower() if username else None
         self.formatted_username = (
-            self.format_username(self.username) if self.username else None
+            self.format_username(self, self.username) if self.username else None
         )
         if not profile_id:
             self.profile_id = self.sess.get(
@@ -74,7 +74,7 @@ class UserData(DotMap):
                 except Exception:
                     return None
                 self.formatted_username = (
-                    self.format_username(self.username) if self.username else None
+                    self.format_username(self, self.username) if self.username else None
                 )
 
         self.link = f"https://learnedleague.com/profiles.php?{self.profile_id}"
@@ -323,7 +323,7 @@ class UserData(DotMap):
             self._extracted_from__update_data()
 
     def _extracted_from__update_data(self):
-        self.formatted_username = self.format_username(self.username)
+        self.formatted_username = self.format_username(self, self.username)
         self._get_full_data()
         self._save()
 
@@ -359,9 +359,10 @@ class UserData(DotMap):
             )
 
     @staticmethod
-    def format_username(username):
-        return (
-            re.sub("[0-9]+", "", username)[:-1].title()
-            + re.sub("[0-9]+", "", username)[-1].upper()
-            + re.sub("[^0-9]*", "", username)
-        )
+    def format_username(self, username):
+        return bs(
+            self.sess.get(
+                f"https://learnedleague.com/profiles.php?{self.username}"
+            ).content,
+            "html.parser",
+        ).h1.text
