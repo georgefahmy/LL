@@ -16,7 +16,7 @@ from PyDictionary import PyDictionary
 from luck_analysis import calculate_luck_data, display_data, get_leaguewide_data
 from src.answer_correctness import combined_correctness
 from src.check_for_updates import check_for_update
-from src.constants import BASE_USER_DATA_DIR, DEFAULT_FONT
+from src.constants import BASE_URL, BASE_USER_DATA_DIR, DEFAULT_FONT, USER_DATA_DIR, WD
 from src.layout import super_layout
 from src.logged_in_tools import (
     display_category_metrics,
@@ -53,11 +53,6 @@ from src.windows.statistics_window import (
 )
 
 print(sg.get_versions())
-
-BASE_URL = "https://www.learnedleague.com"
-
-WD = os.getcwd()
-USER_DATA_DIR = f"{BASE_USER_DATA_DIR}user_data/"
 
 
 if restart := check_for_update():
