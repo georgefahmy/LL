@@ -342,7 +342,7 @@ while True:
                                         ]
                                         for name in os.listdir(USER_DATA_DIR)
                                     ]
-                                    + user_data.opponents
+                                    + list(user_data.opponents.keys())
                                 )
                             )
                         )
@@ -420,13 +420,13 @@ while True:
                 )
 
                 defense_window["player_1"].update(
-                    values=user_data.opponents,
+                    values=list(user_data.opponents.keys()),
                     value=user_data.formatted_username,
                 )
                 defense_window["opponent"].update(
-                    values=user_data.opponents,
-                    value=user_data.opponents[
-                        min(len(user_data.opponents) - 1, current_day)
+                    values=list(user_data.opponents.keys()),
+                    value=list(user_data.opponents.keys())[
+                        min(len(list(user_data.opponents.keys())) - 1, current_day)
                     ],
                 )
 
@@ -438,7 +438,8 @@ while True:
                 open_windows[analysis_window.metadata] = analysis_window.metadata
 
                 analysis_window["user"].update(
-                    values=[user_data.formatted_username] + user_data.opponents,
+                    values=[user_data.formatted_username]
+                    + list(user_data.opponents.keys()),
                 )
 
             if event == "question_history_button":
@@ -1636,6 +1637,8 @@ while True:
                     opponent = table_values[row][0]
                 else:
                     opponent = window["available_users"].get()
+                if " " in opponent:
+                    continue
                 display_category_metrics(load(opponent, sess=sess))
 
         if window.metadata == "defense_window":
@@ -1654,14 +1657,14 @@ while True:
                     continue
 
                 defense_window["player_1"].update(
-                    values=player_1.opponents,
+                    values=list(player_1.opponents.keys()),
                     value=player_1.formatted_username,
                 )
 
                 defense_window["opponent"].update(
-                    values=player_1.opponents,
-                    value=player_1.opponents[
-                        min(len(player_1.opponents) - 1, current_day)
+                    values=list(player_1.opponents.keys()),
+                    value=list(player_1.opponents.keys())[
+                        min(len(list(player_1.opponents.keys())) - 1, current_day)
                     ],
                 )
 
@@ -1677,7 +1680,11 @@ while True:
                     if values.get("player_1").lower() != player_1.username:
                         player_1 = load(values.get("player_1"), sess=sess)
                 if "player_2" not in locals():
-                    player_2 = load(values.get("opponent"), sess=sess)
+                    if " " in values.get("opponent"):
+                        opponent_username = player_1.opponents[values.get("opponent")]
+                    else:
+                        opponent_username = values.get("opponent")
+                    player_2 = load(opponent_username, sess=sess)
                 else:
                     if values.get("opponent").lower() != player_2.username:
                         player_2 = load(values.get("opponent"), sess=sess)
@@ -1754,7 +1761,7 @@ while True:
 
                 question_window = display_todays_questions(
                     latest_season,
-                    min(len(user_data.opponents) - 1, current_day) + 1,
+                    min(len(list(user_data.opponents.keys())) - 1, current_day) + 1,
                     values["display_todays_answers"],
                 )
                 open_windows[question_window.metadata] = question_window.metadata
@@ -1786,7 +1793,11 @@ while True:
                         player_1 = load(values.get("player_1"), sess=sess)
 
                 if "player_2" not in locals():
-                    player_2 = load(values.get("opponent"), sess=sess)
+                    if " " in values.get("opponent"):
+                        opponent_username = player_1.opponents[values.get("opponent")]
+                    else:
+                        opponent_username = values.get("opponent")
+                    player_2 = load(opponent_username, sess=sess)
                 else:
                     if values.get("opponent").lower() != player_2.username:
                         player_2 = load(values.get("opponent"), sess=sess)
@@ -1947,7 +1958,11 @@ while True:
                     if values.get("player_1").lower() != player_1.username:
                         player_1 = load(values.get("player_1"), sess=sess)
                 if "player_2" not in locals():
-                    player_2 = load(values.get("opponent"), sess=sess)
+                    if " " in values.get("opponent"):
+                        opponent_username = player_1.opponents[values.get("opponent")]
+                    else:
+                        opponent_username = values.get("opponent")
+                    player_2 = load(opponent_username, sess=sess)
                 else:
                     if values.get("opponent").lower() != player_2.username:
                         player_2 = load(values.get("opponent"), sess=sess)
@@ -1981,7 +1996,11 @@ while True:
                     if values.get("player_1").lower() != player_1.username:
                         player_1 = load(values.get("player_1"), sess=sess)
                 if "player_2" not in locals():
-                    player_2 = load(values.get("opponent"), sess=sess)
+                    if " " in values.get("opponent"):
+                        opponent_username = player_1.opponents[values.get("opponent")]
+                    else:
+                        opponent_username = values.get("opponent")
+                    player_2 = load(opponent_username, sess=sess)
                 else:
                     if values.get("opponent").lower() != player_2.username:
                         player_2 = load(values.get("opponent"), sess=sess)
@@ -2024,7 +2043,13 @@ while True:
                 if open_windows["category_metrics_window"]:
                     continue
 
-                cat_metrics = display_category_metrics(load(opponent, sess=sess))
+                if " " in opponent:
+                    opponent_username = player_1.opponents[opponent]
+                else:
+                    opponent_username = values.get("opponent")
+                cat_metrics = display_category_metrics(
+                    load(opponent_username, sess=sess)
+                )
                 open_windows[cat_metrics.metadata] = cat_metrics.metadata
 
         if window.metadata == "analysis_window":
