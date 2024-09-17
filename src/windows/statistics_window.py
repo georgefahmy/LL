@@ -65,6 +65,7 @@ def open_stats_window():
                 "Search",
                 key="player_search_button",
                 size=(10, 1),
+                font=sg.DEFAULT_FONT,
             ),
             sg.Combo(
                 [],
@@ -74,12 +75,29 @@ def open_stats_window():
                 font=DEFAULT_FONT,
                 size=(10, 1),
             ),
-            sg.Button("Category Metrics", size=(16, 1), key="category_button_stats"),
-            sg.Button("Latest Season", size=(14, 1), key="latest_season_switch"),
-            sg.Button("Load Favorites", size=(15, 1), key="load_favorites"),
+            sg.Button(
+                "Category Metrics",
+                size=(16, 1),
+                key="category_button_stats",
+                font=sg.DEFAULT_FONT,
+            ),
+            sg.Button(
+                "Latest Season",
+                size=(14, 1),
+                key="latest_season_switch",
+                font=sg.DEFAULT_FONT,
+            ),
+            sg.Button(
+                "Load Favorites",
+                size=(15, 1),
+                key="load_favorites",
+                font=sg.DEFAULT_FONT,
+            ),
             sg.Text(expand_x=True),
-            sg.Button("Clear All", size=(14, 1), key="clear_all_stats"),
-            sg.Button("Load All", size=(14, 1), key="load_all"),
+            sg.Button(
+                "Clear All", size=(14, 1), key="clear_all_stats", font=sg.DEFAULT_FONT
+            ),
+            sg.Button("Load All", size=(14, 1), key="load_all", font=sg.DEFAULT_FONT),
         ],
         [
             sg.Table(

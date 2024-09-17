@@ -7,7 +7,9 @@ def open_defense_window():
     defense_layout = [
         [
             sg.Text("You: ", font=("Arial Bold", 14), expand_x=True),
-            sg.Button("Load Opponents", key="load_user_for_defense"),
+            sg.Button(
+                "Load Opponents", key="load_user_for_defense", font=sg.DEFAULT_FONT
+            ),
             sg.Combo(
                 [],
                 font=DEFAULT_FONT,
@@ -31,10 +33,14 @@ def open_defense_window():
             sg.Text("", key="hun_score", font=DEFAULT_FONT),
         ],
         [
-            sg.Button("Calculate HUN", key="calc_hun"),
-            sg.Button("Show Similarity", key="similarity_chart"),
-            sg.Button("Category Metrics", key="category_button_defense"),
-            sg.Button("Today's Questions", key="todays_questions"),
+            sg.Button("Calculate HUN", key="calc_hun", font=sg.DEFAULT_FONT),
+            sg.Button("Show Similarity", key="similarity_chart", font=sg.DEFAULT_FONT),
+            sg.Button(
+                "Category Metrics", key="category_button_defense", font=sg.DEFAULT_FONT
+            ),
+            sg.Button(
+                "Today's Questions", key="todays_questions", font=sg.DEFAULT_FONT
+            ),
             sg.Checkbox(
                 "Display Submitted Answers", default=False, key="display_todays_answers"
             ),
@@ -85,8 +91,8 @@ def open_defense_window():
                         )
                     ],
                     [
-                        sg.Button("Submit", key="submit_defense"),
-                        sg.Button("Clear", key="defense_clear"),
+                        sg.Button("Submit", key="submit_defense", font=sg.DEFAULT_FONT),
+                        sg.Button("Clear", key="defense_clear", font=sg.DEFAULT_FONT),
                     ],
                 ],
             ),
@@ -109,6 +115,7 @@ def open_defense_window():
                             "Search",
                             key="search_questions_button",
                             bind_return_key=True,
+                            font=sg.DEFAULT_FONT,
                         ),
                     ],
                     [
@@ -117,6 +124,7 @@ def open_defense_window():
                         sg.Button(
                             "Close All Questions",
                             key="close_all_question_popups_button",
+                            font=sg.DEFAULT_FONT,
                         ),
                     ],
                     [

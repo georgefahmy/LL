@@ -207,7 +207,9 @@ def oneday_main():
                             size=(14, 1),
                             expand_x=True,
                         ),
-                        sg.Button("Search", key="oneday_filter_search"),
+                        sg.Button(
+                            "Search", key="oneday_filter_search", font=sg.DEFAULT_FONT
+                        ),
                     ],
                     [
                         sg.Text(
@@ -226,9 +228,13 @@ def oneday_main():
                         ),
                     ],
                     [
-                        sg.Button("Show Description", key="show_hide_blurb"),
+                        sg.Button(
+                            "Show Description",
+                            key="show_hide_blurb",
+                            font=sg.DEFAULT_FONT,
+                        ),
                         sg.Text(expand_x=True),
-                        sg.Button("Random", key="random_oneday"),
+                        sg.Button("Random", key="random_oneday", font=sg.DEFAULT_FONT),
                     ],
                 ],
             ),
@@ -301,6 +307,7 @@ def oneday_main():
                             "Reset Quiz",
                             key="full_reset",
                             tooltip="Click this button to reset the quiz.",
+                            font=sg.DEFAULT_FONT,
                         ),
                     ],
                     [sg.HorizontalSeparator()],
@@ -401,6 +408,7 @@ def oneday_main():
                                             "black",
                                             "gray",
                                         ),
+                                        font=sg.DEFAULT_FONT,
                                     ),
                                     sg.Text(
                                         text="*******",
@@ -444,6 +452,7 @@ def oneday_main():
                                             "gray",
                                         ),
                                         bind_return_key=True,
+                                        font=sg.DEFAULT_FONT,
                                     ),
                                     sg.Text(
                                         expand_x=True,

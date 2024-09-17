@@ -33,7 +33,7 @@ main_layout = [
             layout=[
                 [
                     sg.Text(expand_x=True),
-                    sg.Button("Filter", key="filter"),
+                    sg.Button("Filter", key="filter", font=sg.DEFAULT_FONT),
                 ],
                 [
                     sg.Text("Search: ", font=("Arial", 14)),
@@ -243,8 +243,8 @@ main_layout = [
                         "Show Answer",
                         key="show/hide",
                         size=(12, 1),
-                        font=("Arial", 12),
                         tooltip="Reveal the Answer - (cmd-s)",
+                        font=sg.DEFAULT_FONT,
                     ),
                     sg.Text(
                         key="answer",
@@ -264,8 +264,8 @@ main_layout = [
                         "Random Q",
                         key="random_choice",
                         size=(9, 1),
-                        font=("Arial", 12),
                         tooltip="Pick a random question - (cmd-r)",
+                        font=sg.DEFAULT_FONT,
                     ),
                     sg.Combo(
                         values=[],
@@ -282,6 +282,7 @@ main_layout = [
                         disabled=True,
                         disabled_button_color=("black", "gray"),
                         tooltip="Go to the previous question - (cmd-p)",
+                        font=sg.DEFAULT_FONT,
                     ),
                     sg.Button(
                         "Next",
@@ -289,6 +290,7 @@ main_layout = [
                         disabled=True,
                         disabled_button_color=("black", "gray"),
                         tooltip="Go to the next question - (cmd-n)",
+                        font=sg.DEFAULT_FONT,
                     ),
                 ],
                 [
@@ -308,6 +310,7 @@ main_layout = [
                         key="submit_answer_button",
                         disabled_button_color=("black", "gray"),
                         bind_return_key=True,
+                        font=sg.DEFAULT_FONT,
                     ),
                     sg.Checkbox(
                         "Ans Override",
