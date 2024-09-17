@@ -10,6 +10,6 @@ Double Click the newly downloaded dmg file to open it. Drag the LearnedLeague ap
 
 # Changelog
 
-Cleaned up userdata struct for simple implementation and improvements.
+Improved text for updating the app
 
-### [v7.2.0] - 2024-09-16
+### [v7.2.1] - 2024-09-16

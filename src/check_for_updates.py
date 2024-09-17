@@ -17,7 +17,7 @@ def get_sudo_password():
     """
     attempts = 0
     layout = [
-        [sg.Text("Enter your password:", font=("Arial", 16))],
+        [sg.Text("Enter your computer password:", font=("Arial", 16))],
         [
             sg.Input(
                 password_char="*",
