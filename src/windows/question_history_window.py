@@ -9,7 +9,7 @@ def open_question_history_window():
             sg.Text("Username: ", font=("Arial Bold", 14), expand_x=True),
             sg.Input(key="username_history", font=DEFAULT_FONT, expand_x=True),
             sg.Button(
-                "Retrieve Q-History", key="get_history_button", font=DEFAULT_FONT
+                "Retrieve Q-History", key="get_history_button", font=sg.DEFAULT_FONT
             ),
         ],
         [sg.HorizontalSeparator()],
@@ -33,6 +33,7 @@ def open_question_history_window():
                             "Search",
                             key="search_questions_button",
                             bind_return_key=True,
+                            font=sg.DEFAULT_FONT,
                         ),
                     ],
                     [
@@ -41,6 +42,7 @@ def open_question_history_window():
                         sg.Button(
                             "Close All Questions",
                             key="close_all_question_popups_button",
+                            font=sg.DEFAULT_FONT,
                         ),
                     ],
                     [

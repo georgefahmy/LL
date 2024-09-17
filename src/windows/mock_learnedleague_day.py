@@ -90,7 +90,10 @@ def open_mock_day(seed=None, threshold=0):
                     key="perc_threshold",
                     font=DEFAULT_FONT,
                 ),
-                sg.Button("New Questions"),
+                sg.Button(
+                    "New Questions",
+                    font=sg.DEFAULT_FONT,
+                ),
             ],
             [
                 sg.Column(
@@ -204,7 +207,10 @@ def open_mock_day(seed=None, threshold=0):
                     ],
                 )
             ],
-            [sg.Button("Submit"), sg.Button("Show/Hide Answers")],
+            [
+                sg.Button("Submit", font=sg.DEFAULT_FONT),
+                sg.Button("Show/Hide Answers", font=sg.DEFAULT_FONT),
+            ],
         ],
         size=(900, 900),
         resizable=True,

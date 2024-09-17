@@ -333,11 +333,14 @@ def minileague():
                             tooltip="""
                                 Click this button to fully reset the quiz
                                 erasing all answers.""",
+                            font=sg.DEFAULT_FONT,
                         ),
                     ],
                     [
                         sg.Text(expand_x=True),
-                        sg.Button("Random", key="random_mini_league"),
+                        sg.Button(
+                            "Random", key="random_mini_league", font=sg.DEFAULT_FONT
+                        ),
                     ],
                 ],
             ),
@@ -387,6 +390,7 @@ def minileague():
                                         tooltip="Reveal the Answer - (s)",
                                         mouseover_colors=("black", "white"),
                                         disabled_button_color=("black", "gray"),
+                                        font=sg.DEFAULT_FONT,
                                     ),
                                     sg.Text(
                                         key=f"answer_{i}",
@@ -414,6 +418,7 @@ def minileague():
                                         key=f"submit_answer_button_{i}",
                                         disabled_button_color=("black", "gray"),
                                         bind_return_key=True,
+                                        font=sg.DEFAULT_FONT,
                                     ),
                                     sg.Text(
                                         expand_x=True, background_color=background_color

@@ -21,12 +21,16 @@ def open_analysis_window(season=102):
         [
             sg.Text("Username: ", font=("Arial Bold", 14), expand_x=True),
             sg.Text(expand_x=True),
-            sg.Button("Load Favorites", key="luck_load_favorites", font=DEFAULT_FONT),
-            sg.Button("Save Favorites", key="save_luck_favorites", font=DEFAULT_FONT),
+            sg.Button(
+                "Load Favorites", key="luck_load_favorites", font=sg.DEFAULT_FONT
+            ),
+            sg.Button(
+                "Save Favorites", key="save_luck_favorites", font=sg.DEFAULT_FONT
+            ),
         ],
         [
             sg.Input(key="single_user", font=DEFAULT_FONT, expand_x=True),
-            sg.Button("Clear", key="luck_username_clear", font=DEFAULT_FONT),
+            sg.Button("Clear", key="luck_username_clear", font=sg.DEFAULT_FONT),
         ],
         [
             sg.Listbox(
@@ -64,7 +68,7 @@ def open_analysis_window(season=102):
             sg.Button(
                 button_text="Submit",
                 key="submit_luck",
-                font=DEFAULT_FONT,
+                font=sg.DEFAULT_FONT,
             )
         ],
     ]
