@@ -305,7 +305,10 @@ while True:
                     if not sess:
                         continue
                     username = sess.headers.get("profile")
-                    user_data = load(username=username, sess=sess)
+                    user_profile_id = sess.headers.get("profile_id")
+                    user_data = load(
+                        username=username, profile_id=user_profile_id, sess=sess
+                    )
                     menu_bar_layout = [
                         [
                             "&File",
@@ -342,7 +345,7 @@ while True:
                                         ]
                                         for name in os.listdir(USER_DATA_DIR)
                                     ]
-                                    + user_data.opponents
+                                    + list(user_data.opponents.keys())
                                 )
                             )
                         )
@@ -420,13 +423,13 @@ while True:
                 )
 
                 defense_window["player_1"].update(
-                    values=user_data.opponents,
+                    values=list(user_data.opponents.keys()),
                     value=user_data.formatted_username,
                 )
                 defense_window["opponent"].update(
-                    values=user_data.opponents,
-                    value=user_data.opponents[
-                        min(len(user_data.opponents) - 1, current_day)
+                    values=list(user_data.opponents.keys()),
+                    value=list(user_data.opponents.keys())[
+                        min(len(list(user_data.opponents.keys())) - 1, current_day)
                     ],
                 )
 
@@ -438,7 +441,8 @@ while True:
                 open_windows[analysis_window.metadata] = analysis_window.metadata
 
                 analysis_window["user"].update(
-                    values=[user_data.formatted_username] + user_data.opponents,
+                    values=[user_data.formatted_username]
+                    + list(user_data.opponents.keys()),
                 )
 
             if event == "question_history_button":
@@ -1504,7 +1508,13 @@ while True:
                 if window["stats_table"].get():
                     if column == 0:
                         username = window["stats_table"].get()[row][column]
-                        clicked_user = load(username, sess=sess)
+                        if " " in username:
+                            clicked_user_profile_id = user_data.opponents.get(username)
+                        else:
+                            clicked_user_profile_id = None
+                        clicked_user = load(
+                            username, profile_id=clicked_user_profile_id, sess=sess
+                        )
                         url = BASE_URL + f"/profiles.php?{clicked_user.profile_id}"
                         webbrowser.open(url)
 
@@ -1524,9 +1534,22 @@ while True:
                         if user in window["stats_table"].metadata.keys():
                             user = window["stats_table"].metadata[username]
                         else:
-                            searched_user_data = load(user, sess=sess)
+                            if " " in user:
+                                user_profile_id = user_data.opponents.get(user)
+                            else:
+                                user_profile_id = None
+                            searched_user_data = load(
+                                user, profile_id=user_profile_id, sess=sess
+                            )
                     else:
-                        searched_user_data = load(user, sess=sess)
+                        if " " in user:
+                            user_profile_id = user_data.opponents.get(user)
+                        else:
+                            user_profile_id = None
+
+                        searched_user_data = load(
+                            user, profile_id=user_profile_id, sess=sess
+                        )
                     table_values = add_stats_row(searched_user_data, window)
                     window.refresh()
 
@@ -1544,9 +1567,23 @@ while True:
                             if user in window["stats_table"].metadata.keys():
                                 user = window["stats_table"].metadata[username]
                             else:
-                                searched_user_data = load(user, sess=sess)
+                                if " " in user:
+                                    user_profile_id = user_data.opponents.get(user)
+                                else:
+                                    user_profile_id = None
+
+                                searched_user_data = load(
+                                    user, profile_id=user_profile_id, sess=sess
+                                )
                         else:
-                            searched_user_data = load(user, sess=sess)
+                            if " " in user:
+                                user_profile_id = user_data.opponents.get(user)
+                            else:
+                                user_profile_id = None
+
+                            searched_user_data = load(
+                                user, profile_id=user_profile_id, sess=sess
+                            )
                         table_values = add_stats_row(searched_user_data, window)
                         window.refresh()
 
@@ -1590,8 +1627,17 @@ while True:
                 if f"row_name_{values['player_search']}" in window.AllKeysDict:
                     window["player_search"].update(value="")
                     continue
-
-                searched_user_data = load(window["player_search"].get(), sess=sess)
+                if " " in window["player_search"].get():
+                    search_player_profile_id = user_data.opponents.get(
+                        window["player_search"].get()
+                    )
+                else:
+                    search_player_profile_id = None
+                searched_user_data = load(
+                    window["player_search"].get(),
+                    profile_id=search_player_profile_id,
+                    sess=sess,
+                )
                 if (
                     searched_user_data.formatted_username
                     not in window["available_users"].get()
@@ -1621,8 +1667,17 @@ while True:
             if event == "available_users":
                 if not logged_in:
                     continue
-
-                searched_user_data = load(window["available_users"].get(), sess=sess)
+                if " " in window["available_users"].get():
+                    available_user_profile_id = user_data.opponents.get(
+                        window["available_users"].get()
+                    )
+                else:
+                    available_user_profile_id = None
+                searched_user_data = load(
+                    window["available_users"].get(),
+                    profile_id=available_user_profile_id,
+                    sess=sess,
+                )
                 table_values = add_stats_row(searched_user_data, window)
                 # window.move_to_center()
 
@@ -1636,6 +1691,8 @@ while True:
                     opponent = table_values[row][0]
                 else:
                     opponent = window["available_users"].get()
+                if " " in opponent:
+                    continue
                 display_category_metrics(load(opponent, sess=sess))
 
         if window.metadata == "defense_window":
@@ -1654,14 +1711,14 @@ while True:
                     continue
 
                 defense_window["player_1"].update(
-                    values=player_1.opponents,
+                    values=list(player_1.opponents.keys()),
                     value=player_1.formatted_username,
                 )
 
                 defense_window["opponent"].update(
-                    values=player_1.opponents,
-                    value=player_1.opponents[
-                        min(len(player_1.opponents) - 1, current_day)
+                    values=list(player_1.opponents.keys()),
+                    value=list(player_1.opponents.keys())[
+                        min(len(list(player_1.opponents.keys())) - 1, current_day)
                     ],
                 )
 
@@ -1676,11 +1733,31 @@ while True:
                 else:
                     if values.get("player_1").lower() != player_1.username:
                         player_1 = load(values.get("player_1"), sess=sess)
+
                 if "player_2" not in locals():
-                    player_2 = load(values.get("opponent"), sess=sess)
+                    if " " in values.get("opponent"):
+                        opponent_profile_id = player_1.opponents[values.get("opponent")]
+                    else:
+                        opponent_profile_id = None
+
+                    player_2 = load(
+                        values.get("opponent"),
+                        profile_id=opponent_profile_id,
+                        sess=sess,
+                    )
                 else:
                     if values.get("opponent").lower() != player_2.username:
-                        player_2 = load(values.get("opponent"), sess=sess)
+                        if " " in values.get("opponent"):
+                            opponent_profile_id = player_1.opponents[
+                                values.get("opponent")
+                            ]
+                        else:
+                            opponent_profile_id = None
+                        player_2 = load(
+                            values.get("opponent"),
+                            profile_id=opponent_profile_id,
+                            sess=sess,
+                        )
 
                 if not player_1.profile_id.isnumeric():
                     sg.popup_auto_close(
@@ -1754,7 +1831,7 @@ while True:
 
                 question_window = display_todays_questions(
                     latest_season,
-                    min(len(user_data.opponents) - 1, current_day) + 1,
+                    min(len(list(user_data.opponents.keys())) - 1, current_day) + 1,
                     values["display_todays_answers"],
                 )
                 open_windows[question_window.metadata] = question_window.metadata
@@ -1779,23 +1856,29 @@ while True:
                 if not logged_in:
                     continue
 
-                if "player_1" not in locals():
-                    player_1 = load(values.get("player_1"), sess=sess)
-                else:
-                    if values.get("player_1").lower() != player_1.username:
-                        player_1 = load(values.get("player_1"), sess=sess)
-
                 if "player_2" not in locals():
-                    player_2 = load(values.get("opponent"), sess=sess)
+                    if " " in values.get("opponent"):
+                        opponent_profile_id = player_1.opponents[values.get("opponent")]
+                    else:
+                        opponent_profile_id = None
+                    player_2 = load(
+                        values.get("opponent"),
+                        profile_id=opponent_profile_id,
+                        sess=sess,
+                    )
                 else:
                     if values.get("opponent").lower() != player_2.username:
-                        player_2 = load(values.get("opponent"), sess=sess)
-
-                if not player_1.profile_id.isnumeric():
-                    sg.popup_auto_close(
-                        "Player Not Found.", no_titlebar=True, modal=False
-                    )
-                    continue
+                        if " " in values.get("opponent"):
+                            opponent_profile_id = player_1.opponents[
+                                values.get("opponent")
+                            ]
+                        else:
+                            opponent_profile_id = None
+                        player_2 = load(
+                            values.get("opponent"),
+                            profile_id=opponent_profile_id,
+                            sess=sess,
+                        )
 
                 if not player_2.profile_id.isnumeric():
                     sg.popup_auto_close(
@@ -1946,11 +2029,30 @@ while True:
                 else:
                     if values.get("player_1").lower() != player_1.username:
                         player_1 = load(values.get("player_1"), sess=sess)
+
                 if "player_2" not in locals():
-                    player_2 = load(values.get("opponent"), sess=sess)
+                    if " " in values.get("opponent"):
+                        opponent_profile_id = player_1.opponents[values.get("opponent")]
+                    else:
+                        opponent_profile_id = None
+                    player_2 = load(
+                        values.get("opponent"),
+                        profile_id=opponent_profile_id,
+                        sess=sess,
+                    )
                 else:
                     if values.get("opponent").lower() != player_2.username:
-                        player_2 = load(values.get("opponent"), sess=sess)
+                        if " " in values.get("opponent"):
+                            opponent_profile_id = player_1.opponents[
+                                values.get("opponent")
+                            ]
+                        else:
+                            opponent_profile_id = None
+                        player_2 = load(
+                            values.get("opponent"),
+                            profile_id=opponent_profile_id,
+                            sess=sess,
+                        )
 
                 if not player_1.profile_id.isnumeric():
                     sg.popup_auto_close(
@@ -1980,11 +2082,30 @@ while True:
                 else:
                     if values.get("player_1").lower() != player_1.username:
                         player_1 = load(values.get("player_1"), sess=sess)
+
                 if "player_2" not in locals():
-                    player_2 = load(values.get("opponent"), sess=sess)
+                    if " " in values.get("opponent"):
+                        opponent_profile_id = player_1.opponents[values.get("opponent")]
+                    else:
+                        opponent_profile_id = None
+                    player_2 = load(
+                        values.get("opponent"),
+                        profile_id=opponent_profile_id,
+                        sess=sess,
+                    )
                 else:
                     if values.get("opponent").lower() != player_2.username:
-                        player_2 = load(values.get("opponent"), sess=sess)
+                        if " " in values.get("opponent"):
+                            opponent_profile_id = player_1.opponents[
+                                values.get("opponent")
+                            ]
+                        else:
+                            opponent_profile_id = None
+                        player_2 = load(
+                            values.get("opponent"),
+                            profile_id=opponent_profile_id,
+                            sess=sess,
+                        )
 
                 if not player_1.profile_id.isnumeric():
                     sg.popup_auto_close(
@@ -2020,11 +2141,19 @@ while True:
             if "category_button" in event or event == "Category Metrics":
                 if not logged_in:
                     continue
-                opponent = window["opponent"].get()
                 if open_windows["category_metrics_window"]:
                     continue
 
-                cat_metrics = display_category_metrics(load(opponent, sess=sess))
+                if " " in window["opponent"].get():
+                    opponent_profile_id = player_1.opponents[opponent]
+                else:
+                    opponent_profile_id = None
+                opponent_data = load(
+                    values.get("opponent"),
+                    profile_id=opponent_profile_id,
+                    sess=sess,
+                )
+                cat_metrics = display_category_metrics(opponent_data)
                 open_windows[cat_metrics.metadata] = cat_metrics.metadata
 
         if window.metadata == "analysis_window":

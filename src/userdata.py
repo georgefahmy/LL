@@ -15,28 +15,29 @@ if not os.path.isdir(USER_DATA_DIR):
     os.mkdir(USER_DATA_DIR)
 
 
-def load(username, sess=None):
+def load(username, profile_id=None, sess=None):
     if not sess:
         print("Sess not provided, creating new session...")
         sess = login()
     username = username.lower()
     filename = f"{USER_DATA_DIR}/{username}.json"
-    if os.path.isfile(filename):
+    if not os.path.isfile(filename):
+        print(f"User {username} not found, downloading new data")
+    else:
         with open(filename, "r") as fp:
             loaded_data = DotMap(json.load(fp))
-            user_data = UserData(username=username, sess=sess)
-            user_data._map.update(loaded_data)
-            user_data._save()
-            return user_data
-    else:
-        print(f"User {username} not found, downloading new data")
-        return UserData(username=username, sess=sess, load=True)
+            profile_id = loaded_data.profile_id
+            username = loaded_data.username
+    user_data = UserData(username=username, profile_id=profile_id, sess=sess)
+    user_data._save()
+    return user_data
 
 
 class UserData(DotMap):
     def __init__(
         self,
         username,
+        profile_id=None,
         sess=None,
         load=False,
         *args,
@@ -65,12 +66,15 @@ class UserData(DotMap):
             return category_metrics
 
         def _get_opponents(self, latest_page):
-            return [
-                val.img.get("title")
-                for val in latest_page.find(
-                    "table", {"summary": "Data table for LL results"}
-                ).find_all("tr")[1:]
-            ]
+            opponents = DotMap()
+            op_table = latest_page.find(
+                "table", {"summary": "Data table for LL results"}
+            ).find_all("tr")[1:]
+            for opp in op_table:
+                opponents[opp.img.get("title")] = (
+                    opp.find("a", {"class": "flag"}).get("href").split("?")[-1]
+                )
+            return opponents
 
         def _get_question_history(self, question_page):
             qhistory = question_page.find("div", {"class": "qhistory"})
@@ -196,39 +200,38 @@ class UserData(DotMap):
         super().__init__(*args, **kwargs)
         self.sess = sess
         self.username = username.lower()
-
-        latest_page = bs(
-            self.sess.get(
-                f"https://learnedleague.com/profiles.php?{self.username}&1"
-            ).content,
-            "html.parser",
-        )
-        self.profile_id = (
-            latest_page.find("div", {"class": "flagdiv"}).a.get("href").split("?")[-1]
-        )
+        if profile_id:
+            # print("profile_id given")
+            self.profile_id = profile_id
+            latest_page = bs(
+                self.sess.get(
+                    f"https://learnedleague.com/profiles.php?{self.profile_id}&1"
+                ).content,
+                "html.parser",
+            )
+        else:
+            # print("no profile_id given")
+            latest_page = bs(
+                self.sess.get(
+                    f"https://learnedleague.com/profiles.php?{self.username}&1"
+                ).content,
+                "html.parser",
+            )
+            self.profile_id = (
+                latest_page.find("div", {"class": "flagdiv"})
+                .a.get("href")
+                .split("?")[-1]
+            )
         if not self.profile_id.isnumeric():
             return None
-        question_page = bs(
-            self.sess.get(
-                f"https://learnedleague.com/profiles.php?{self.profile_id}&9"
-            ).content,
-            "html.parser",
-        )
-        stats_page = bs(
-            self.sess.get(
-                f"https://learnedleague.com/profiles.php?{self.profile_id}&2"
-            ).content,
-            "html.parser",
-        )
-        past_seasons_page = bs(
-            self.sess.get(
-                f"https://learnedleague.com/profiles.php?{self.profile_id}&7"
-            ).content,
-            "html.parser",
-        )
-
         self.formatted_username = latest_page.h1.text
+
         self.link = f"https://learnedleague.com/profiles.php?{self.profile_id}"
+
+        question_page = bs(self.sess.get(f"{self.link}&9").content, "html.parser")
+        stats_page = bs(self.sess.get(f"{self.link}&2").content, "html.parser")
+        past_seasons_page = bs(self.sess.get(f"{self.link}&7").content, "html.parser")
+
         self.opponents = _get_opponents(self, latest_page)
         self.category_metrics = _get_category_metrics(self, latest_page)
         self.question_history = _get_question_history(self, question_page)
