@@ -10,7 +10,7 @@ from dotmap import DotMap
 from .constants import BASE_URL, DEFAULT_FONT, LOGIN_URL
 
 
-def login(logout=False):
+def login(logout=False):  # sourcery skip: extract-method
     if os.path.isfile(os.path.expanduser("~") + "/.LearnedLeague/login_info.json"):
         login_info = json.load(
             open(os.path.expanduser("~") + "/.LearnedLeague/login_info.json")
@@ -63,12 +63,6 @@ def login(logout=False):
     if logout:
         login_info["auto_login_check"] = False
 
-    json.dump(
-        login_info,
-        open(os.path.expanduser("~") + "/.LearnedLeague/login_info.json", "w"),
-        indent=4,
-        sort_keys=False,
-    )
     if not logout:
         payload = {
             "login": "Login",
@@ -77,7 +71,20 @@ def login(logout=False):
         }
         sess = requests.Session()
         sess.post(LOGIN_URL, data=payload)
+        login_info["profile_id"] = (
+            bs(sess.get(BASE_URL).content, "html.parser")
+            .find("a", {"class": "flag"})
+            .get("href")
+            .split("?")[-1]
+        )
+        sess.headers["profile_id"] = login_info.get("profile_id")
         sess.headers["profile"] = login_info.get("username").lower()
+        json.dump(
+            login_info,
+            open(os.path.expanduser("~") + "/.LearnedLeague/login_info.json", "w"),
+            indent=4,
+            sort_keys=False,
+        )
         return sess
 
 

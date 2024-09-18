@@ -10,6 +10,6 @@ Double Click the newly downloaded dmg file to open it. Drag the LearnedLeague ap
 
 # Changelog
 
-Improved text for updating the app
+big update on how userdata is handled to account for strange profile names. its not perfect.
 
-### [v7.2.1] - 2024-09-16
+### [v7.3.0] - 2024-09-17

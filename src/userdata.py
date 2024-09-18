@@ -15,22 +15,22 @@ if not os.path.isdir(USER_DATA_DIR):
     os.mkdir(USER_DATA_DIR)
 
 
-def load(username, sess=None):
+def load(username, profile_id=None, sess=None):
     if not sess:
         print("Sess not provided, creating new session...")
         sess = login()
     username = username.lower()
     filename = f"{USER_DATA_DIR}/{username}.json"
-    if os.path.isfile(filename):
+    if not os.path.isfile(filename):
+        print(f"User {username} not found, downloading new data")
+    else:
         with open(filename, "r") as fp:
             loaded_data = DotMap(json.load(fp))
-            user_data = UserData(username=username, sess=sess)
-            user_data._map.update(loaded_data)
-            user_data._save()
-            return user_data
-    else:
-        print(f"User {username} not found, downloading new data")
-        return UserData(username=username, sess=sess, load=True)
+            profile_id = loaded_data.profile_id
+            username = loaded_data.username
+    user_data = UserData(username=username, profile_id=profile_id, sess=sess)
+    user_data._save()
+    return user_data
 
 
 class UserData(DotMap):
@@ -201,36 +201,36 @@ class UserData(DotMap):
         self.sess = sess
         self.username = username.lower()
         if profile_id:
+            # print("profile_id given")
             self.profile_id = profile_id
-        # TODO add ability to use profile id if username is dumb
-        latest_page = bs(
-            self.sess.get(
-                f"https://learnedleague.com/profiles.php?{self.username}&1"
-            ).content,
-            "html.parser",
-        )
-        self.profile_id = (
-            latest_page.find("div", {"class": "flagdiv"}).a.get("href").split("?")[-1]
-        )
+            latest_page = bs(
+                self.sess.get(
+                    f"https://learnedleague.com/profiles.php?{self.profile_id}&1"
+                ).content,
+                "html.parser",
+            )
+        else:
+            # print("no profile_id given")
+            latest_page = bs(
+                self.sess.get(
+                    f"https://learnedleague.com/profiles.php?{self.username}&1"
+                ).content,
+                "html.parser",
+            )
+            self.profile_id = (
+                latest_page.find("div", {"class": "flagdiv"})
+                .a.get("href")
+                .split("?")[-1]
+            )
         if not self.profile_id.isnumeric():
             return None
         self.formatted_username = latest_page.h1.text
-        if self.username.isnumeric():
-            self.username = self.formatted_username.lower()
+
         self.link = f"https://learnedleague.com/profiles.php?{self.profile_id}"
 
-        question_page = bs(
-            self.sess.get(self.link + "&9").content,
-            "html.parser",
-        )
-        stats_page = bs(
-            self.sess.get(self.link + "&2").content,
-            "html.parser",
-        )
-        past_seasons_page = bs(
-            self.sess.get(self.link + "&7").content,
-            "html.parser",
-        )
+        question_page = bs(self.sess.get(f"{self.link}&9").content, "html.parser")
+        stats_page = bs(self.sess.get(f"{self.link}&2").content, "html.parser")
+        past_seasons_page = bs(self.sess.get(f"{self.link}&7").content, "html.parser")
 
         self.opponents = _get_opponents(self, latest_page)
         self.category_metrics = _get_category_metrics(self, latest_page)
