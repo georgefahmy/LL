@@ -10,6 +10,6 @@ Double Click the newly downloaded dmg file to open it. Drag the LearnedLeague ap
 
 # Changelog
 
-big update on how userdata is handled to account for strange profile names. its not perfect.
+Modified luck analysis formula to use normalized strength of schedule to improve results.
 
-### [v7.3.0] - 2024-09-17
+### [v7.3.1] - 2024-09-18
