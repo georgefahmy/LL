@@ -2179,7 +2179,7 @@ while True:
                     "Rank",
                     "Exp_Rank",
                     "norm_QPct",
-                    "norm_CAA",
+                    "norm_SOS",
                     "SOS",
                 ]
                 fields = fields + list(set(values["field_selection"]) - set(fields))
@@ -2190,6 +2190,7 @@ while True:
                     "norm_OE*FL",
                     "norm_QPct*FL",
                     "norm_DE",
+                    "norm_SOS",
                 ]
                 formula = "PTS ~ " + " + ".join(formula)
                 data = get_leaguewide_data(season=season, matchday=matchday)
