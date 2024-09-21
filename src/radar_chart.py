@@ -3,8 +3,7 @@ import os
 from collections import OrderedDict
 
 import matplotlib.pyplot as plt
-
-# import numpy as np
+import numpy as np
 import PySimpleGUI as sg
 from matplotlib import use
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
@@ -129,11 +128,11 @@ def radar_similarity(player_1, player_2):
     )
     labels = list(player_1_categories.keys())
     colors = ["b", "r"]
-    # max_val = roundup(max(list(map(max, data))))
-    # max_count = int(max_val / 10 + 1)
-    # ax_vals = list(map(int, np.linspace(0, max_val, max_count)))
-    # # ax.set_rgrids(ax_vals)
-    ax.set_rgrids([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
+    max_val = roundup(max(list(map(max, data))))
+    max_count = int(max_val / 10 + 1)
+    ax_vals = list(map(int, np.linspace(0, max_val, max_count)))
+    ax.set_rgrids(ax_vals)
+    # ax.set_rgrids([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
 
     sc1 = ax.scatter(theta, data[0], color=colors[0])
     ax.fill(theta, data[0], facecolor=colors[0], alpha=0.15, label="_nolegend_")
@@ -142,8 +141,8 @@ def radar_similarity(player_1, player_2):
     ax.fill(theta, data[1], facecolor=colors[1], alpha=0.15, label="_nolegend_")
 
     ax.set_varlabels(labels)
-    # ax.set_ylim(0, max_val)
-    ax.set_ylim(0, 100)
+    ax.set_ylim(0, max_val)
+    # ax.set_ylim(0, 100)
 
     annot = ax.annotate(
         "",
