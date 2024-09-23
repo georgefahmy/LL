@@ -2199,7 +2199,7 @@ while True:
                 if not values["rundle_flag"] and len(values["user"]) == 0:
                     fields.append("Rundle")
 
-                luck_window = display_data(
+                luck_window, username_list = display_data(
                     data,
                     usernames=usernames,
                     fields=fields,
@@ -2232,23 +2232,30 @@ while True:
                 with open(fav_file, "w") as fp:
                     json.dump(favorites, fp, indent=4)
 
-        if window.metadata == "luck_analysis_window" and "+CLICKED+" in event:
+        if window.metadata == "luck_analysis_window":
 
-            row, column = event[-1]
+            if event == "highlight_favorites_button":
+                table_values = window["stats_table"].get()
+                username_list = [val[0] for val in table_values]
+                selected_rows = [username_list.index(i) for i in usernames]
+                window["stats_table"].update(select_rows=selected_rows)
 
-            if row is None:
-                continue
+            if "+CLICKED+" in event:
+                row, column = event[-1]
 
-            if row == -1:
-                if not window["stats_table"].get():
+                if row is None:
                     continue
 
-                table_values, reverse = sort(
-                    window["stats_table"].get(), column, not reverse
-                )
-                current_season = window["stats_table"].get()[0][1]
-                remove_all_rows(window)
-                window["stats_table"].update(values=table_values)
+                if row == -1:
+                    if not window["stats_table"].get():
+                        continue
+
+                    table_values, reverse = sort(
+                        window["stats_table"].get(), column, not reverse
+                    )
+                    current_season = window["stats_table"].get()[0][1]
+                    remove_all_rows(window)
+                    window["stats_table"].update(values=table_values)
 
         if window.metadata == "question_history_window":
 

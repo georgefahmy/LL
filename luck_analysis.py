@@ -161,7 +161,7 @@ def display_data(data, usernames, fields, rundleflag=False):
             if "Rundle" not in fields:
                 fields.append("Rundle")
             luck_data = (data[data["Rundle"].isin(rundle)][fields]).sort_values(
-                by=["LuckPctile"], ascending=False
+                by=["Rundle", "LuckPctile"], ascending=[True, False]
             )
         else:
             luck_data = (data.loc[usernames][fields]).sort_values(
@@ -174,7 +174,9 @@ def display_data(data, usernames, fields, rundleflag=False):
         for row in values:
             new_row = list(map(lambda d: f"{d:.3f}" if type(d) is float else d, row))
             formatted_values.append(new_row)
-        # print(formatted_values)
+        username_list = [val[0] for val in formatted_values]
+        selected_rows = [username_list.index(i) for i in usernames]
+
         ind = luck_data.index.get_loc(
             luck_data[
                 luck_data["Player"].str.len() == luck_data["Player"].str.len().max()
@@ -188,6 +190,14 @@ def display_data(data, usernames, fields, rundleflag=False):
         sg.theme("Reddit")
         sg.set_options(font=("Arial", 16))
         layout = [
+            [
+                sg.Text("", expand_x=True),
+                sg.Button(
+                    "Highlight Favorites",
+                    key="highlight_favorites_button",
+                    font=sg.DEFAULT_FONT,
+                ),
+            ],
             [
                 sg.Table(
                     size=(None, len(formatted_values)),
@@ -205,15 +215,19 @@ def display_data(data, usernames, fields, rundleflag=False):
                     hide_vertical_scroll=False,
                     key="stats_table",
                 )
-            ]
+            ],
         ]
-        return sg.Window(
+        win = sg.Window(
             "Luck Table",
             layout,
             resizable=True,
             metadata="luck_analysis_window",
             finalize=True,
         )
+        if rundleflag:
+            win["stats_table"].update(select_rows=selected_rows)
+        return win, username_list
+
     except Exception as e:
         print("error:", e)
 
@@ -362,7 +376,7 @@ if __name__ == "__main__":
                 args.fields.append(new_field)
 
     # print(args.fields)
-    window = display_data(
+    window, username_list = display_data(
         data, usernames=args.usernames, fields=args.fields, rundleflag=args.rundle
     )
     # print(data["Luck"].sum())
@@ -371,6 +385,12 @@ if __name__ == "__main__":
         if event in (None, "Quit", sg.WIN_CLOSED):
             window.close()
             break
+
+        if event == "highlight_favorites_button":
+            table_values = window["stats_table"].get()
+            username_list = [val[0] for val in table_values]
+            selected_rows = [username_list.index(i) for i in args.usernames]
+            window["stats_table"].update(select_rows=selected_rows)
 
         if "+CLICKED+" in event:
             # print(event[-1])
