@@ -10,6 +10,6 @@ Double Click the newly downloaded dmg file to open it. Drag the LearnedLeague ap
 
 # Changelog
 
-Modified the radar chart to scale the Y axis to be slightly larger than the highest value of the two players, so its easier to see the comparison.
+Added support to highlight searched usernames in the luck analysis window
 
-### [v7.4.0] - 2024-09-18
+### [v7.4.1] - 2024-09-23
