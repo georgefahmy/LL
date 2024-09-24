@@ -10,6 +10,6 @@ Double Click the newly downloaded dmg file to open it. Drag the LearnedLeague ap
 
 # Changelog
 
-Added support to highlight searched usernames in the luck analysis window
+Added filter for categories in the defensive question history search interface
 
-### [v7.4.1] - 2024-09-23
+### [v7.5.0] - 2024-09-24
