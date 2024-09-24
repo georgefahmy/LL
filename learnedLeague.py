@@ -1809,7 +1809,7 @@ while True:
                 ]
                 [
                     window[f"suggestion_percent_{i + 1}"].update(
-                        value=f"{percents[key].percent * 100:0.1f}%"
+                        value=f"{percents[key].percent * 100:05.2f}%"
                     )
                     for i, key in enumerate(list(percents.keys()))
                 ]
@@ -1854,7 +1854,10 @@ while True:
 
             # Search through the opponents quesiton history for key words and display
             # whether they got the question right or wrong
-            if event == "search_questions_button":
+            if (
+                event == "search_questions_button"
+                or event == "defense_category_selection"
+            ):
                 if not logged_in:
                     continue
 
@@ -1889,13 +1892,25 @@ while True:
                     continue
 
                 search_term = values["defense_question_search_term"]
-                filtered_dict = DotMap(
-                    {
-                        k: v
-                        for k, v in player_2.question_history.iteritems()
-                        if search_term.lower() in v.question.lower()
-                    }
-                )
+                defense_category = values["defense_category_selection"]
+                if defense_category == "ALL":
+                    filtered_dict = DotMap(
+                        {
+                            k: v
+                            for k, v in player_2.question_history.iteritems()
+                            if search_term.lower() in v.question.lower()
+                        }
+                    )
+                else:
+                    filtered_dict = DotMap(
+                        {
+                            k: v
+                            for k, v in player_2.question_history.iteritems()
+                            if search_term.lower() in v.question.lower()
+                            and defense_category == v.question_category
+                        }
+                    )
+
                 total_filtered_questions = len(list(filtered_dict.keys()))
                 total_filtered_correct = len(
                     [key for key, value in filtered_dict.items() if value.correct]

@@ -103,12 +103,11 @@ def open_defense_window():
                 expand_y=True,
                 layout=[
                     [
-                        sg.Text("Search Text:", font=DEFAULT_FONT),
                         sg.Input(
                             "",
                             font=DEFAULT_FONT,
                             key="defense_question_search_term",
-                            size=(16, 1),
+                            size=(12, 1),
                             expand_x=True,
                         ),
                         sg.Button(
@@ -117,12 +116,21 @@ def open_defense_window():
                             bind_return_key=True,
                             font=sg.DEFAULT_FONT,
                         ),
+                        sg.Combo(
+                            ["ALL"] + CATEGORIES,
+                            default_value="ALL",
+                            key="defense_category_selection",
+                            font=sg.DEFAULT_FONT,
+                            size=(12, 1),
+                            readonly=True,
+                            enable_events=True,
+                        ),
                     ],
                     [
                         sg.Text("", key="filtered_metrics", font=DEFAULT_FONT),
                         sg.Text("", expand_x=True),
                         sg.Button(
-                            "Close All Questions",
+                            "Close All",
                             key="close_all_question_popups_button",
                             font=sg.DEFAULT_FONT,
                         ),
