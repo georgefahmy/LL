@@ -2014,7 +2014,7 @@ while True:
                         season, day, question_num = match.groups()
                         qd = get_specific_question(all_data, season, day, question_num)
                         single_question_window = open_single_question(
-                            qd, location, size, result[i]
+                            qd, location=location, size=size, correct=result[i]
                         )
                         open_question_popups.append(single_question_window)
                         i += 1
