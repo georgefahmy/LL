@@ -286,6 +286,9 @@ while True:
     if event in (None, "Quit", sg.WIN_CLOSED):
         open_windows[window.metadata] = None
         window.close()
+        if "single_quesiton_window" in window.metadata:
+            open_question_popups = []
+
         if window == main_window:
             if sess:
                 sess.close()
@@ -2008,6 +2011,8 @@ while True:
                 for window_value in open_question_popups:
                     window_value.close()
                 open_question_popups = []
+                i = 0
+                j = 0
 
             # Open the question link in a web browser
             if event == "Open Question on LL":
@@ -2426,6 +2431,8 @@ while True:
                 for window_value in open_question_popups:
                     window_value.close()
                 open_question_popups = []
+                i = 0
+                j = 0
 
             # Open the question link in a web browser
             if event == "Open Question on LL":
