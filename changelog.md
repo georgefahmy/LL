@@ -10,6 +10,6 @@ Double Click the newly downloaded dmg file to open it. Drag the LearnedLeague ap
 
 # Changelog
 
-Added filter for categories in the defensive question history search interface
+Fixed bug with opening multiple question windows from the defense interface displaying the wrong value for whether opponent was correct or not.
 
-### [v7.5.0] - 2024-09-24
+### [v7.5.1] - 2024-09-24
