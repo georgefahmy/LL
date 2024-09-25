@@ -2210,8 +2210,10 @@ while True:
                     "norm_OE*FL",
                     "norm_QPct*FL",
                     "norm_DE",
-                    "norm_SOS",
                 ]
+                if values["SOS_flag"]:
+                    formula.append("norm_SOS")
+
                 formula = "PTS ~ " + " + ".join(formula)
                 data = get_leaguewide_data(season=season, matchday=matchday)
                 data = calculate_luck_data(data, formula=formula, printsummary=False)

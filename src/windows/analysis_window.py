@@ -63,6 +63,14 @@ def open_analysis_window(season=102):
                 key="rundle_flag",
             ),
         ],
+        [
+            sg.Checkbox(
+                "Use SOS",
+                font=("Arial Bold", 14),
+                default=False,
+                key="SOS_flag",
+            ),
+        ],
         [sg.HorizontalSeparator()],
         [
             sg.Button(
