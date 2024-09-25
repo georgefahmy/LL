@@ -2013,8 +2013,14 @@ while True:
                         location = (80 + i * (size[0] + 30), 80 + j * (size[1] + 30))
                         season, day, question_num = match.groups()
                         qd = get_specific_question(all_data, season, day, question_num)
+                        qd_key = f"S{season}D{day}Q{question_num}"
+                        correct = (
+                            "Correct"
+                            if filtered_dict.get(qd_key).correct
+                            else "Incorrect"
+                        )
                         single_question_window = open_single_question(
-                            qd, location=location, size=size, correct=result[i]
+                            qd, location=location, size=size, correct=correct
                         )
                         open_question_popups.append(single_question_window)
                         i += 1
@@ -2435,8 +2441,14 @@ while True:
                         location = (80 + i * (size[0] + 30), 80 + j * (size[1] + 30))
                         season, day, question_num = match.groups()
                         qd = get_specific_question(all_data, season, day, question_num)
+                        qd_key = f"S{season}D{day}Q{question_num}"
+                        correct = (
+                            "Correct"
+                            if filtered_dict.get(qd_key).correct
+                            else "Incorrect"
+                        )
                         single_question_window = open_single_question(
-                            qd, location, size, result[i]
+                            qd, location=location, size=size, correct=correct
                         )
                         open_question_popups.append(single_question_window)
                         i += 1
