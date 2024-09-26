@@ -1737,11 +1737,9 @@ while True:
                         player_1 = load(values.get("player_1"), sess=sess)
 
                 if "player_2" not in locals():
-                    if " " in values.get("opponent"):
-                        opponent_profile_id = player_1.opponents[values.get("opponent")]
-                    else:
-                        opponent_profile_id = None
-
+                    opponent_profile_id = (
+                        player_1.opponents[values.get("opponent")] or None
+                    )
                     player_2 = load(
                         values.get("opponent"),
                         profile_id=opponent_profile_id,
@@ -1749,12 +1747,9 @@ while True:
                     )
                 else:
                     if values.get("opponent").lower() != player_2.username:
-                        if " " in values.get("opponent"):
-                            opponent_profile_id = player_1.opponents[
-                                values.get("opponent")
-                            ]
-                        else:
-                            opponent_profile_id = None
+                        opponent_profile_id = (
+                            player_1.opponents[values.get("opponent")] or None
+                        )
                         player_2 = load(
                             values.get("opponent"),
                             profile_id=opponent_profile_id,
@@ -1862,10 +1857,9 @@ while True:
                     continue
 
                 if "player_2" not in locals():
-                    if " " in values.get("opponent"):
-                        opponent_profile_id = player_1.opponents[values.get("opponent")]
-                    else:
-                        opponent_profile_id = None
+                    opponent_profile_id = (
+                        player_1.opponents[values.get("opponent")] or None
+                    )
                     player_2 = load(
                         values.get("opponent"),
                         profile_id=opponent_profile_id,
@@ -1873,12 +1867,9 @@ while True:
                     )
                 else:
                     if values.get("opponent").lower() != player_2.username:
-                        if " " in values.get("opponent"):
-                            opponent_profile_id = player_1.opponents[
-                                values.get("opponent")
-                            ]
-                        else:
-                            opponent_profile_id = None
+                        opponent_profile_id = (
+                            player_1.opponents[values.get("opponent")] or None
+                        )
                         player_2 = load(
                             values.get("opponent"),
                             profile_id=opponent_profile_id,
@@ -2056,10 +2047,9 @@ while True:
                         player_1 = load(values.get("player_1"), sess=sess)
 
                 if "player_2" not in locals():
-                    if " " in values.get("opponent"):
-                        opponent_profile_id = player_1.opponents[values.get("opponent")]
-                    else:
-                        opponent_profile_id = None
+                    opponent_profile_id = (
+                        player_1.opponents[values.get("opponent")] or None
+                    )
                     player_2 = load(
                         values.get("opponent"),
                         profile_id=opponent_profile_id,
@@ -2067,12 +2057,9 @@ while True:
                     )
                 else:
                     if values.get("opponent").lower() != player_2.username:
-                        if " " in values.get("opponent"):
-                            opponent_profile_id = player_1.opponents[
-                                values.get("opponent")
-                            ]
-                        else:
-                            opponent_profile_id = None
+                        opponent_profile_id = (
+                            player_1.opponents[values.get("opponent")] or None
+                        )
                         player_2 = load(
                             values.get("opponent"),
                             profile_id=opponent_profile_id,
@@ -2109,10 +2096,9 @@ while True:
                         player_1 = load(values.get("player_1"), sess=sess)
 
                 if "player_2" not in locals():
-                    if " " in values.get("opponent"):
-                        opponent_profile_id = player_1.opponents[values.get("opponent")]
-                    else:
-                        opponent_profile_id = None
+                    opponent_profile_id = (
+                        player_1.opponents[values.get("opponent")] or None
+                    )
                     player_2 = load(
                         values.get("opponent"),
                         profile_id=opponent_profile_id,
@@ -2120,12 +2106,9 @@ while True:
                     )
                 else:
                     if values.get("opponent").lower() != player_2.username:
-                        if " " in values.get("opponent"):
-                            opponent_profile_id = player_1.opponents[
-                                values.get("opponent")
-                            ]
-                        else:
-                            opponent_profile_id = None
+                        opponent_profile_id = (
+                            player_1.opponents[values.get("opponent")] or None
+                        )
                         player_2 = load(
                             values.get("opponent"),
                             profile_id=opponent_profile_id,
@@ -2169,16 +2152,26 @@ while True:
                 if open_windows["category_metrics_window"]:
                     continue
 
-                if " " in window["opponent"].get():
-                    opponent_profile_id = player_1.opponents[opponent]
+                if "player_2" not in locals():
+                    opponent_profile_id = (
+                        player_1.opponents[values.get("opponent")] or None
+                    )
+                    player_2 = load(
+                        values.get("opponent"),
+                        profile_id=opponent_profile_id,
+                        sess=sess,
+                    )
                 else:
-                    opponent_profile_id = None
-                opponent_data = load(
-                    values.get("opponent"),
-                    profile_id=opponent_profile_id,
-                    sess=sess,
-                )
-                cat_metrics = display_category_metrics(opponent_data)
+                    if values.get("opponent").lower() != player_2.username:
+                        opponent_profile_id = (
+                            player_1.opponents[values.get("opponent")] or None
+                        )
+                        player_2 = load(
+                            values.get("opponent"),
+                            profile_id=opponent_profile_id,
+                            sess=sess,
+                        )
+                cat_metrics = display_category_metrics(player_2)
                 open_windows[cat_metrics.metadata] = cat_metrics.metadata
 
         if window.metadata == "analysis_window":

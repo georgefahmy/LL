@@ -2,6 +2,7 @@ import contextlib
 import json
 import os
 
+import PySimpleGUI as sg
 from bs4 import BeautifulSoup as bs
 from dotmap import DotMap
 
@@ -217,6 +218,10 @@ class UserData(DotMap):
                 ).content,
                 "html.parser",
             )
+            if not latest_page.find("div", {"class": "flagdiv"}):
+                sg.popup_auto_close("Player Not Found.", no_titlebar=True, modal=False)
+                return None
+
             self.profile_id = (
                 latest_page.find("div", {"class": "flagdiv"})
                 .a.get("href")
@@ -244,6 +249,9 @@ class UserData(DotMap):
     def _save(self):
         if "question_history" not in self._map.keys():
             return
+
+        if self.username.isnumeric():
+            self.username = self.formatted_username.lower()
 
         with open(f"{USER_DATA_DIR}" + f"/{self.username}.json", "w") as fp:
             with contextlib.suppress(KeyError):
