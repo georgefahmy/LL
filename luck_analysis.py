@@ -332,7 +332,6 @@ def get_args():
             "norm_OE*FL",
             "norm_QPct*FL",
             "norm_DE",
-            "norm_SOS",
         ],
         action="extend",
         nargs="+",

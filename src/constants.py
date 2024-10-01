@@ -139,5 +139,6 @@ LUCK_FIELDS = [
     "norm_QPct",
     "norm_CAA",
     "norm_3PT",
+    "norm_FL",
     "Luck_Rank_adj",
 ]
