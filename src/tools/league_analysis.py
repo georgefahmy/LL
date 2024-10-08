@@ -27,6 +27,7 @@ def load_data(file=None, user=None):
 if __name__ == "__main__":
 
     all_data_file = "all_data.json"
+    season = 102
     all_data = load_data(file=all_data_file)
 
     cat_data = DotMap()
@@ -37,6 +38,9 @@ if __name__ == "__main__":
     norm_df = round(cat_df / cat_df.sum() * 100, 3)
 
     data = pd.DataFrame([cat_df, norm_df], index=["Total", "% of Qs"]).transpose()
+    current_season = (
+        pd.DataFrame(all_data).transpose().filter(like=f"S{season}", axis=0)
+    )
 
     cat_specific_data = DotMap()
     for question in all_data.values():
