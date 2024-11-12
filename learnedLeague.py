@@ -1852,9 +1852,16 @@ while True:
             if (
                 event == "search_questions_button"
                 or event == "defense_category_selection"
+                or event == "defense_question_search_term"
             ):
                 if not logged_in:
                     continue
+
+                if "player_1" not in locals():
+                    player_1 = load(values.get("player_1"), sess=sess)
+                else:
+                    if values.get("player_1").lower() != player_1.username:
+                        player_1 = load(values.get("player_1"), sess=sess)
 
                 if "player_2" not in locals():
                     opponent_profile_id = (

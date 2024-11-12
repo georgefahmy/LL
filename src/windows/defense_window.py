@@ -108,6 +108,7 @@ def open_defense_window():
                             font=DEFAULT_FONT,
                             key="defense_question_search_term",
                             size=(12, 1),
+                            enable_events=True,
                             expand_x=True,
                         ),
                         sg.Button(
