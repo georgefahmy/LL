@@ -1825,11 +1825,10 @@ while True:
             if event == "todays_questions":
                 if open_windows["todays_question_window"]:
                     continue
-
                 question_window = display_todays_questions(
-                    latest_season,
-                    min(len(list(user_data.opponents.keys())) - 1, current_day) + 1,
-                    values["display_todays_answers"],
+                    season=latest_season,
+                    day=max(len(list(user_data.opponents.keys())) - 1, current_day) + 1,
+                    display_answers=values["display_todays_answers"],
                 )
                 open_windows[question_window.metadata] = question_window.metadata
                 if question_window.metadata == "continue":
