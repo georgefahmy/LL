@@ -27,7 +27,7 @@ def load_data(file=None, user=None):
 if __name__ == "__main__":
 
     all_data_file = "all_data.json"
-    season = 102
+    season = 105
     all_data = load_data(file=all_data_file)
 
     cat_data = DotMap()
@@ -63,3 +63,4 @@ if __name__ == "__main__":
     )
 
     data.sort_values(by="Avg Correct", ascending=False)
+    data.head()
