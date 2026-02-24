@@ -91,8 +91,10 @@ class UserData(DotMap):
                         .get("href")
                         .split("?")[-1]
                     )
-                    q_id = f'S{q_id.split("&")[0]}D{q_id.split("&")[1]}Q{q_id.split("&")[2]}'
-                    correct = "green" in question.find_all("td")[2].img.get("src")
+                    q_id = f'S{q_id.split("&")[0]}D{q_id.split("&")[1].zfill(2)}Q{q_id.split("&")[2]}'
+                    correct = "Check" in question.find_all("td")[2].svg.get(
+                        "aria-label"
+                    )
                     question_text = question.find_all("td")[1].text
                     question_history[q_id] = DotMap(
                         question_category=category_name,
@@ -106,20 +108,20 @@ class UserData(DotMap):
         def _get_stats_data(self, stats_page):
             header = [
                 val.text
-                for val in stats_page.find("table", {"class": "std std_bord stats"})
+                for val in stats_page.find("table", {"class": "std std_bord stats_all"})
                 .find("thead")
                 .find_all("td")
             ]
             total = [
                 val.text
-                for val in stats_page.find("table", {"class": "std std_bord stats"})
+                for val in stats_page.find("table", {"class": "std std_bord stats_all"})
                 .find("tbody")
                 .find("tr", {"class": "grandtotal-row"})
                 .find_all("td")
             ]
             current_season = [
                 val.text
-                for val in stats_page.find("table", {"class": "std std_bord stats"})
+                for val in stats_page.find("table", {"class": "std std_bord stats_all"})
                 .find("tbody")
                 .find("tr", {"class": ""})
                 .find_all("td")
