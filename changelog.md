@@ -10,6 +10,6 @@ Double Click the newly downloaded dmg file to open it. Drag the LearnedLeague ap
 
 # Changelog
 
-Fixed bug with opening multiple question windows from the defense interface displaying the wrong value for whether opponent was correct or not.
+Fixed a bug with new images used for correct and incorrect answers when loading opponent question history
 
-### [v7.5.1] - 2024-09-24
+### [v7.6.0] - 2026-03-09
