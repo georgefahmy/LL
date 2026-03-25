@@ -3,7 +3,7 @@ import json
 import os
 import re
 
-import PySimpleGUI as sg
+import FreeSimpleGUI as sg
 import requests
 from dotmap import DotMap
 from PIL import Image

@@ -2,9 +2,9 @@ import math
 import os
 from collections import OrderedDict
 
+import FreeSimpleGUI as sg
 import matplotlib.pyplot as plt
 import numpy as np
-import PySimpleGUI as sg
 from matplotlib import use
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.patches import Circle

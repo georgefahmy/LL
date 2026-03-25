@@ -2,7 +2,7 @@ import contextlib
 import json
 import os
 
-import PySimpleGUI as sg
+import FreeSimpleGUI as sg
 from bs4 import BeautifulSoup as bs
 from dotmap import DotMap
 
@@ -123,7 +123,7 @@ class UserData(DotMap):
                 val.text
                 for val in stats_page.find("table", {"class": "std std_bord stats_all"})
                 .find("tbody")
-                .find("tr", {"class": ""})
+                .find("tr")
                 .find_all("td")
             ]
             stats = DotMap()
@@ -231,7 +231,7 @@ class UserData(DotMap):
             )
         if not self.profile_id.isnumeric():
             return None
-        self.formatted_username = latest_page.h1.text
+        self.formatted_username = latest_page.find("h1", {"class": "namecss"}).text
 
         self.link = f"https://learnedleague.com/profiles.php?{self.profile_id}"
 

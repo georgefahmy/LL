@@ -6,7 +6,7 @@ import re
 import unicodedata
 from random import choice
 
-import PySimpleGUI as sg
+import FreeSimpleGUI as sg
 import requests
 from bs4 import BeautifulSoup as bs
 

@@ -3,9 +3,9 @@ import base64
 import os
 from itertools import pairwise
 
+import FreeSimpleGUI as sg
 import numpy as np
 import pandas as pd
-import PySimpleGUI as sg
 import requests
 from bs4 import BeautifulSoup as bs
 from scipy.stats import rankdata
@@ -66,7 +66,7 @@ def get_leaguewide_data(season=None, matchday=None):
             _extracted_from_get_leaguewide_data(season, out_file)
     try:
         data = (
-            pd.read_csv(csv_file, encoding="latin1", low_memory=False)
+            pd.read_csv(csv_file, low_memory=False)
             .set_index("Player", drop=False)
             .rename(
                 columns={
@@ -97,8 +97,7 @@ def get_leaguewide_data(season=None, matchday=None):
         )
 
     data = data.replace([np.inf, -np.inf, np.nan, "--"], 0)
-    for col in data.columns:
-        data[col] = pd.to_numeric(data[col], errors="ignore")
+    data = data.convert_dtypes()
     return data
 
 

@@ -46,7 +46,7 @@ def get_season_and_day():
             current_season = int(season_header.text.split(":")[0].split("LL")[-1])
             return (current_season, current_day)
         except Exception:
-            return (102, 0)
+            return (108, 0)
 
 
 def get_new_data(season_number):

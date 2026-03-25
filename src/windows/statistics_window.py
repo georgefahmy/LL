@@ -1,4 +1,4 @@
-import PySimpleGUI as sg
+import FreeSimpleGUI as sg
 from dotmap import DotMap
 
 from ..constants import DEFAULT_FONT, STATS_DEFINITION

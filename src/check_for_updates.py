@@ -2,7 +2,7 @@ import base64
 import os
 import subprocess
 
-import PySimpleGUI as sg
+import FreeSimpleGUI as sg
 import requests
 from packaging import version
 

@@ -10,6 +10,6 @@ Double Click the newly downloaded dmg file to open it. Drag the LearnedLeague ap
 
 # Changelog
 
-Fixed a bug with new images used for correct and incorrect answers when loading opponent question history
+Updated all code to use FreeSimpleGUI instead of PySimpleGUI since it was end of life
 
-### [v7.6.0] - 2026-03-09
+### [v8.0.0] - 2026-03-24

@@ -4,7 +4,7 @@ import re
 from collections import OrderedDict
 from random import choice
 
-import PySimpleGUI as sg
+import FreeSimpleGUI as sg
 import requests
 from bs4 import BeautifulSoup as bs
 from dotmap import DotMap

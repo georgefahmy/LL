@@ -2,7 +2,7 @@ import json
 import os
 import re
 
-import PySimpleGUI as sg
+import FreeSimpleGUI as sg
 import requests
 from bs4 import BeautifulSoup as bs
 from dotmap import DotMap

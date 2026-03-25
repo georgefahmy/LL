@@ -5,7 +5,7 @@ import os
 import random
 import uuid
 
-import PySimpleGUI as sg
+import FreeSimpleGUI as sg
 import requests
 from dotmap import DotMap
 from PIL import Image

@@ -8,7 +8,7 @@ import webbrowser
 from random import choice, randint
 from textwrap import wrap
 
-import PySimpleGUI as sg
+import FreeSimpleGUI as sg
 import wikipedia
 from dotmap import DotMap
 from PyDictionary import PyDictionary
@@ -1827,7 +1827,7 @@ while True:
                     continue
                 question_window = display_todays_questions(
                     season=latest_season,
-                    day=min(len(list(user_data.opponents.keys())) - 1, current_day) + 1,
+                    day=current_day + 1,
                     display_answers=values["display_todays_answers"],
                 )
                 open_windows[question_window.metadata] = question_window.metadata
