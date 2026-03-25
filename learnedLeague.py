@@ -1507,9 +1507,9 @@ while True:
 
                     continue
 
-                if window["stats_table"].get():
+                if table_values:
                     if column == 0:
-                        username = window["stats_table"].get()[row][column]
+                        username = table_values[row][column]
                         if " " in username:
                             clicked_user_profile_id = user_data.opponents.get(username)
                         else:
@@ -1520,8 +1520,8 @@ while True:
                         url = BASE_URL + f"/profiles.php?{clicked_user.profile_id}"
                         webbrowser.open(url)
 
-                    if window["stats_table"].get()[row][column] == "X":
-                        username = window["stats_table"].get()[row][0]
+                    if table_values[row][column] == "X":
+                        username = table_values[row][0]
                         del window["stats_table"].metadata[username]
                         table_values = remove_stats_row(window, row)
 
