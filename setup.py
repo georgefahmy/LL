@@ -26,7 +26,7 @@ DATA_FILES = [
 ]
 OPTIONS = {
     "includes": [
-        "PySimpleGUI",
+        "FreeSimpleGUI",
         "beautifulsoup4",
         "levenshtein",
         "numpy",
