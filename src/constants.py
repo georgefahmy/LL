@@ -11,6 +11,10 @@ BASE_URL = "https://www.learnedleague.com"
 LOGIN_URL = f"{BASE_URL}/ucp.php?mode=login"
 USER_QHIST = f"{BASE_URL}/profiles.php?%s&9"
 
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+}
+
 FILENAME = "LearnedLeague.dmg"
 VOLUME_NAME = FILENAME.split(".")[0]
 

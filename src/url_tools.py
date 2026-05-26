@@ -7,11 +7,13 @@ from bs4 import BeautifulSoup as bs
 from bs4 import SoupStrainer as ss
 from PIL import Image
 
-from .constants import BASE_URL
+from .constants import BASE_URL, HEADERS
 
 
 def get_season_and_day():
-    raw = requests.get("https://www.learnedleague.com/allrundles.php").content
+    raw = requests.get(
+        "https://www.learnedleague.com/allrundles.php", headers=HEADERS
+    ).content
     day_header = bs(
         raw,
         "html.parser",
@@ -67,7 +69,7 @@ def get_new_data(season_number):
     url = f"{BASE_URL}/match.php?{str(season_number)}"
     for i in range(1, 26):
         question_url = f"{url}&{str(i)}"
-        page = bs(requests.get(question_url).content, "html.parser")
+        page = bs(requests.get(question_url, headers=HEADERS).content, "html.parser")
 
         if not page.find_all("tr"):
             continue
@@ -156,7 +158,7 @@ def get_new_data(season_number):
 
 
 def get_image_data(url):
-    img_data = requests.get(url).content
+    img_data = requests.get(url, headers=HEADERS).content
     pil_image = Image.open(io.BytesIO(img_data))
     png_bio = io.BytesIO()
     pil_image.save(png_bio, format="PNG")

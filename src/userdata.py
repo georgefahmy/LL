@@ -6,7 +6,7 @@ import FreeSimpleGUI as sg
 from bs4 import BeautifulSoup as bs
 from dotmap import DotMap
 
-from src.constants import BASE_URL, BASE_USER_DATA_DIR, USER_DATA_DIR
+from src.constants import BASE_URL, BASE_USER_DATA_DIR, USER_DATA_DIR, HEADERS
 from src.logged_in_tools import login
 
 if not os.path.isdir(BASE_USER_DATA_DIR):
@@ -208,7 +208,8 @@ class UserData(DotMap):
             self.profile_id = profile_id
             latest_page = bs(
                 self.sess.get(
-                    f"https://learnedleague.com/profiles.php?{self.profile_id}&1"
+                    f"https://learnedleague.com/profiles.php?{self.profile_id}&1",
+                    headers=HEADERS,
                 ).content,
                 "html.parser",
             )
@@ -216,7 +217,8 @@ class UserData(DotMap):
             # print("no profile_id given")
             latest_page = bs(
                 self.sess.get(
-                    f"https://learnedleague.com/profiles.php?{self.username}&1"
+                    f"https://learnedleague.com/profiles.php?{self.username}&1",
+                    headers=HEADERS,
                 ).content,
                 "html.parser",
             )
@@ -235,9 +237,15 @@ class UserData(DotMap):
 
         self.link = f"https://learnedleague.com/profiles.php?{self.profile_id}"
 
-        question_page = bs(self.sess.get(f"{self.link}&9").content, "html.parser")
-        stats_page = bs(self.sess.get(f"{self.link}&2").content, "html.parser")
-        past_seasons_page = bs(self.sess.get(f"{self.link}&7").content, "html.parser")
+        question_page = bs(
+            self.sess.get(f"{self.link}&9", headers=HEADERS).content, "html.parser"
+        )
+        stats_page = bs(
+            self.sess.get(f"{self.link}&2", headers=HEADERS).content, "html.parser"
+        )
+        past_seasons_page = bs(
+            self.sess.get(f"{self.link}&7", headers=HEADERS).content, "html.parser"
+        )
 
         self.opponents = _get_opponents(self, latest_page)
         self.category_metrics = _get_category_metrics(self, latest_page)
