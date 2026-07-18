@@ -71,21 +71,28 @@ def login(logout=False):  # sourcery skip: extract-method
         }
         sess = requests.Session()
         sess.post(LOGIN_URL, data=payload, headers=HEADERS)
-        login_info["profile_id"] = (
-            bs(sess.get(BASE_URL, headers=HEADERS).content, "html.parser")
-            .find("a", {"class": "flag"})
-            .get("href")
-            .split("?")[-1]
-        )
-        sess.headers["profile_id"] = login_info.get("profile_id")
-        sess.headers["profile"] = login_info.get("username").lower()
-        json.dump(
-            login_info,
-            open(os.path.expanduser("~") + "/.LearnedLeague/login_info.json", "w"),
-            indent=4,
-            sort_keys=False,
-        )
-        return sess
+        
+        main_page_content = sess.get(BASE_URL, headers=HEADERS).content
+        flag_tag = bs(main_page_content, "html.parser").find("a", {"class": "flag"})
+        
+        if flag_tag:
+            login_info["profile_id"] = flag_tag.get("href").split("?")[-1]
+            sess.headers["profile_id"] = login_info.get("profile_id")
+            sess.headers["profile"] = login_info.get("username").lower()
+            json.dump(
+                login_info,
+                open(os.path.expanduser("~") + "/.LearnedLeague/login_info.json", "w"),
+                indent=4,
+                sort_keys=False,
+            )
+            return sess
+        else:
+            sg.popup_error(
+                "Login failed.\nCould not retrieve your profile ID. "
+                "Please verify your credentials or check if you are being blocked by WAF/Cloudflare.",
+                font=DEFAULT_FONT
+            )
+            return None
 
 
 def display_category_metrics(user_data):
