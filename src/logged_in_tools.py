@@ -7,7 +7,7 @@ import requests
 from bs4 import BeautifulSoup as bs
 from dotmap import DotMap
 
-from .constants import BASE_URL, DEFAULT_FONT, LOGIN_URL
+from .constants import BASE_URL, DEFAULT_FONT, LOGIN_URL, HEADERS
 
 
 def login(logout=False):  # sourcery skip: extract-method
@@ -70,9 +70,9 @@ def login(logout=False):  # sourcery skip: extract-method
             "password": login_info.get("password"),
         }
         sess = requests.Session()
-        sess.post(LOGIN_URL, data=payload)
+        sess.post(LOGIN_URL, data=payload, headers=HEADERS)
         login_info["profile_id"] = (
-            bs(sess.get(BASE_URL).content, "html.parser")
+            bs(sess.get(BASE_URL, headers=HEADERS).content, "html.parser")
             .find("a", {"class": "flag"})
             .get("href")
             .split("?")[-1]

@@ -10,6 +10,6 @@ Double Click the newly downloaded dmg file to open it. Drag the LearnedLeague ap
 
 # Changelog
 
-Updated all code to use FreeSimpleGUI instead of PySimpleGUI since it was end of life
+Fixed a requests session header issue
 
-### [v8.0.0] - 2026-03-24
+### [v8.1.0] - 2026-05-26

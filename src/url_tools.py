@@ -7,14 +7,12 @@ from bs4 import BeautifulSoup as bs
 from bs4 import SoupStrainer as ss
 from PIL import Image
 
-from .constants import BASE_URL
+from .constants import BASE_URL, HEADERS
 from src.db import load_all_data, save_question
 
-# Create a persistent session with a standard User-Agent header
+# Create a persistent session with the HEADERS definition
 session = requests.Session()
-session.headers.update({
-    "User-Agent": "LearnedLeaguePracticeTool/2.0 (+https://github.com/georgefahmy/LL)"
-})
+session.headers.update(HEADERS)
 
 def get_season_and_day():
     try:
