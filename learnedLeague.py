@@ -375,24 +375,30 @@ while True:
             if event in ["onedays_button", "One Days Specials"]:
                 if open_windows["oneday_window"]:
                     continue
+                ret = oneday_main(sess)
+                if ret is None:
+                    continue
                 (
                     oneday_window,
                     data,
                     oneday,
                     list_of_onedays,
                     oneday_filtered_results,
-                ) = oneday_main()
+                ) = ret
                 open_windows[oneday_window.metadata] = oneday_window.metadata
             # Open the MiniLeague interface
             if event in ["minileague_button", "Mini Leagues"]:
                 if open_windows["minileague_window"]:
+                    continue
+                ret = minileague(sess)
+                if ret is None:
                     continue
                 (
                     minileague_window,
                     data,
                     minileague_filtered_results,
                     specific_mini,
-                ) = minileague()
+                ) = ret
                 open_windows[minileague_window.metadata] = minileague_window.metadata
 
             if event in ["mock_day", "Mock Match day"]:
@@ -832,7 +838,7 @@ while True:
                 specific_mini = get_specific_minileague(
                     data, choice(minileague_filtered_results)
                 )
-                specific_mini = load_questions(specific_mini, window)
+                specific_mini = load_questions(specific_mini, window, sess)
 
             if event in ("mini_league_selection", "full_reset"):
                 if specific_mini.title != values["mini_league_selection"]:
@@ -853,12 +859,12 @@ while True:
                     window["number_of_players"].update(
                         value=specific_mini.number_of_players
                     )
-                    specific_mini = get_mini_data(specific_mini, window)
+                    specific_mini = get_mini_data(specific_mini, window, sess)
                     window["percent_correct"].update(
                         value=str(specific_mini.overall_correct) + "%"
                     )
 
-                specific_mini = load_questions(specific_mini, window)
+                specific_mini = load_questions(specific_mini, window, sess)
 
             if "show/hide" in event:
                 if window.find_element_with_focus().Key in ("answer_submission"):
@@ -1086,7 +1092,8 @@ while True:
                 oneday = get_oneday_data(
                     get_specific_oneday(
                         list_of_onedays, choice(oneday_filtered_results)
-                    )
+                    ),
+                    sess
                 )
                 data = oneday["data"]
                 score = 0
@@ -1146,7 +1153,8 @@ while True:
                     value=oneday_filtered_results[0], values=oneday_filtered_results
                 )
                 oneday = get_oneday_data(
-                    get_specific_oneday(list_of_onedays, oneday_filtered_results[0])
+                    get_specific_oneday(list_of_onedays, oneday_filtered_results[0]),
+                    sess
                 )
                 data = oneday["data"]
                 i = 1
@@ -1191,7 +1199,8 @@ while True:
 
             if event in ("oneday_selection", "full_reset"):
                 oneday = get_oneday_data(
-                    get_specific_oneday(list_of_onedays, values["oneday_selection"])
+                    get_specific_oneday(list_of_onedays, values["oneday_selection"]),
+                    sess
                 )
                 data = oneday["data"]
                 i = 1

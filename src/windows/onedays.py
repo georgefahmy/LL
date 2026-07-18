@@ -22,7 +22,10 @@ def internet_on():
         return False
 
 
-def get_full_list_of_onedays():
+def get_full_list_of_onedays(sess=None):
+    if not sess:
+        from src.url_tools import session
+        sess = session
     data = {
         info.find("td", {"class": "std-left"}).text: {
             "title": info.find("td", {"class": "std-left"}).text,
@@ -69,7 +72,10 @@ def get_specific_oneday(data, onedaykey):
     return data.get(onedaykey)
 
 
-def get_oneday_data(oneday):
+def get_oneday_data(oneday, sess=None):
+    if not sess:
+        from src.url_tools import session
+        sess = session
     if os.path.isfile(
         os.path.expanduser("~")
         + f"/.LearnedLeague/onedays/{re.sub(' ', '_', oneday['title'])}.json"
@@ -183,7 +189,12 @@ def get_oneday_data(oneday):
     return oneday
 
 
-def oneday_main():
+def oneday_main(sess=None):
+    if not sess:
+        from src.logged_in_tools import login
+        sess = login()
+    if not sess:
+        return None
     if not internet_on():
         sg.popup_ok(
             "No Internet Connection.\nPlease reconnect or just play regular LL trivia.",
@@ -496,7 +507,7 @@ def oneday_main():
     ]
 
     list_of_onedays = (
-        get_full_list_of_onedays()
+        get_full_list_of_onedays(sess)
     )  # one time use? store this data in a json file?
     font = "Arial", 16
 
@@ -514,11 +525,11 @@ def oneday_main():
 
     filtered_results = search_onedays(list_of_onedays)
     oneday = get_oneday_data(
-        get_specific_oneday(list_of_onedays, choice(filtered_results))
+        get_specific_oneday(list_of_onedays, choice(filtered_results)), sess
     )
     while not oneday:
         oneday = get_oneday_data(
-            get_specific_oneday(list_of_onedays, choice(filtered_results))
+            get_specific_oneday(list_of_onedays, choice(filtered_results)), sess
         )
 
     data = oneday["data"]

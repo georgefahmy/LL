@@ -26,7 +26,10 @@ def internet_on():
         return False
 
 
-def get_full_list_of_mini_leagues():
+def get_full_list_of_mini_leagues(sess=None):
+    if not sess:
+        from src.url_tools import session
+        sess = session
     """Get the full list of available mini leagues. This is a large list of mini league dictonaries
 
     Returns:
@@ -97,7 +100,10 @@ def get_specific_minileague(data, mini_league_key):
     return DotMap(data.get(mini_league_key))
 
 
-def get_mini_data(specific_mini, window):
+def get_mini_data(specific_mini, window, sess=None):
+    if not sess:
+        from src.url_tools import session
+        sess = session
     """_summary_
 
     Args:
@@ -168,7 +174,7 @@ def q_num_finder(match_days, i):
         return match_days[f"day_{int(i) // 6 + 1}"][f"Q{int(i) % 6}"]
 
 
-def load_questions(specific_mini, window):
+def load_questions(specific_mini, window, sess=None):
     """Load the mini league questions into the window and update the window formatting
 
     Args:
@@ -184,7 +190,7 @@ def load_questions(specific_mini, window):
     window["mini_league_selection"].update(value=specific_mini.title)
     window["number_of_players"].update(value=specific_mini.number_of_players)
 
-    specific_mini = get_mini_data(specific_mini, window)
+    specific_mini = get_mini_data(specific_mini, window, sess)
     window["percent_correct"].update(value=f"{str(specific_mini.overall_correct)}%")
     for day in specific_mini.data.match_days.keys():
         for q in specific_mini.data.match_days[day]:
@@ -240,7 +246,12 @@ def load_questions(specific_mini, window):
     return specific_mini
 
 
-def minileague():
+def minileague(sess=None):
+    if not sess:
+        from src.logged_in_tools import login
+        sess = login()
+    if not sess:
+        return None
     if not internet_on():
         sg.popup_ok(
             "No Internet Connection.\nPlease reconnect or just play regular LL trivia.",
@@ -454,7 +465,7 @@ def minileague():
         ],
     ]
 
-    data = get_full_list_of_mini_leagues()
+    data = get_full_list_of_mini_leagues(sess)
     filtered_results = search_minileagues(data)
 
     font = "Arial", 16
@@ -470,7 +481,7 @@ def minileague():
     )
 
     specific_mini = get_specific_minileague(data, choice(filtered_results))
-    specific_mini = load_questions(specific_mini, window)
+    specific_mini = load_questions(specific_mini, window, sess)
 
     window["mini_league_selection"].update(
         values=filtered_results, value=specific_mini.title
