@@ -25,6 +25,7 @@ from src.logged_in_tools import (
 )
 from src.radar_chart import radar_similarity
 from src.url_tools import get_image_data, get_new_data, get_season_and_day
+from src.db import load_all_data, update_user_answers
 from src.userdata import load
 from src.windows.analysis_window import open_analysis_window
 from src.windows.defense_window import open_defense_window
@@ -199,13 +200,7 @@ latest_season, current_day = get_season_and_day()
 
 available_seasons = [str(season) for season in list(range(60, int(latest_season) + 1))]
 
-datapath = f"{BASE_USER_DATA_DIR}all_data.json"
-all_data = {}
-if not os.path.isfile(datapath):
-    datapath = f"{WD}/resources/all_data.json"
-
-with open(datapath, "r") as fp:
-    all_data = json.load(fp)
+all_data = load_all_data()
 
 season_in_data = sorted(
     list({val.split("D")[0].strip("S") for val in list(all_data.keys())})
@@ -220,8 +215,20 @@ for season in available_seasons:
     if season_questions < (current_day * 6) and current_day > 0:
         missing_seasons += [season]
 
-for season in missing_seasons:
-    all_data = get_new_data(season)
+icon_file = f"{WD}/resources/ll_app_logo.png"
+
+if missing_seasons:
+    sg.popup_animated(
+        image_source=icon_file,
+        message="Checking for LearnedLeague updates...",
+        background_color="#f8f9fa",
+        text_color="#2d3748",
+        font=("Helvetica Neue", 12),
+        keep_on_top=True,
+    )
+    for season in missing_seasons:
+        all_data = get_new_data(season)
+    sg.popup_animated(None)
 
 sess = None
 values = None
@@ -232,7 +239,6 @@ num_of_money_questions_left = 5
 submitted_answers = {}
 open_question_popups = []
 
-icon_file = f"{WD}/resources/ll_app_logo.png"
 sg.theme("Reddit")
 sg.set_options(icon=base64.b64encode(open(str(icon_file), "rb").read()))
 window = sg.Window(
@@ -724,10 +730,7 @@ while True:
                 }
                 past_answers.append(answer_dict)
                 all_data[data_code]["answers"] = past_answers
-                if not os.path.isdir(os.path.expanduser("~") + "/.LearnedLeague"):
-                    os.mkdir(os.path.expanduser("~") + "/.LearnedLeague")
-                with open(f"{BASE_USER_DATA_DIR}all_data.json", "w+") as fp:
-                    json.dump(all_data, fp, sort_keys=True, indent=4)
+                update_user_answers(data_code, past_answers)
                 correct = []
 
             # If the checking algorithm is wrong, the check box can be used to overwrite the 'correctness'
@@ -754,11 +757,7 @@ while True:
                 del past_answers[-1]
                 past_answers.append(answer_dict)
                 all_data[data_code]["answers"] = past_answers
-                if not os.path.isdir(os.path.expanduser("~") + "/.LearnedLeague"):
-                    os.mkdir(os.path.expanduser("~") + "/.LearnedLeague")
-
-                with open(f"{BASE_USER_DATA_DIR}all_data.json", "w+") as fp:
-                    json.dump(all_data, fp, sort_keys=True, indent=4)
+                update_user_answers(data_code, past_answers)
 
             # if the question number is clicked, open the link
             if event == "question_number":

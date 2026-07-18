@@ -12,7 +12,7 @@ try:
     from ..constants import DEFAULT_FONT
 except ImportError:
     DEFAULT_FONT = ("Arial", 14)
-
+all_data = {}
 
 def get_specific_question(season, day, question):
     key = f"S{season}D{day}Q{question}"
@@ -124,11 +124,8 @@ def open_single_question(question_data, location=None, size=None, correct=None):
 
 
 if __name__ == "__main__":
-    datapath = os.path.expanduser("~") + "/.LearnedLeague/all_data.json"
-    all_data = DotMap()
-    if os.path.isfile(datapath):
-        with open(datapath, "r") as fp:
-            all_data = DotMap(json.load(fp))
+    from src.db import load_all_data
+    all_data = DotMap(load_all_data())
 
     selected_text = "S74D17Q4"
     pattern = "S([0-9]+)D([0-9]+)Q([1-6])"

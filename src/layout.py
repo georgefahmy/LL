@@ -1,8 +1,29 @@
 import FreeSimpleGUI as sg
 
+# Register modern flat themes
+modern_theme = {
+    "BACKGROUND": "#f8f9fa",
+    "TEXT": "#2d3748",
+    "INPUT": "#ffffff",
+    "TEXT_INPUT": "#2d3748",
+    "SCROLL": "#cbd5e1",
+    "BUTTON": ("#ffffff", "#2563eb"),
+    "PROGRESS": ("#2563eb", "#e2e8f0"),
+    "BORDER": 1,
+    "SLIDER_DEPTH": 0,
+    "PROGRESS_DEPTH": 0,
+}
+sg.theme_add_new("Reddit", modern_theme)
+sg.theme_add_new("reddit", modern_theme)
+
+
 from .constants import DEFAULT_FONT
 
 sg.theme("Reddit")
+sg.set_options(
+    element_padding=(6, 6),
+    font=("Helvetica Neue", 13)
+)
 
 menu_bar_layout = [
     [
@@ -36,58 +57,58 @@ main_layout = [
                     sg.Button("Filter", key="filter", font=sg.DEFAULT_FONT),
                 ],
                 [
-                    sg.Text("Search: ", font=("Arial", 14)),
+                    sg.Text("Search: ", font=("Helvetica Neue", 14)),
                     sg.Input(
                         "",
                         key="search_criteria",
-                        font=("Arial", 14),
+                        font=("Helvetica Neue", 14),
                         expand_x=True,
                         enable_events=True,
                     ),
                 ],
                 [
-                    sg.Text("Season (min 60): ", font=("Arial", 14)),
+                    sg.Text("Season (min 60): ", font=("Helvetica Neue", 14)),
                     sg.Text(expand_x=True),
                     sg.Combo(
                         [],
                         default_value="97",
                         key="season",
-                        font=("Arial", 14),
+                        font=("Helvetica Neue", 14),
                         readonly=True,
                         enable_events=True,
                         expand_x=True,
                     ),
                 ],
                 [
-                    sg.Text("Min % Correct: ", font=("Arial", 14)),
+                    sg.Text("Min % Correct: ", font=("Helvetica Neue", 14)),
                     sg.Text(expand_x=True),
                     sg.Input(
                         default_text="0",
                         key="min_%",
-                        font=("Arial", 14),
+                        font=("Helvetica Neue", 14),
                         size=(5, 1),
                         justification="right",
                     ),
                 ],
                 [
-                    sg.Text("Max % Correct: ", font=("Arial", 14)),
+                    sg.Text("Max % Correct: ", font=("Helvetica Neue", 14)),
                     sg.Text(expand_x=True),
                     sg.Input(
                         default_text="100",
                         key="max_%",
-                        font=("Arial", 14),
+                        font=("Helvetica Neue", 14),
                         size=(5, 1),
                         justification="right",
                     ),
                 ],
                 [
-                    sg.Text("Category: ", font=("Arial", 14)),
+                    sg.Text("Category: ", font=("Helvetica Neue", 14)),
                     sg.Text(expand_x=True),
                     sg.Combo(
                         [],
                         default_value="ALL",
                         key="category_selection",
-                        font=("Arial", 14),
+                        font=("Helvetica Neue", 14),
                         size=(15, 1),
                         readonly=True,
                         enable_events=True,
@@ -108,34 +129,34 @@ main_layout = [
             ),
             layout=[
                 [
-                    sg.Text("Rundle A % Correct: ", font=("Arial", 14)),
+                    sg.Text("Rundle A % Correct: ", font=("Helvetica Neue", 14)),
                     sg.Text(expand_x=True),
-                    sg.Text("", key="rundle_A", font=("Arial", 14)),
+                    sg.Text("", key="rundle_A", font=("Helvetica Neue", 14)),
                 ],
                 [
-                    sg.Text("Rundle B % Correct: ", font=("Arial", 14)),
+                    sg.Text("Rundle B % Correct: ", font=("Helvetica Neue", 14)),
                     sg.Text(expand_x=True),
-                    sg.Text("", key="rundle_B", font=("Arial", 14)),
+                    sg.Text("", key="rundle_B", font=("Helvetica Neue", 14)),
                 ],
                 [
-                    sg.Text("Rundle C % Correct: ", font=("Arial", 14)),
+                    sg.Text("Rundle C % Correct: ", font=("Helvetica Neue", 14)),
                     sg.Text(expand_x=True),
-                    sg.Text("", key="rundle_C", font=("Arial", 14)),
+                    sg.Text("", key="rundle_C", font=("Helvetica Neue", 14)),
                 ],
                 [
-                    sg.Text("Rundle D % Correct: ", font=("Arial", 14)),
+                    sg.Text("Rundle D % Correct: ", font=("Helvetica Neue", 14)),
                     sg.Text(expand_x=True),
-                    sg.Text("", key="rundle_D", font=("Arial", 14)),
+                    sg.Text("", key="rundle_D", font=("Helvetica Neue", 14)),
                 ],
                 [
-                    sg.Text("Rundle E % Correct: ", font=("Arial", 14)),
+                    sg.Text("Rundle E % Correct: ", font=("Helvetica Neue", 14)),
                     sg.Text(expand_x=True),
-                    sg.Text("", key="rundle_E", font=("Arial", 14)),
+                    sg.Text("", key="rundle_E", font=("Helvetica Neue", 14)),
                 ],
                 [
-                    sg.Text("Rundle R % Correct: ", font=("Arial", 14)),
+                    sg.Text("Rundle R % Correct: ", font=("Helvetica Neue", 14)),
                     sg.Text(expand_x=True),
-                    sg.Text("", key="rundle_R", font=("Arial", 14)),
+                    sg.Text("", key="rundle_R", font=("Helvetica Neue", 14)),
                 ],
             ],
         ),
@@ -147,42 +168,42 @@ main_layout = [
             key="info_box",
             layout=[
                 [
-                    sg.Text("Date: ", font=("Arial", 14)),
+                    sg.Text("Date: ", font=("Helvetica Neue", 14)),
                     sg.Text(expand_x=True),
                     sg.Text(
                         "",
                         key="date",
-                        font=("Arial", 14),
+                        font=("Helvetica Neue", 14),
                     ),
                 ],
                 [
-                    sg.Text("Season: ", font=("Arial", 14)),
+                    sg.Text("Season: ", font=("Helvetica Neue", 14)),
                     sg.Text(expand_x=True),
                     sg.Text(
                         "",
                         key="season_number",
-                        font=("Arial", 14),
+                        font=("Helvetica Neue", 14),
                     ),
                 ],
                 [
-                    sg.Text("Question: ", font=("Arial", 14)),
+                    sg.Text("Question: ", font=("Helvetica Neue", 14)),
                     sg.Text(expand_x=True),
                     sg.Text(
                         "",
                         key="question_number",
-                        font=("Arial", 14),
+                        font=("Helvetica Neue", 14),
                         enable_events=True,
                     ),
                 ],
                 [
-                    sg.Text("Category: ", font=("Arial", 14)),
+                    sg.Text("Category: ", font=("Helvetica Neue", 14)),
                     sg.Text(expand_x=True),
-                    sg.Text("", key="question_category", font=("Arial", 14)),
+                    sg.Text("", key="question_category", font=("Helvetica Neue", 14)),
                 ],
                 [
                     sg.Text(
                         "% Correct: ",
-                        font=("Arial", 14),
+                        font=("Helvetica Neue", 14),
                         tooltip="Percentage of people who got the answer correct",
                     ),
                     sg.Text(
@@ -192,14 +213,14 @@ main_layout = [
                     sg.Text(
                         "",
                         key="%_correct",
-                        font=("Arial", 14),
+                        font=("Helvetica Neue", 14),
                         tooltip="Percentage of people who got the answer correct",
                     ),
                 ],
                 [
                     sg.Text(
                         "Defense Value: ",
-                        font=("Arial", 14),
+                        font=("Helvetica Neue", 14),
                         tooltip="Values 0 - 3 with 3 being considered "
                         + "hardest and 0 considered easiest",
                     ),
@@ -211,7 +232,7 @@ main_layout = [
                     sg.Text(
                         "",
                         key="defense",
-                        font=("Arial", 14),
+                        font=("Helvetica Neue", 14),
                         tooltip="Values 0 - 3 with 3 being considered "
                         + "hardest and 0 considered easiest",
                     ),
@@ -229,7 +250,7 @@ main_layout = [
                     sg.Multiline(
                         key="question",
                         size=(60, 5),
-                        font=("Arial", 22),
+                        font=("Helvetica Neue", 22),
                         disabled=True,
                         no_scrollbar=True,
                         expand_x=True,
@@ -248,7 +269,7 @@ main_layout = [
                     ),
                     sg.Text(
                         key="answer",
-                        font=("Arial", 14),
+                        font=("Helvetica Neue", 14),
                         size=(10, 1),
                         expand_x=True,
                     ),
@@ -256,10 +277,10 @@ main_layout = [
                 [
                     sg.Text(
                         "Total Questions: ",
-                        font=("Arial", 14),
+                        font=("Helvetica Neue", 14),
                         tooltip="Questions available with the current filters.",
                     ),
-                    sg.Text("", key="num_questions", font=("Arial", 14), expand_x=True),
+                    sg.Text("", key="num_questions", font=("Helvetica Neue", 14), expand_x=True),
                     sg.Button(
                         "Random Q",
                         key="random_choice",
@@ -272,7 +293,7 @@ main_layout = [
                         default_value="1",
                         key="dropdown",
                         size=(4, 1),
-                        font=("Arial", 14),
+                        font=("Helvetica Neue", 14),
                         readonly=True,
                         enable_events=True,
                     ),
@@ -296,12 +317,12 @@ main_layout = [
                 [
                     sg.Text(
                         "Answer: ",
-                        font=("Arial", 14),
+                        font=("Helvetica Neue", 14),
                     ),
                     sg.Input(
                         "",
                         key="answer_submission",
-                        font=("Arial", 14),
+                        font=("Helvetica Neue", 14),
                         expand_x=True,
                         use_readonly_for_disable=True,
                     ),

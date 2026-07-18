@@ -59,11 +59,8 @@ def generate_random_day(mock_day_data, seed=None, threshold=0):
 
 
 def open_mock_day(seed=None, threshold=0):
-    datapath = os.path.expanduser("~") + "/.LearnedLeague/all_data.json"
-    mock_day_data = DotMap()
-    if os.path.isfile(datapath):
-        with open(datapath, "r") as fp:
-            mock_day_data = DotMap(json.load(fp))
+    from src.db import load_all_data
+    mock_day_data = DotMap(load_all_data())
 
     match_day = generate_random_day(mock_day_data, seed=seed, threshold=threshold)
 
@@ -232,11 +229,8 @@ def open_mock_day(seed=None, threshold=0):
 
 
 if __name__ == "__main__":
-    datapath = os.path.expanduser("~") + "/.LearnedLeague/all_data.json"
-    mock_day_data = DotMap()
-    if os.path.isfile(datapath):
-        with open(datapath, "r") as fp:
-            mock_day_data = DotMap(json.load(fp))
+    from src.db import load_all_data
+    mock_day_data = DotMap(load_all_data())
     seed = None
     threshold = 0
     match_day = generate_random_day(mock_day_data, seed=seed, threshold=threshold)
