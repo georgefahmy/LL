@@ -6,6 +6,7 @@ from random import choice
 
 import FreeSimpleGUI as sg
 import requests
+from src.url_tools import session
 from bs4 import BeautifulSoup as bs
 from dotmap import DotMap
 
@@ -38,7 +39,7 @@ def get_full_list_of_mini_leagues():
             "date": info.find("td", {"class": "std-midleft"}).text,
             "number_of_players": info.find("td", {"class": "std-mid"}).text,
         }
-        for info in bs(requests.get(f"{BASE_URL}/mini/").content, "html.parser")
+        for info in bs(session.get(f"{BASE_URL}/mini/").content, "html.parser")
         .find("table", {"class": "std min"})
         .find("tbody")
         .find_all("tr")[3:-1]
@@ -107,7 +108,7 @@ def get_mini_data(specific_mini, window):
         dict: full details of the mini league with quesitons and answers
     """
     p = 0
-    page = bs(requests.get(specific_mini["url"]).content, "lxml")
+    page = bs(session.get(specific_mini["url"]).content, "lxml")
     matches = {
         re.split("(Match[^M]*|Champ[C]+)", match.text)[0]: BASE_URL
         + match.a.get("href")
@@ -120,7 +121,7 @@ def get_mini_data(specific_mini, window):
     mini_details = {"raw_matches": matches, "match_days": OrderedDict()}
     for i, match in enumerate(mini_details["raw_matches"].values()):
         mini_details["match_days"][f"day_{str(i + 1)}"] = {}
-        match_page = bs(requests.get(match).content, "lxml")
+        match_page = bs(session.get(match).content, "lxml")
         for q, a in zip(
             match_page.find_all(True, {"class": ["ind-Q20", "a-red"]})[::2],
             match_page.find_all(True, {"class": ["ind-Q20", "a-red"]})[1::2],

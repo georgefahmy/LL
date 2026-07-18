@@ -8,6 +8,7 @@ from random import choice
 
 import FreeSimpleGUI as sg
 import requests
+from src.url_tools import session
 from bs4 import BeautifulSoup as bs
 
 from ..constants import BASE_URL, MODKOS, WD
@@ -29,7 +30,7 @@ def get_full_list_of_onedays():
             "date": info.find("td", {"class": "std-midleft"}).text,
         }
         for info in bs(
-            requests.get(f"{BASE_URL}/oneday/onedaysalpha.php").content,
+            session.get(f"{BASE_URL}/oneday/onedaysalpha.php").content,
             "html.parser",
         ).find_all("tr")[1:-1]
     }
@@ -82,7 +83,7 @@ def get_oneday_data(oneday):
             oneday = json.load(fp)
             return oneday
 
-    page = bs(requests.get(oneday["url"]).content, "lxml")
+    page = bs(session.get(oneday["url"]).content, "lxml")
     try:
         metrics_page = bs(
             requests.get(
