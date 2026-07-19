@@ -60,8 +60,14 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
 
 
   // Defense Tactics States
-  const [opponentsList, setOpponentsList] = useState<Record<string, string>>({});
+  const [opponentsList, setOpponentsList] = useState<Record<string, { profileId: string; matchDay: number }>>({});
   const [selectedOpponent, setSelectedOpponent] = useState<string>("");
+
+  // Modal states for Matchday Questions without answers
+  const [showQuestionsModal, setShowQuestionsModal] = useState<boolean>(false);
+  const [modalQuestions, setModalQuestions] = useState<{ num: number; category: string; text: string }[]>([]);
+  const [modalLoading, setModalLoading] = useState<boolean>(false);
+  const [modalError, setModalError] = useState<string>("");
   const [defenseCategories, setDefenseCategories] = useState<string[]>(new Array(6).fill("ALL"));
   const [defenseSuggestions, setDefenseSuggestions] = useState<number[]>([]);
   const [defensePercentages, setDefensePercentages] = useState<string[]>([]);
@@ -551,19 +557,25 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
         const parser = new DOMParser();
         const doc = parser.parseFromString(res.data, "text/html");
         const table = doc.querySelector('table[summary="Data table for LL results"]');
-        const parsedOpponents: Record<string, string> = {};
+        const parsedOpponents: Record<string, { profileId: string; matchDay: number }> = {};
         if (table) {
           const rows = table.querySelectorAll("tr");
           rows.forEach((row, idx) => {
             if (idx === 0) return;
-            const img = row.querySelector("img");
-            const a = row.querySelector("a.flag");
-            if (img && a) {
-              const title = img.getAttribute("title") || "";
-              const href = a.getAttribute("href") || "";
-              const pid = href.split("?")[1] || "";
-              if (title && pid) {
-                parsedOpponents[title] = pid;
+            const cells = row.querySelectorAll("td");
+            if (cells.length > 2) {
+              const mdText = cells[0]?.textContent?.trim() || "";
+              const match = mdText.match(/\d+/);
+              const matchDay = match ? parseInt(match[0]) : NaN;
+              const img = row.querySelector("img");
+              const a = row.querySelector("a.flag");
+              if (img && a) {
+                const title = img.getAttribute("title") || "";
+                const href = a.getAttribute("href") || "";
+                const pid = href.split("?")[1] || "";
+                if (title && pid && !isNaN(matchDay)) {
+                  parsedOpponents[title] = { profileId: pid, matchDay };
+                }
               }
             }
           });
@@ -585,7 +597,7 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
       return;
     }
     setDefenseLoading(true);
-    const oppId = list[oppName];
+    const oppId = typeof list[oppName] === 'object' ? (list[oppName] as any).profileId : list[oppName];
     try {
       // 1. Fetch Opponent and User profile pages to parse category correctness
       const oppRes = await window.electronAPI.fetchLL(`https://www.learnedleague.com/profiles.php?${oppId}&1`);
@@ -707,6 +719,100 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
       setHunScore("Error");
     }
     setDefenseLoading(false);
+  };
+
+  // Defense: View Day's questions without answers
+  const handleViewDaysQuestions = async () => {
+    const oppInfo = opponentsList[selectedOpponent];
+    if (!oppInfo) {
+      alert("No opponent selected or opponent list empty.");
+      return;
+    }
+    
+    const day = typeof oppInfo === 'object' ? oppInfo.matchDay : null;
+    if (!day) {
+      alert("Could not determine Match Day for this opponent.");
+      return;
+    }
+    
+    setModalLoading(true);
+    setModalError("");
+    setModalQuestions([]);
+    setShowQuestionsModal(true);
+    
+    try {
+      const season = parseInt(syncSeason) || 109;
+      const dayStr = day.toString().padStart(2, '0');
+      
+      // 1. Try to load from Dexie database first
+      const dbQs = await dbInstance.questions
+        .where('season').equals(season)
+        .toArray();
+      
+      const filtered = dbQs.filter(q => q.question_num.startsWith(`D${dayStr}`));
+      
+      if (filtered.length > 0) {
+        filtered.sort((a, b) => a.id.localeCompare(b.id));
+        const parsed = filtered.map((q, idx) => ({
+          num: idx + 1,
+          category: q.category,
+          text: q.question
+        }));
+        setModalQuestions(parsed);
+        setModalLoading(false);
+        return;
+      }
+      
+      // 2. Fallback: Fetch directly from match.php on-demand
+      const res = await window.electronAPI.fetchLL(`https://www.learnedleague.com/match.php?${season}&${day}`);
+      if (res.success && res.data) {
+        const parser = new DOMParser();
+        const mDoc = parser.parseFromString(res.data, "text/html");
+        
+        const bodyText = mDoc.body.textContent || "";
+        if (bodyText.includes("not yet active") || bodyText.includes("No Active Match Day")) {
+          setModalError(`Match Day ${day} is not active yet.`);
+          setModalLoading(false);
+          return;
+        }
+        
+        const qDivs = mDoc.querySelectorAll("div.ind-Q20");
+        if (qDivs.length === 0) {
+          setModalError(`No questions found for Match Day ${day}.`);
+          setModalLoading(false);
+          return;
+        }
+        
+        const parsed = Array.from(qDivs).map((qDiv, idx) => {
+          const clone = qDiv.cloneNode(true) as HTMLElement;
+          const labelSpan = clone.querySelector("span.ind-Numb3");
+          if (labelSpan) labelSpan.remove();
+          
+          const fullText = clone.textContent?.trim() || "";
+          
+          let category = "ALL";
+          let text = fullText;
+          const catMatch = fullText.match(/^([A-Z][A-Z /]+?)\s*-\s+(.+)/s);
+          if (catMatch) {
+            category = catMatch[1].trim();
+            text = catMatch[2].trim();
+          }
+          
+          return {
+            num: idx + 1,
+            category,
+            text
+          };
+        });
+        
+        setModalQuestions(parsed);
+      } else {
+        setModalError(`Failed to fetch Match Day ${day} page: ${res.error}`);
+      }
+    } catch (err: any) {
+      setModalError(`Error: ${err.message}`);
+    }
+    setModalLoading(false);
   };
 
   // Luck: Trigger Python luck analysis script
@@ -1706,6 +1812,16 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                       </button>
                     </div>
 
+                    {selectedOpponent && opponentsList[selectedOpponent] && (
+                      <button 
+                        className="btn secondary" 
+                        onClick={handleViewDaysQuestions}
+                        style={{ alignSelf: "flex-start", marginTop: "-0.5rem", padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}
+                      >
+                        View Day {typeof opponentsList[selectedOpponent] === 'object' ? (opponentsList[selectedOpponent] as any).matchDay : ""} Questions (No Answers)
+                      </button>
+                    )}
+
                     <h3 style={{ borderBottom: "1px solid var(--card-border)", paddingBottom: "0.5rem", marginTop: "1rem" }}>Matchday Question Categories</h3>
                     
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
@@ -1910,6 +2026,91 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
 
                   </div>
                 </div>
+
+                {/* Modal Overlay for Questions without answers */}
+                {showQuestionsModal && (
+                  <div style={{
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: "rgba(0, 0, 0, 0.75)",
+                    backdropFilter: "blur(4px)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 1000
+                  }}>
+                    <div className="glass-panel" style={{
+                      width: "90%",
+                      maxWidth: "700px",
+                      maxHeight: "85vh",
+                      overflowY: "auto",
+                      padding: "2rem",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "1.5rem",
+                      boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+                      border: "1px solid var(--card-border)",
+                      animation: "fadeIn 0.2s ease-out"
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--card-border)", paddingBottom: "0.75rem" }}>
+                        <h2 style={{ margin: 0, fontSize: "1.5rem", color: "var(--text-primary)" }}>
+                          Match Day {typeof opponentsList[selectedOpponent] === 'object' ? (opponentsList[selectedOpponent] as any).matchDay : ""} Questions
+                        </h2>
+                        <button 
+                          className="btn secondary" 
+                          onClick={() => setShowQuestionsModal(false)}
+                          style={{ padding: "0.25rem 0.5rem", minWidth: "auto" }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      {modalLoading && (
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "3rem 0", color: "var(--text-secondary)" }}>
+                          <div className="spinner" style={{ marginBottom: "1rem" }}></div>
+                          Loading questions...
+                        </div>
+                      )}
+
+                      {modalError && (
+                        <div style={{ padding: "1rem", background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "var(--border-radius-md)", color: "#ef4444", fontSize: "0.95rem" }}>
+                          {modalError}
+                        </div>
+                      )}
+
+                      {!modalLoading && !modalError && modalQuestions.length > 0 && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                          {modalQuestions.map((q) => (
+                            <div key={q.num} style={{ padding: "1rem", background: "var(--bg-secondary)", borderRadius: "var(--border-radius-md)", border: "1px solid var(--card-border)" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.85rem" }}>
+                                <span style={{ fontWeight: "700", color: "var(--accent-cyan)" }}>Question {q.num}</span>
+                                <span className="category-tag" style={{
+                                  background: "rgba(0, 242, 254, 0.1)",
+                                  color: "var(--accent-cyan)",
+                                  padding: "0.15rem 0.4rem",
+                                  borderRadius: "4px",
+                                  fontSize: "0.75rem",
+                                  fontWeight: "600"
+                                }}>{q.category}</span>
+                              </div>
+                              <p style={{ margin: 0, fontSize: "0.95rem", lineHeight: "1.5", color: "var(--text-primary)" }}>{q.text}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div style={{ display: "flex", justifyContent: "flex-end", borderTop: "1px solid var(--card-border)", paddingTop: "0.75rem" }}>
+                        <button className="btn secondary" onClick={() => setShowQuestionsModal(false)}>
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
               </div>
             )}
 
