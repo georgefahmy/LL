@@ -1708,11 +1708,11 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                         <h4 style={{ color: "var(--text-primary)", marginBottom: "0.5rem", fontSize: "0.95rem" }}>Category Correctness Comparison</h4>
                         
                         {(() => {
-                          const width = 360;
-                          const height = 360;
+                          const width = 460;
+                          const height = 460;
                           const cx = width / 2;
                           const cy = height / 2;
-                          const rMax = 95;
+                          const rMax = 130;
                           const categories = Object.keys(oppCategoryStats).filter(cat => cat && cat !== "Overall" && cat !== "TOTAL" && cat !== "AVG" && cat !== "ALL" && cat !== "Avg" && cat !== "Total");
                           const numAxes = categories.length || 6;
 
@@ -1846,12 +1846,6 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                       </div>
                     )}
 
-                    <h3 style={{ borderBottom: "1px solid var(--card-border)", paddingBottom: "0.5rem", marginTop: "1rem" }}>Rules for Defense point assignment</h3>
-                    <ul style={{ paddingLeft: "1.2rem", color: "var(--text-secondary)", fontSize: "0.9rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                      <li>Points are assigned to opponent's questions: 3, 2, 2, 1, 1, 0 (sum to 9).</li>
-                      <li>Assign <strong>higher points</strong> (3, 2) to categories they are <strong>weak in</strong> (lower correctness percentage).</li>
-                      <li>Assign <strong>lower points</strong> (1, 0) to categories they are <strong>strong in</strong> (higher correctness percentage).</li>
-                    </ul>
                   </div>
                 </div>
               </div>
