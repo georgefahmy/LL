@@ -8,5 +8,7 @@ utilities/
 __pycache__/
 VERSION
 universal_wheels/*.whl
-.LearnedLeague*
-*.csv
+node_modules/
+dist-electron/
+dist/
+*.log
