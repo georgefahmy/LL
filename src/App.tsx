@@ -1708,20 +1708,20 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                         <h4 style={{ color: "var(--text-primary)", marginBottom: "0.5rem", fontSize: "0.95rem" }}>Category Correctness Comparison</h4>
                         
                         {(() => {
-                          const width = 280;
-                          const height = 280;
+                          const width = 360;
+                          const height = 360;
                           const cx = width / 2;
                           const cy = height / 2;
-                          const rMax = 80;
-                          const numAxes = 6;
-                          const categories = ["LPR", "HIS", "SCI", "ENT", "GEO", "ART"];
+                          const rMax = 95;
+                          const categories = Object.keys(oppCategoryStats).filter(cat => cat && cat !== "Overall" && cat !== "TOTAL" && cat !== "AVG" && cat !== "ALL" && cat !== "Avg" && cat !== "Total");
+                          const numAxes = categories.length || 6;
 
                           // Grid hexagons
                           const gridLevels = [0.25, 0.5, 0.75, 1.0];
                           
-                          const getCoords = (index: number, value: number) => {
+                          const getCoords = (index: number, value: number, offset = 1.0) => {
                             const angle = (index * 2 * Math.PI) / numAxes - Math.PI / 2;
-                            const r = rMax * value;
+                            const r = rMax * value * offset;
                             return {
                               x: cx + r * Math.cos(angle),
                               y: cy + r * Math.sin(angle)
@@ -1780,11 +1780,17 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                                       {/* Category label */}
                                       <text
                                         x={labelPos.x}
-                                        y={labelPos.y + 4}
+                                        y={labelPos.y + 3}
                                         fill="var(--text-secondary)"
-                                        fontSize="10"
+                                        fontSize="8"
                                         fontWeight="600"
-                                        textAnchor="middle"
+                                        textAnchor={
+                                          Math.abs(labelPos.x - cx) < 15
+                                            ? "middle"
+                                            : labelPos.x > cx
+                                            ? "start"
+                                            : "end"
+                                        }
                                       >
                                         {cat}
                                       </text>
