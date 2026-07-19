@@ -75,22 +75,18 @@ ipcMain.handle('open-login-window', async () => {
       // If user successfully authenticated or routed to main dashboard
       if (url === "https://www.learnedleague.com/" || url === "https://www.learnedleague.com/index.php" || (!url.includes("login") && url.includes(".php"))) {
         try {
-          const html = await loginWin.webContents.executeJavaScript("document.documentElement.innerHTML");
-          const hasFlag = html.includes("class=\"flag\"");
+          const profileId = await loginWin.webContents.executeJavaScript(`
+            (function() {
+              const link = document.querySelector('a[href*="profiles.php?"]');
+              if (link) {
+                const m = link.getAttribute('href').match(/profiles\\.php\\?(\\d+)/);
+                return m ? m[1] : "";
+              }
+              return "";
+            })()
+          `);
           
-          if (hasFlag) {
-            const profileMatch = html.match(/profiles\.php\?(\d+)/);
-            const profileId = await loginWin.webContents.executeJavaScript(`
-              (function() {
-                const link = document.querySelector('a[href*="profiles.php?"]');
-                if (link) {
-                  const m = link.getAttribute('href').match(/profiles\\.php\\?(\\d+)/);
-                  return m ? m[1] : "";
-                }
-                return "";
-              })()
-            `);
-            
+          if (profileId) {
             const username = await loginWin.webContents.executeJavaScript(`
               (function() {
                 const link = document.querySelector('a[href*="profiles.php?"]');
