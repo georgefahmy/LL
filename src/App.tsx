@@ -1714,7 +1714,7 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                           const cy = height / 2;
                           const rMax = 80;
                           const numAxes = 6;
-                          const categories = [...defenseCategories];
+                          const categories = ["LPR", "HIS", "SCI", "ENT", "GEO", "ART"];
 
                           // Grid hexagons
                           const gridLevels = [0.25, 0.5, 0.75, 1.0];
