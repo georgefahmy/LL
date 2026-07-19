@@ -103,7 +103,7 @@ ipcMain.handle('open-login-window', async () => {
                 headers: { ...DEFAULT_HEADERS }
               });
               const profileHtml = await profileRes.text();
-              const nameMatch = profileHtml.match(/class="namecss">([^<]+)/);
+              const nameMatch = profileHtml.match(/namecss[^>]*>([^<]+)/);
               if (nameMatch) {
                 username = nameMatch[1].trim();
               }

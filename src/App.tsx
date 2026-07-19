@@ -703,7 +703,7 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
       const parser = new DOMParser();
       const doc = parser.parseFromString(res.data, "text/html");
       const h1Text = doc.querySelector("h1")?.textContent || "";
-      const seasonMatch = h1Text.match(/LL(\\d+)/) || h1Text.match(/Season\\s+(\\d+)/);
+      const seasonMatch = h1Text.match(/LL(\d+)/) || h1Text.match(/Season\s+(\d+)/);
       if (!seasonMatch) {
         setDownloadStatus("Error: Could not parse current season number from standings.");
         return;
@@ -743,7 +743,7 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
         // Parse date
         const mainHeader = mDoc.querySelector("h1, h2, .match-header, .page-title")?.textContent || "";
         let dateStr = "";
-        const dateMatch = mainHeader.match(/-\\s*(.*)/);
+        const dateMatch = mainHeader.match(/-\s*(.*)/);
         if (dateMatch) {
           dateStr = dateMatch[1].trim();
         }
@@ -777,7 +777,7 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
           }
           
           let foundPercent = "50";
-          const pctMatch = contextText.match(/(\\d+)%/);
+          const pctMatch = contextText.match(/(\d+)%/);
           if (pctMatch) {
             foundPercent = pctMatch[1];
           }
