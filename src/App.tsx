@@ -700,22 +700,51 @@ const App: React.FC = () => {
                   <>
                     {/* Active Question Box */}
                     <div className="glass-panel question-panel">
-                      <div className="question-meta-grid">
-                        <div className="question-meta-item">
-                          <span className="question-meta-label">Season / Day</span>
-                          <span className="question-meta-value">S{filteredQuestions[currentIdx].season} Day {filteredQuestions[currentIdx].question_num.substring(1,3)}</span>
+                      <div className="question-meta-grid" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', flex: 1 }}>
+                          <div className="question-meta-item" style={{ padding: '0.4rem 0.6rem', flex: '1', minWidth: '110px' }}>
+                            <span className="question-meta-label" style={{ fontSize: '0.65rem' }}>Season / Day</span>
+                            <span className="question-meta-value" style={{ fontSize: '0.85rem' }}>S{filteredQuestions[currentIdx].season} Day {filteredQuestions[currentIdx].question_num.substring(1,3)}</span>
+                          </div>
+                          <div className="question-meta-item" style={{ padding: '0.4rem 0.6rem', flex: '1', minWidth: '110px' }}>
+                            <span className="question-meta-label" style={{ fontSize: '0.65rem' }}>Category</span>
+                            <span className="question-meta-value" style={{ fontSize: '0.85rem' }}>{filteredQuestions[currentIdx].category}</span>
+                          </div>
+                          <div className="question-meta-item" style={{ padding: '0.4rem 0.6rem', flex: '1', minWidth: '110px' }}>
+                            <span className="question-meta-label" style={{ fontSize: '0.65rem' }}>LL Difficulty</span>
+                            <span className="question-meta-value" style={{ fontSize: '0.85rem' }}>{filteredQuestions[currentIdx].percent}% Correct</span>
+                          </div>
+                          <div className="question-meta-item" style={{ padding: '0.4rem 0.6rem', flex: '1', minWidth: '110px' }}>
+                            <span className="question-meta-label" style={{ fontSize: '0.65rem' }}>Defense Value</span>
+                            <span className="question-meta-value" style={{ fontSize: '0.85rem' }}>{filteredQuestions[currentIdx].defense}</span>
+                          </div>
                         </div>
-                        <div className="question-meta-item">
-                          <span className="question-meta-label">Category</span>
-                          <span className="question-meta-value">{filteredQuestions[currentIdx].category}</span>
-                        </div>
-                        <div className="question-meta-item">
-                          <span className="question-meta-label">LL Difficulty</span>
-                          <span className="question-meta-value">{filteredQuestions[currentIdx].percent}% Correct</span>
-                        </div>
-                        <div className="question-meta-item">
-                          <span className="question-meta-label">Defense Value</span>
-                          <span className="question-meta-value">{filteredQuestions[currentIdx].defense}</span>
+
+                        {/* Navigation Buttons Row */}
+                        <div style={{ display: 'flex', gap: '0.35rem' }}>
+                          <button 
+                            className="btn" 
+                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                            disabled={currentIdx === 0}
+                            onClick={() => setCurrentIdx(prev => prev - 1)}
+                          >
+                            Previous
+                          </button>
+                          <button 
+                            className="btn" 
+                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                            onClick={() => setCurrentPage('practice')}
+                          >
+                            Reset
+                          </button>
+                          <button 
+                            className="btn" 
+                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                            disabled={currentIdx === filteredQuestions.length - 1}
+                            onClick={() => setCurrentIdx(prev => prev + 1)}
+                          >
+                            Next
+                          </button>
                         </div>
                       </div>
 
@@ -756,7 +785,9 @@ const App: React.FC = () => {
                           className="text-input" 
                           placeholder="Type your answer here..."
                           value={userSubmission}
-                          onChange={(e) => setUserSubmission(e.target.value)}
+                          onChange={(e) => {
+                            setUserSubmission(e.target.value);
+                          }}
                           onKeyDown={(e) => e.key === 'Enter' && handleSubmitPractice()}
                           disabled={showAnswer}
                         />
@@ -802,31 +833,7 @@ const App: React.FC = () => {
                       )}
 
                       {/* Navigation bar */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button 
-                            className="btn" 
-                            disabled={currentIdx === 0}
-                            onClick={() => setCurrentIdx(prev => prev - 1)}
-                          >
-                            Previous
-                          </button>
-                          <button 
-                            className="btn" 
-                            disabled={currentIdx === filteredQuestions.length - 1}
-                            onClick={() => setCurrentPage('practice')} // simple force refresh state
-                          >
-                            Reset Current Page
-                          </button>
-                          <button 
-                            className="btn" 
-                            disabled={currentIdx === filteredQuestions.length - 1}
-                            onClick={() => setCurrentIdx(prev => prev + 1)}
-                          >
-                            Next
-                          </button>
-                        </div>
-
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                           <button 
                             className="btn cyan"
