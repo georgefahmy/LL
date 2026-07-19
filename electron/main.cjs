@@ -70,7 +70,8 @@ ipcMain.handle('open-login-window', async () => {
 
     loginWin.loadURL("https://www.learnedleague.com/ucp.php?mode=login");
 
-    loginWin.webContents.on('did-navigate', async (event, url) => {
+    loginWin.webContents.on('dom-ready', async () => {
+      const url = loginWin.webContents.getURL();
       // If user successfully authenticated or routed to main dashboard
       if (url === "https://www.learnedleague.com/" || url === "https://www.learnedleague.com/index.php" || (!url.includes("login") && url.includes(".php"))) {
         try {
