@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  TrendingUp, Calendar, Edit3, Settings, Play, 
+  TrendingUp, Calendar, Edit3, Settings, Play, Shield, 
   HelpCircle, User, Award, List, CheckCircle2, XCircle, Search, RefreshCw
 } from 'lucide-react';
 import { 
@@ -19,6 +19,7 @@ declare global {
       loginToLL: (username: string, password: string) => Promise<{ success: boolean; profileId?: string; username?: string; error?: string }>;
       fetchLL: (url: string) => Promise<{ success: boolean; data?: string; error?: string }>;
       openLoginWindow: () => Promise<{ success: boolean; profileId?: string; username?: string; error?: string }>;
+      runLuckAnalysis: (args: { season: number; matchday: number; usernames: string[]; rundle: boolean }) => Promise<{ success: boolean; data?: any[]; error?: string }>;
     };
   }
 }
@@ -54,8 +55,27 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
   return window.electronAPI.fetchLL(url);
 };
 
+
+  // Defense Tactics States
+  const [opponentsList, setOpponentsList] = useState<Record<string, string>>({});
+  const [selectedOpponent, setSelectedOpponent] = useState<string>("");
+  const [defenseCategories, setDefenseCategories] = useState<string[]>(new Array(6).fill("ALL"));
+  const [defenseSuggestions, setDefenseSuggestions] = useState<number[]>([]);
+  const [defensePercentages, setDefensePercentages] = useState<string[]>([]);
+  const [hunScore, setHunScore] = useState<string>("");
+  const [defenseLoading, setDefenseLoading] = useState<boolean>(false);
+
+  // Luck Analysis States
+  const [luckSeason, setLuckSeason] = useState<string>("");
+  const [luckMatchday, setLuckMatchday] = useState<string>("25");
+  const [luckUsernames, setLuckUsernames] = useState<string>("FahmyG");
+  const [luckRundleOnly, setLuckRundleOnly] = useState<boolean>(false);
+  const [luckResults, setLuckResults] = useState<any[]>([]);
+  const [luckLoading, setLuckLoading] = useState<boolean>(false);
+  const [luckSortKey, setLuckSortKey] = useState<string>("LuckPctile");
+  const [luckSortAsc, setLuckSortAsc] = useState<boolean>(false);
   // Navigation State
-  const [currentPage, setCurrentPage] = useState<'practice' | 'mockday' | 'onedays' | 'minileagues' | 'settings'>('practice');
+  const [currentPage, setCurrentPage] = useState<'practice' | 'mockday' | 'onedays' | 'minileagues' | 'settings' | 'defense' | 'luck'>('practice');
   const [isLoading, setIsLoading] = useState(true);
   
   // Database state
@@ -473,6 +493,197 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
     });
   };
 
+
+  // Defense: Load Opponents from logged-in user profile page
+  const handleLoadOpponents = async () => {
+    if (!profileId) {
+      alert("Please log in first under Settings.");
+      return;
+    }
+    setDefenseLoading(true);
+    try {
+      const res = await window.electronAPI.fetchLL(`https://www.learnedleague.com/profiles.php?${profileId}&1`);
+      if (res.success && res.data) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(res.data, "text/html");
+        const table = doc.querySelector('table[summary="Data table for LL results"]');
+        const parsedOpponents: Record<string, string> = {};
+        if (table) {
+          const rows = table.querySelectorAll("tr");
+          rows.forEach((row, idx) => {
+            if (idx === 0) return;
+            const img = row.querySelector("img");
+            const a = row.querySelector("a.flag");
+            if (img && a) {
+              const title = img.getAttribute("title") || "";
+              const href = a.getAttribute("href") || "";
+              const pid = href.split("?")[1] || "";
+              if (title && pid) {
+                parsedOpponents[title] = pid;
+              }
+            }
+          });
+        }
+        setOpponentsList(parsedOpponents);
+        if (Object.keys(parsedOpponents).length > 0) {
+          setSelectedOpponent(Object.keys(parsedOpponents)[0]);
+        }
+      }
+    } catch (e) {
+      alert("Error loading opponents: " + e);
+    }
+    setDefenseLoading(false);
+  };
+
+  // Defense: Calculate HUN and point suggestions
+  const handleCalculateDefense = async () => {
+    if (!selectedOpponent || !opponentsList[selectedOpponent]) {
+      alert("Please select an opponent first.");
+      return;
+    }
+    setDefenseLoading(true);
+    const oppId = opponentsList[selectedOpponent];
+    try {
+      // 1. Fetch Opponent profile page to parse category correctness
+      const oppRes = await window.electronAPI.fetchLL(`https://www.learnedleague.com/profiles.php?${oppId}&1`);
+      if (oppRes.success && oppRes.data) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(oppRes.data, "text/html");
+        const rows = doc.querySelectorAll("table.std.sortable.this_sea.std_bord tbody tr");
+        const oppCategoryPercents: Record<string, number> = {};
+        rows.forEach(row => {
+          const cells = row.querySelectorAll("td");
+          if (cells.length > 1) {
+            const catName = cells[0].textContent?.trim() || "";
+            const parts = cells[1].textContent?.split("-") || [];
+            const correct = parseInt(parts[0]) || 0;
+            const total = parseInt(parts[1]) || 0;
+            oppCategoryPercents[catName] = total > 0 ? (correct / total) : 0;
+          }
+        });
+
+        // Compute defense suggestion: [3, 2, 2, 1, 1, 0] allocated from lowest opponent percent to highest
+        const activeCategories = [...defenseCategories];
+        const indexedCats = activeCategories.map((cat, idx) => ({
+          idx,
+          cat,
+          pct: oppCategoryPercents[cat] !== undefined ? oppCategoryPercents[cat] : 0
+        }));
+
+        // Sort ascending by percent
+        const sortedCats = [...indexedCats].sort((a, b) => a.pct - b.pct);
+        const rawScores = [3, 2, 2, 1, 1, 0];
+        
+        const suggestions = new Array(6).fill(0);
+        sortedCats.forEach((item, sortedIdx) => {
+          suggestions[item.idx] = rawScores[sortedIdx];
+        });
+
+        setDefenseSuggestions(suggestions);
+        setDefensePercentages(activeCategories.map(cat => {
+          const val = oppCategoryPercents[cat];
+          return val !== undefined ? `${(val * 100).toFixed(2)}%` : "0.00%";
+        }));
+
+        // 2. Fetch User and Opponent question histories to calculate HUN similarity
+        setHunScore("Calculating...");
+        const userQRes = await window.electronAPI.fetchLL(`https://www.learnedleague.com/profiles.php?${profileId}&9`);
+        const oppQRes = await window.electronAPI.fetchLL(`https://www.learnedleague.com/profiles.php?${oppId}&9`);
+
+        if (userQRes.success && userQRes.data && oppQRes.success && oppQRes.data) {
+          const uDoc = parser.parseFromString(userQRes.data, "text/html");
+          const oDoc = parser.parseFromString(oppQRes.data, "text/html");
+
+          const parseHistory = (qhDoc: Document) => {
+            const history: Record<string, boolean> = {};
+            const qhistory = qhDoc.querySelector("div.qhistory");
+            if (qhistory) {
+              const liList = qhistory.querySelectorAll("li");
+              liList.forEach(li => {
+                const qhRows = li.querySelectorAll("table.qh tr");
+                qhRows.forEach((r, rIdx) => {
+                  if (rIdx === 0) return;
+                  const cells = r.querySelectorAll("td");
+                  if (cells.length > 2) {
+                    const a = cells[0].querySelectorAll("a")[2];
+                    const qId = a ? a.getAttribute("href")?.split("?")[1] : "";
+                    const correct = cells[2].querySelector("svg")?.getAttribute("aria-label")?.includes("Check") || false;
+                    if (qId) {
+                      history[qId] = correct;
+                    }
+                  }
+                });
+              });
+            }
+            return history;
+          };
+
+          const userHistory = parseHistory(uDoc);
+          const oppHistory = parseHistory(oDoc);
+
+          let raw = 0;
+          let total = 0;
+          Object.keys(userHistory).forEach(key => {
+            if (oppHistory[key] !== undefined) {
+              total++;
+              if (userHistory[key] === oppHistory[key]) {
+                raw++;
+              }
+            }
+          });
+
+          const hun = total > 0 ? (raw / total) : 0;
+          setHunScore(`${(hun * 100).toFixed(2)}% (Matches compared: ${total})`);
+        } else {
+          setHunScore("Failed (mismatched profiles history)");
+        }
+      }
+    } catch (e) {
+      alert("Error calculating defense: " + e);
+      setHunScore("Error");
+    }
+    setDefenseLoading(false);
+  };
+
+  // Luck: Trigger Python luck analysis script
+  const handleCalculateLuck = async () => {
+    setLuckLoading(true);
+    try {
+      // Find latest season if none provided
+      let targetSeason = luckSeason.trim();
+      if (!targetSeason) {
+        const res = await window.electronAPI.fetchLL("https://www.learnedleague.com/allrundles.php");
+        if (res.success && res.data) {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(res.data, "text/html");
+          targetSeason = doc.querySelector("h1")?.textContent?.split(":")[0].replace("LL", "").trim() || "";
+        }
+      }
+
+      if (!targetSeason) {
+        alert("Could not fetch current season. Please enter season manually.");
+        setLuckLoading(false);
+        return;
+      }
+
+      const usernamesList = luckUsernames.split(",").map(u => u.trim());
+      const runRes = await window.electronAPI.runLuckAnalysis({
+        season: parseInt(targetSeason),
+        matchday: parseInt(luckMatchday),
+        usernames: usernamesList,
+        rundle: luckRundleOnly
+      });
+
+      if (runRes.success && runRes.data) {
+        setLuckResults(runRes.data);
+      } else {
+        alert("Luck calculation failed: " + runRes.error);
+      }
+    } catch (e) {
+      alert("Error calculating luck: " + e);
+    }
+    setLuckLoading(false);
+  };
   // Open login popup window
   const handleOpenLoginPopup = async () => {
     setLoginStatus("Opening login window...");
@@ -589,6 +800,20 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
           >
             <List size={20} />
             <span>Mini Leagues</span>
+          </li>
+          <li 
+            className={`nav-item ${currentPage === 'defense' ? 'active' : ''}`}
+            onClick={() => { setCurrentPage('defense'); handleLoadOpponents(); }}
+          >
+            <Shield size={20} />
+            <span>Defense Tactics</span>
+          </li>
+          <li 
+            className={`nav-item ${currentPage === 'luck' ? 'active' : ''}`}
+            onClick={() => setCurrentPage('luck')}
+          >
+            <TrendingUp size={20} />
+            <span>Luck Analysis</span>
           </li>
           <li 
             className={`nav-item ${currentPage === 'settings' ? 'active' : ''}`}
@@ -1221,7 +1446,232 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
               </div>
             )}
 
-            {/* 5. Settings / Login */}
+            
+            {/* Defense Tactics */}
+            {currentPage === 'defense' && (
+              <div>
+                <header className="page-header">
+                  <div className="page-title-group">
+                    <h1>Defense Strategy</h1>
+                    <p>Analyze opponent category stats and optimize defensive points allocation</p>
+                  </div>
+                </header>
+
+                <div className="grid-container" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
+                  {/* Left Column: Strategy */}
+                  <div className="glass-panel" style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                    <h3 style={{ borderBottom: "1px solid var(--card-border)", paddingBottom: "0.5rem" }}>Select Opponent</h3>
+                    
+                    <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label>Opponent Player</label>
+                        <select 
+                          className="text-input" 
+                          value={selectedOpponent}
+                          onChange={(e) => setSelectedOpponent(e.target.value)}
+                          style={{ background: "var(--bg-secondary)", color: "var(--text-primary)", border: "1px solid var(--card-border)" }}
+                        >
+                          {Object.keys(opponentsList).map(opp => (
+                            <option key={opp} value={opp}>{opp}</option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <button 
+                        className="btn secondary" 
+                        onClick={handleLoadOpponents} 
+                        style={{ marginTop: "1.3rem" }}
+                        disabled={defenseLoading}
+                      >
+                        Refresh Opponents
+                      </button>
+                    </div>
+
+                    <h3 style={{ borderBottom: "1px solid var(--card-border)", paddingBottom: "0.5rem", marginTop: "1rem" }}>Matchday Question Categories</h3>
+                    
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                      {new Array(6).fill(0).map((_, idx) => (
+                        <div key={idx} style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+                          <span style={{ fontWeight: "600", width: "30px" }}>Q{idx + 1}:</span>
+                          <select
+                            className="text-input"
+                            value={defenseCategories[idx]}
+                            onChange={(e) => {
+                              const updated = [...defenseCategories];
+                              updated[idx] = e.target.value;
+                              setDefenseCategories(updated);
+                            }}
+                            style={{ flex: 1, background: "var(--bg-secondary)", color: "var(--text-primary)" }}
+                          >
+                            <option value="ALL">Select Category...</option>
+                            {CATEGORIES.map(cat => (
+                              <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                          </select>
+                          
+                          {defenseSuggestions[idx] !== undefined && (
+                            <div style={{ display: "flex", gap: "0.5rem", width: "180px", justifyContent: "flex-end", fontSize: "0.9rem" }}>
+                              <span style={{ color: "var(--text-muted)" }}>Sug: <strong style={{ color: "var(--accent-cyan)" }}>{defenseSuggestions[idx]} pts</strong></span>
+                              <span style={{ color: "var(--text-muted)" }}>({defensePercentages[idx]})</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+                      <button className="btn primary" onClick={handleCalculateDefense} disabled={defenseLoading}>
+                        {defenseLoading ? "Calculating..." : "Calculate Strategy & HUN"}
+                      </button>
+                      <button 
+                        className="btn secondary" 
+                        onClick={() => {
+                          setDefenseCategories(new Array(6).fill("ALL"));
+                          setDefenseSuggestions([]);
+                          setDefensePercentages([]);
+                          setHunScore("");
+                        }}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Similarity Info */}
+                  <div className="glass-panel" style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                    <h3 style={{ borderBottom: "1px solid var(--card-border)", paddingBottom: "0.5rem" }}>HUN Similarity</h3>
+                    <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", lineHeight: "1.5" }}>
+                      HUN (How U Nnow) represents the percentage of questions that you and your opponent both answered correctly or both missed in past matches. A higher HUN indicates similar trivia strengths.
+                    </p>
+                    
+                    <div style={{ padding: "1.5rem", background: "var(--bg-secondary)", borderRadius: "var(--border-radius-md)", border: "1px solid var(--card-border)", textAlign: "center", marginTop: "1rem" }}>
+                      <span style={{ fontSize: "0.9rem", color: "var(--text-muted)", display: "block", marginBottom: "0.5rem" }}>Similarity Index Score</span>
+                      <strong style={{ fontSize: "2rem", color: "var(--accent-cyan)" }}>{hunScore || "N/A"}</strong>
+                    </div>
+
+                    <h3 style={{ borderBottom: "1px solid var(--card-border)", paddingBottom: "0.5rem", marginTop: "1.5rem" }}>Rules for Defense point assignment</h3>
+                    <ul style={{ paddingLeft: "1.2rem", color: "var(--text-secondary)", fontSize: "0.9rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                      <li>Points are assigned to opponent's questions: 3, 2, 2, 1, 1, 0 (sum to 9).</li>
+                      <li>Assign <strong>higher points</strong> (3, 2) to categories they are <strong>weak in</strong> (lower correctness percentage).</li>
+                      <li>Assign <strong>lower points</strong> (1, 0) to categories they are <strong>strong in</strong> (higher correctness percentage).</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Luck Analysis */}
+            {currentPage === 'luck' && (
+              <div>
+                <header className="page-header">
+                  <div className="page-title-group">
+                    <h1>Luck Analysis</h1>
+                    <p>Calculate luck adjustments by comparing actual points vs expected points using OLS regression models</p>
+                  </div>
+                </header>
+
+                <div className="glass-panel" style={{ marginBottom: "1.5rem" }}>
+                  <div style={{ display: "flex", gap: "1rem", alignItems: "flex-end", flexWrap: "wrap" }}>
+                    <div className="form-group" style={{ width: "120px" }}>
+                      <label>Season #</label>
+                      <input 
+                        type="text" 
+                        className="text-input" 
+                        placeholder="Latest"
+                        value={luckSeason} 
+                        onChange={(e) => setLuckSeason(e.target.value)} 
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ width: "120px" }}>
+                      <label>Matchday #</label>
+                      <input 
+                        type="text" 
+                        className="text-input" 
+                        value={luckMatchday} 
+                        onChange={(e) => setLuckMatchday(e.target.value)} 
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ flex: 1, minWidth: "200px" }}>
+                      <label>Usernames (comma-separated)</label>
+                      <input 
+                        type="text" 
+                        className="text-input" 
+                        value={luckUsernames} 
+                        onChange={(e) => setLuckUsernames(e.target.value)} 
+                      />
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", height: "40px", paddingRight: "1rem" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+                        <input 
+                          type="checkbox" 
+                          checked={luckRundleOnly} 
+                          onChange={(e) => setLuckRundleOnly(e.target.checked)} 
+                        />
+                        <span>Rundle-wide Analysis</span>
+                      </label>
+                    </div>
+
+                    <button className="btn primary" onClick={handleCalculateLuck} disabled={luckLoading} style={{ height: "40px" }}>
+                      {luckLoading ? "Running..." : "Run Luck Analysis"}
+                    </button>
+                  </div>
+                </div>
+
+                {luckResults.length > 0 && (
+                  <div className="glass-panel" style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                      <thead>
+                        <tr style={{ borderBottom: "2px solid var(--card-border)", color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                          <th style={{ padding: "0.75rem 1rem" }}>Player</th>
+                          <th style={{ padding: "0.75rem 1rem" }}>Rundle</th>
+                          <th style={{ padding: "0.75rem 1rem" }}>Record</th>
+                          <th style={{ padding: "0.75rem 1rem" }}>QPct</th>
+                          <th style={{ padding: "0.75rem 1rem" }}>TCA</th>
+                          <th style={{ padding: "0.75rem 1rem" }}>CAA</th>
+                          <th style={{ padding: "0.75rem 1rem" }}>PTS</th>
+                          <th style={{ padding: "0.75rem 1rem" }}>Expected PTS</th>
+                          <th style={{ padding: "0.75rem 1rem" }}>Luck Diff</th>
+                          <th style={{ padding: "0.75rem 1rem" }}>Luck Pctile</th>
+                          <th style={{ padding: "0.75rem 1rem" }}>Rank</th>
+                          <th style={{ padding: "0.75rem 1rem" }}>Expected Rank</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {luckResults.map((row, idx) => (
+                          <tr 
+                            key={idx} 
+                            style={{ 
+                              borderBottom: "1px solid var(--card-border)", 
+                              fontSize: "0.9rem",
+                              background: luckUsernames.split(",").map(u=>u.trim().toLowerCase()).includes(row.Player.toLowerCase()) ? "rgba(0, 240, 255, 0.08)" : "transparent"
+                            }}
+                          >
+                            <td style={{ padding: "0.75rem 1rem", fontWeight: "bold" }}>{row.Player}</td>
+                            <td style={{ padding: "0.75rem 1rem" }}>{row.Rundle}</td>
+                            <td style={{ padding: "0.75rem 1rem" }}>{row.W}-{row.L}-{row.T}</td>
+                            <td style={{ padding: "0.75rem 1rem" }}>{(row.QPct * 100).toFixed(1)}%</td>
+                            <td style={{ padding: "0.75rem 1rem" }}>{row.TCA}</td>
+                            <td style={{ padding: "0.75rem 1rem" }}>{row.CAA}</td>
+                            <td style={{ padding: "0.75rem 1rem", fontWeight: "600" }}>{row.PTS}</td>
+                            <td style={{ padding: "0.75rem 1rem" }}>{row.Exp_PTS}</td>
+                            <td style={{ padding: "0.75rem 1rem", color: row.Luck >= 0 ? "#10B981" : "#EF4444", fontWeight: "bold" }}>
+                              {row.Luck > 0 ? `+${row.Luck}` : row.Luck}
+                            </td>
+                            <td style={{ padding: "0.75rem 1rem", fontWeight: "bold", color: "var(--accent-cyan)" }}>{row.LuckPctile}%</td>
+                            <td style={{ padding: "0.75rem 1rem" }}>{row.Rank}</td>
+                            <td style={{ padding: "0.75rem 1rem" }}>{row.Exp_Rank}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+\n            {/* 5. Settings / Login */}
             {currentPage === 'settings' && (
               <div>
                 <header className="page-header">

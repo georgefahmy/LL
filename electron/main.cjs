@@ -167,3 +167,46 @@ ipcMain.handle('fetch-ll', async (event, url) => {
     return { success: false, error: err.message };
   }
 });
+
+ipcMain.handle('run-luck-analysis', async (event, { season, matchday, usernames, rundle }) => {
+  return new Promise((resolve) => {
+    const csvUrl = `https://www.learnedleague.com/lgwide.php?${season}`;
+    net.fetch(csvUrl, {
+      headers: {
+        ...DEFAULT_HEADERS
+      }
+    }).then(async (response) => {
+      if (!response.ok) {
+        resolve({ success: false, error: `Failed to download stats CSV (HTTP ${response.status})` });
+        return;
+      }
+      const csvText = await response.text();
+      
+      const homeDir = require('os').homedir();
+      const csvFolder = path.join(homeDir, '.LearnedLeague', 'league_wide_csvs');
+      require('fs').mkdirSync(csvFolder, { recursive: true });
+      const csvFile = path.join(csvFolder, `LL${season}_Leaguewide_MD_${matchday}.csv`);
+      require('fs').writeFileSync(csvFile, csvText);
+      
+      const usernamesArg = usernames.join(' ');
+      const rundleFlag = rundle ? '-r' : '';
+      const cmd = `python3 luck_analysis.py -f "${csvFile}" ${rundleFlag} -u ${usernamesArg}`;
+      
+      const { exec } = require('child_process');
+      exec(cmd, { cwd: path.join(__dirname, '..') }, (error, stdout, stderr) => {
+        if (error) {
+          resolve({ success: false, error: error.message + '\n' + stderr });
+          return;
+        }
+        try {
+          const res = JSON.parse(stdout);
+          resolve(res);
+        } catch (e) {
+          resolve({ success: false, error: `Invalid JSON output: ${stdout}\nStderr: ${stderr}` });
+        }
+      });
+    }).catch(err => {
+      resolve({ success: false, error: err.message });
+    });
+  });
+});
