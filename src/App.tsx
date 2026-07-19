@@ -168,6 +168,22 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
       if (pid) {
         setProfileId(pid);
         setIsLoggedIn(true);
+        
+        // Self-heal username if it was incorrectly saved as "LearnedLeaguer"
+        if (!u || u === 'LearnedLeaguer') {
+          window.electronAPI.fetchLL(`https://www.learnedleague.com/profiles.php?${pid}`).then(res => {
+            if (res.success && res.data) {
+              const nameMatch = res.data.match(/namecss[^>]*>([^<]+)/);
+              if (nameMatch) {
+                const correctUsername = nameMatch[1].trim();
+                if (correctUsername && correctUsername !== 'LearnedLeaguer') {
+                  setUsername(correctUsername);
+                  dbInstance.settings.put({ key: 'username', value: correctUsername });
+                }
+              }
+            }
+          });
+        }
       }
     });
   }, []);
