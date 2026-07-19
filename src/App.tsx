@@ -78,6 +78,7 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
   const [currentPage, setCurrentPage] = useState<'practice' | 'mockday' | 'onedays' | 'minileagues' | 'settings' | 'defense' | 'luck'>('practice');
   const [isLoading, setIsLoading] = useState(true);
   
+  const [downloadStatus, setDownloadStatus] = useState<string>("");
   // Database state
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
   const [filteredQuestions, setFilteredQuestions] = useState<Question[]>([]);
@@ -684,6 +685,142 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
     }
     setLuckLoading(false);
   };
+
+  // Sync latest questions (diff only)
+  const handleDownloadLatestData = async () => {
+    if (!profileId) {
+      alert("Please log in first.");
+      return;
+    }
+    setDownloadStatus("Fetching current season...");
+    try {
+      const res = await window.electronAPI.fetchLL("https://www.learnedleague.com/allrundles.php");
+      if (!res.success || !res.data) {
+        setDownloadStatus("Error: Could not retrieve current season page.");
+        return;
+      }
+      
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(res.data, "text/html");
+      const h1Text = doc.querySelector("h1")?.textContent || "";
+      const seasonMatch = h1Text.match(/LL(\\d+)/) || h1Text.match(/Season\\s+(\\d+)/);
+      if (!seasonMatch) {
+        setDownloadStatus("Error: Could not parse current season number from standings.");
+        return;
+      }
+      const season = parseInt(seasonMatch[1]);
+      
+      setDownloadStatus(`Syncing Season ${season}... Checking database for diff.`);
+      
+      let newQuestionsCount = 0;
+      
+      // Loop through all 25 matchdays
+      for (let day = 1; day <= 25; day++) {
+        const dayStr = day.toString().padStart(2, "0");
+        const firstQId = `S${season}D${dayStr}Q1`;
+        
+        // If first question of this matchday exists, skip the day (diff sync)
+        const exists = await dbInstance.questions.get(firstQId);
+        if (exists) {
+          continue;
+        }
+        
+        setDownloadStatus(`Downloading new questions for Day ${day}...`);
+        
+        const matchRes = await window.electronAPI.fetchLL(`https://www.learnedleague.com/match.php?${season}&${day}`);
+        if (!matchRes.success || !matchRes.data) {
+          break;
+        }
+        
+        const mDoc = parser.parseFromString(matchRes.data, "text/html");
+        
+        // Check if day is active yet
+        const isNotActive = mDoc.body.textContent?.includes("not yet active") || mDoc.body.textContent?.includes("No Active Match Day");
+        if (isNotActive) {
+          break;
+        }
+        
+        // Parse date
+        const mainHeader = mDoc.querySelector("h1, h2, .match-header, .page-title")?.textContent || "";
+        let dateStr = "";
+        const dateMatch = mainHeader.match(/-\\s*(.*)/);
+        if (dateMatch) {
+          dateStr = dateMatch[1].trim();
+        }
+        
+        // Parse questions and answers
+        const qSpans = mDoc.querySelectorAll("span[id*='q_field']");
+        const aDivs = mDoc.querySelectorAll("div.ans_2");
+        
+        if (qSpans.length === 0) {
+          break;
+        }
+        
+        const dayQuestions: Question[] = [];
+        
+        for (let qIdx = 0; qIdx < qSpans.length; qIdx++) {
+          const qText = qSpans[qIdx].textContent?.trim() || "";
+          const ansText = aDivs[qIdx]?.textContent?.trim() || "";
+          
+          if (!qText || !ansText) continue;
+          
+          // Find category and percentage from context header
+          const parentEl = qSpans[qIdx].parentElement;
+          const contextText = parentEl?.textContent || "";
+          
+          let foundCategory = "ALL";
+          for (const cat of CATEGORIES) {
+            if (cat !== "ALL" && contextText.toUpperCase().includes(cat)) {
+              foundCategory = cat;
+              break;
+            }
+          }
+          
+          let foundPercent = "50";
+          const pctMatch = contextText.match(/(\\d+)%/);
+          if (pctMatch) {
+            foundPercent = pctMatch[1];
+          }
+          
+          const qId = `S${season}D${dayStr}Q${qIdx + 1}`;
+          
+          dayQuestions.push({
+            id: qId,
+            question: qText,
+            answer: ansText,
+            season: season,
+            date: dateStr || `Day ${day}`,
+            category: foundCategory,
+            percent: foundPercent,
+            question_num: `D${dayStr}Q${qIdx + 1}`,
+            defense: `${qIdx + 1}.0`,
+            url: `https://www.learnedleague.com/question.php?${season}&${day}&${qIdx + 1}`,
+            clickable_link: "",
+            A: foundPercent,
+            B: foundPercent,
+            C: foundPercent,
+            D: foundPercent,
+            E: foundPercent,
+            R: foundPercent
+          });
+        }
+        
+        if (dayQuestions.length > 0) {
+          await dbInstance.questions.bulkPut(dayQuestions);
+          newQuestionsCount += dayQuestions.length;
+        }
+      }
+      
+      setDownloadStatus(`Sync complete! Saved ${newQuestionsCount} new questions.`);
+      // Reload questions in UI
+      const updatedQs = await dbInstance.questions.toArray();
+      setAllQuestions(updatedQs);
+      setFilteredQuestions(updatedQs);
+    } catch (e: any) {
+      setDownloadStatus(`Sync failed: ${e.message}`);
+    }
+  };
+
   // Open login popup window
   const handleOpenLoginPopup = async () => {
     setLoginStatus("Opening login window...");
@@ -1713,6 +1850,27 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                       }}
                     >
                       {loginStatus}
+                    </div>
+                  )}
+
+
+                  {isLoggedIn && (
+                    <div style={{ marginTop: "1.5rem", padding: "1.25rem", borderRadius: "var(--border-radius-md)", background: "rgba(255, 255, 255, 0.03)", border: "1px solid var(--card-border)", display: "flex", flexDirection: "column", gap: "1rem" }}>
+                      <h4 style={{ color: "var(--accent-cyan)", margin: 0 }}>Sync Database</h4>
+                      <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: 0, lineHeight: "1.5" }}>
+                        Incremental Sync downloads newly published questions for the current season. Already existing questions are skipped to minimize network requests.
+                      </p>
+                      
+                      <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+                        <button className="btn secondary" onClick={handleDownloadLatestData}>
+                          Download Latest Questions
+                        </button>
+                        {downloadStatus && (
+                          <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: "500" }}>
+                            {downloadStatus}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
 
