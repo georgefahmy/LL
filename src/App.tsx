@@ -20,6 +20,7 @@ declare global {
       fetchLL: (url: string) => Promise<{ success: boolean; data?: string; error?: string }>;
       openLoginWindow: () => Promise<{ success: boolean; profileId?: string; username?: string; error?: string }>;
       runLuckAnalysis: (args: { season: number; matchday: number; usernames: string[]; rundle: boolean }) => Promise<{ success: boolean; data?: any[]; error?: string }>;
+      debugAllQuestions: (season: number) => Promise<{ success: boolean; path?: string; error?: string }>;
     };
   }
 }
@@ -727,7 +728,7 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
         
         setDownloadStatus(`Downloading new questions for Day ${day}...`);
         
-        const matchRes = await window.electronAPI.fetchLL(`https://www.learnedleague.com/match.php?${season}&${day}`);
+        const matchRes = await window.electronAPI.fetchLL(`https://www.learnedleague.com/match.php?${season}&${day}&${username}`);
         if (!matchRes.success || !matchRes.data) {
           break;
         }
