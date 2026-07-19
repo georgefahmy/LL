@@ -43,12 +43,13 @@ const DEFAULT_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
   "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
   "Accept-Language": "en-US,en;q=0.9",
+  "Referer": "https://www.learnedleague.com/",
   "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
   "Sec-Ch-Ua-Mobile": "?0",
   "Sec-Ch-Ua-Platform": '"macOS"',
   "Sec-Fetch-Dest": "document",
   "Sec-Fetch-Mode": "navigate",
-  "Sec-Fetch-Site": "none",
+  "Sec-Fetch-Site": "same-origin",
   "Sec-Fetch-User": "?1",
   "Upgrade-Insecure-Requests": "1"
 };
@@ -245,4 +246,21 @@ ipcMain.handle('run-luck-analysis', async (event, { season, matchday, usernames,
       resolve({ success: false, error: err.message });
     });
   });
+});
+
+ipcMain.handle('debug-allquestions', async (event, season) => {
+  try {
+    const url = `https://www.learnedleague.com/allquestions.php?${season}`;
+    const res = await net.fetch(url, {
+      session: session.defaultSession,
+      credentials: 'include',
+      headers: { ...DEFAULT_HEADERS }
+    });
+    const html = await res.text();
+    const savePath = path.join(__dirname, '..', `allquestions_${season}.html`);
+    require('fs').writeFileSync(savePath, html);
+    return { success: true, path: savePath };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
 });
