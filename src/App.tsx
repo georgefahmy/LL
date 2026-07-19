@@ -777,16 +777,30 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
         
         setDownloadStatus(`Downloading new questions for Day ${day}...`);
         
-        const matchRes = await window.electronAPI.fetchLL(`https://www.learnedleague.com/match.php?${season}&${day}&${username}`);
+        // Try without username first — works for recently completed seasons.
+        // Fall back with username if the response has no questions (older seasons).
+        const baseUrl = `https://www.learnedleague.com/match.php?${season}&${day}`;
+        const syncUsername = username && username.length < 30 && !/[{}<>]/.test(username) ? username : '';
+        
+        let matchRes = await window.electronAPI.fetchLL(baseUrl);
         if (!matchRes.success || !matchRes.data) {
-          break;
+          console.log(`[Sync] Day ${day} fetch without username failed, trying with username.`);
+          if (syncUsername) {
+            matchRes = await window.electronAPI.fetchLL(`${baseUrl}&${syncUsername}`);
+          }
+          if (!matchRes.success || !matchRes.data) {
+            console.log(`[Sync] Day ${day} fetch failed entirely:`, matchRes.error);
+            break;
+          }
         }
         
+        console.log(`[Sync] Day ${day} response length: ${matchRes.data.length}`);
         const mDoc = parser.parseFromString(matchRes.data, "text/html");
         
         // Check if day is active yet
         const isNotActive = mDoc.body.textContent?.includes("not yet active") || mDoc.body.textContent?.includes("No Active Match Day");
         if (isNotActive) {
+          console.log(`[Sync] Day ${day} not yet active, stopping.`);
           break;
         }
         
@@ -801,9 +815,50 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
         // Parse questions and answers
         const qSpans = mDoc.querySelectorAll("span[id*='q_field']");
         const aDivs = mDoc.querySelectorAll("div.ans_2");
+        console.log(`[Sync] Day ${day}: found ${qSpans.length} questions, ${aDivs.length} answers`);
+        
+        // If no questions without username, retry with username (older season format)
+        if (qSpans.length === 0 && syncUsername) {
+          console.log(`[Sync] Day ${day}: retrying with username for older season format.`);
+          const retryRes = await window.electronAPI.fetchLL(`${baseUrl}&${syncUsername}`);
+          if (retryRes.success && retryRes.data) {
+            const retryDoc = parser.parseFromString(retryRes.data, "text/html");
+            const retrySpans = retryDoc.querySelectorAll("span[id*='q_field']");
+            if (retrySpans.length > 0) {
+              // Use the retry doc — re-assign for processing below
+              // Restart this day iteration with the retry data
+              const retryADivs = retryDoc.querySelectorAll("div.ans_2");
+              const dayQuestions: Question[] = [];
+              for (let qIdx = 0; qIdx < retrySpans.length; qIdx++) {
+                const qText = retrySpans[qIdx].textContent?.trim() || "";
+                const ansText = retryADivs[qIdx]?.textContent?.trim() || "";
+                if (!qText || !ansText) continue;
+                const parentEl = retrySpans[qIdx].parentElement;
+                const contextText = parentEl?.textContent || "";
+                let foundCategory = "ALL";
+                for (const cat of CATEGORIES) {
+                  if (cat !== "ALL" && contextText.toUpperCase().includes(cat)) { foundCategory = cat; break; }
+                }
+                let foundPercent = "50";
+                const pctMatch = contextText.match(/(\d+)%/);
+                if (pctMatch) foundPercent = pctMatch[1];
+                const qId = `S${season}D${dayStr}Q${qIdx + 1}`;
+                dayQuestions.push({ id: qId, question: qText, answer: ansText, season, date: dateStr || `Day ${day}`, category: foundCategory, percent: foundPercent, question_num: `D${dayStr}Q${qIdx + 1}`, defense: `${qIdx + 1}.0`, url: `https://www.learnedleague.com/question.php?${season}&${day}&${qIdx + 1}`, clickable_link: "", A: foundPercent, B: foundPercent, C: foundPercent, D: foundPercent, E: foundPercent, R: foundPercent });
+              }
+              if (dayQuestions.length > 0) {
+                await dbInstance.questions.bulkPut(dayQuestions);
+                newQuestionsCount += dayQuestions.length;
+              }
+              continue;
+            }
+          }
+          console.log(`[Sync] Day ${day}: no questions found even with username, skipping.`);
+          continue;
+        }
         
         if (qSpans.length === 0) {
-          break;
+          console.log(`[Sync] Day ${day}: no questions found, skipping.`);
+          continue;
         }
         
         const dayQuestions: Question[] = [];
