@@ -80,6 +80,7 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
   const [isLoading, setIsLoading] = useState(true);
   
   const [downloadStatus, setDownloadStatus] = useState<string>("");
+  const [syncSeason, setSyncSeason] = useState<string>("109");
   // Database state
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
   const [filteredQuestions, setFilteredQuestions] = useState<Question[]>([]);
@@ -693,26 +694,15 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
       alert("Please log in first.");
       return;
     }
-    setDownloadStatus("Fetching current season...");
+    const season = parseInt(syncSeason.trim());
+    if (isNaN(season)) {
+      alert("Please enter a valid season number.");
+      return;
+    }
+    
+    setDownloadStatus(`Syncing Season ${season}... Checking database for diff.`);
     try {
-      const res = await window.electronAPI.fetchLL("https://www.learnedleague.com/allrundles.php");
-      if (!res.success || !res.data) {
-        setDownloadStatus("Error: Could not retrieve current season page.");
-        return;
-      }
-      
       const parser = new DOMParser();
-      const doc = parser.parseFromString(res.data, "text/html");
-      const h1Text = doc.querySelector("h1")?.textContent || "";
-      const seasonMatch = h1Text.match(/LL(\d+)/) || h1Text.match(/Season\s+(\d+)/);
-      if (!seasonMatch) {
-        setDownloadStatus("Error: Could not parse current season number from standings.");
-        return;
-      }
-      const season = parseInt(seasonMatch[1]);
-      
-      setDownloadStatus(`Syncing Season ${season}... Checking database for diff.`);
-      
       let newQuestionsCount = 0;
       
       // Loop through all 25 matchdays
@@ -1859,12 +1849,22 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                     <div style={{ marginTop: "1.5rem", padding: "1.25rem", borderRadius: "var(--border-radius-md)", background: "rgba(255, 255, 255, 0.03)", border: "1px solid var(--card-border)", display: "flex", flexDirection: "column", gap: "1rem" }}>
                       <h4 style={{ color: "var(--accent-cyan)", margin: 0 }}>Sync Database</h4>
                       <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: 0, lineHeight: "1.5" }}>
-                        Incremental Sync downloads newly published questions for the current season. Already existing questions are skipped to minimize network requests.
+                        Incremental Sync downloads newly published questions. Input the season number you wish to sync (e.g. 109). Already existing questions in IndexedDB will be skipped.
                       </p>
                       
                       <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+                        <div className="form-group" style={{ width: "120px", marginBottom: 0 }}>
+                          <input 
+                            type="text" 
+                            className="text-input" 
+                            placeholder="Season #"
+                            value={syncSeason}
+                            onChange={(e) => setSyncSeason(e.target.value)}
+                            style={{ padding: "0.4rem 0.6rem", fontSize: "0.9rem" }}
+                          />
+                        </div>
                         <button className="btn secondary" onClick={handleDownloadLatestData}>
-                          Download Latest Questions
+                          Download Season Questions
                         </button>
                         {downloadStatus && (
                           <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: "500" }}>
