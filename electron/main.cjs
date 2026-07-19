@@ -261,16 +261,23 @@ ipcMain.handle('run-luck-analysis', async (event, { season, matchday, usernames,
 
 ipcMain.handle('debug-allquestions', async (event, season) => {
   try {
-    const url = `https://www.learnedleague.com/allquestions.php?${season}`;
-    const res = await net.fetch(url, {
-      session: session.defaultSession,
-      credentials: 'include',
-      headers: { ...DEFAULT_HEADERS }
-    });
-    const html = await res.text();
-    const savePath = path.join(__dirname, '..', `allquestions_${season}.html`);
-    require('fs').writeFileSync(savePath, html);
-    return { success: true, path: savePath };
+    const allqUrl = `https://www.learnedleague.com/allquestions.php?${season}`;
+    const matchUrl = `https://www.learnedleague.com/match.php?${season}&1`;
+    const opts = { session: session.defaultSession, credentials: 'include', headers: { ...DEFAULT_HEADERS } };
+
+    const [allqRes, matchRes] = await Promise.all([
+      net.fetch(allqUrl, opts),
+      net.fetch(matchUrl, opts)
+    ]);
+
+    const allqHtml = await allqRes.text();
+    const matchHtml = await matchRes.text();
+
+    const saveDir = path.join(__dirname, '..');
+    require('fs').writeFileSync(path.join(saveDir, `allquestions_${season}.html`), allqHtml);
+    require('fs').writeFileSync(path.join(saveDir, `matchday1_${season}.html`), matchHtml);
+
+    return { success: true, path: saveDir };
   } catch (err) {
     return { success: false, error: err.message };
   }

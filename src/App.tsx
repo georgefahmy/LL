@@ -777,7 +777,7 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
         
         setDownloadStatus(`Downloading Day ${day} of Season ${season}...`);
         
-        // Fetch the matchday page to get question texts + metadata
+        // Fetch the matchday page — contains both questions and answers
         const matchRes = await window.electronAPI.fetchLL(
           `https://www.learnedleague.com/match.php?${season}&${day}`
         );
@@ -794,73 +794,81 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
           break;
         }
         
-        // Parse question spans — if none found this day has no questions yet
-        const qSpans = mDoc.querySelectorAll("span[id*='q_field']");
-        if (qSpans.length === 0) {
-          console.log(`[Sync] Day ${day}: no questions found, skipping.`);
+        // Questions are in div.ind-Q20 — text after the "Qx." span prefix
+        // Answers are in div[id$='ANS'] with class a-red (display:none but readable by DOMParser)
+        const qDivs = mDoc.querySelectorAll("div.ind-Q20");
+        const ansDivs = mDoc.querySelectorAll("div[id$='ANS'].a-red");
+        
+        if (qDivs.length === 0) {
+          console.log(`[Sync] Day ${day}: no questions found (ind-Q20), skipping.`);
           continue;
         }
         
-        // Parse date from page header
-        const mainHeader = mDoc.querySelector("h1, h2, .match-header, .page-title")?.textContent || "";
+        // Parse date from lh-pagetype div (e.g. "May 18, 2026: LL109 Match Day 1 Results")
+        const pageTypeEl = mDoc.querySelector(".lh-pagetype");
         let dateStr = "";
-        const dateMatch = mainHeader.match(/-\s*(.*)/);
-        if (dateMatch) dateStr = dateMatch[1].trim();
+        if (pageTypeEl) {
+          const dtMatch = pageTypeEl.textContent?.match(/^([^:]+):/);
+          if (dtMatch) dateStr = dtMatch[1].trim();
+        }
+        
+        // Parse Leaguewide % correct from the metrics table (last "Leaguewide" row, Q1-Q6 columns)
+        const leaguewideRow = Array.from(mDoc.querySelectorAll("tr")).find(
+          tr => tr.textContent?.trim().startsWith("Leaguewide")
+        );
+        const leaguewidePercents: string[] = [];
+        if (leaguewideRow) {
+          const cells = leaguewideRow.querySelectorAll("td");
+          // cells[0]=label, cells[1]=Forf%, cells[2]=Q1...cells[7]=Q6
+          for (let i = 2; i <= 7; i++) {
+            leaguewidePercents.push(cells[i]?.textContent?.trim() || "50");
+          }
+        }
         
         const dayQuestions: Question[] = [];
         
-        for (let qIdx = 0; qIdx < qSpans.length; qIdx++) {
+        for (let qIdx = 0; qIdx < qDivs.length; qIdx++) {
           const qNum = qIdx + 1;
-          const qText = qSpans[qIdx].textContent?.trim() || "";
-          if (!qText) continue;
+          const qDiv = qDivs[qIdx];
           
-          // Get category and % correct from the surrounding context on match.php
-          const parentEl = qSpans[qIdx].parentElement;
-          const contextText = parentEl?.textContent || "";
+          // Remove the Qx. label span to get clean question text
+          const labelSpan = qDiv.querySelector("span.ind-Numb3");
+          if (labelSpan) labelSpan.remove();
+          const fullText = qDiv.textContent?.trim() || "";
+          
+          // Category is the ALL-CAPS prefix before " - "
           let foundCategory = "ALL";
-          for (const cat of CATEGORIES) {
-            if (cat !== "ALL" && contextText.toUpperCase().includes(cat)) {
-              foundCategory = cat;
-              break;
-            }
-          }
-          let foundPercent = "50";
-          const pctMatch = contextText.match(/(\d+)%/);
-          if (pctMatch) foundPercent = pctMatch[1];
-          
-          // Fetch the individual question page to get the answer (always visible there)
-          let ansText = "";
-          try {
-            const qRes = await window.electronAPI.fetchLL(
-              `https://www.learnedleague.com/question.php?${season}&${day}&${qNum}`
-            );
-            if (qRes.success && qRes.data) {
-              const qDoc = parser.parseFromString(qRes.data, "text/html");
-              // Answer is in div.ans_2 or div.ans on the individual question page
-              const ansEl = qDoc.querySelector("div.ans_2, div.ans, .answer, td.answer");
-              ansText = ansEl?.textContent?.trim() || "";
-              // Also try grabbing % correct from question page if not found on match page
-              if (foundPercent === "50") {
-                const qPctMatch = qDoc.body.textContent?.match(/(\d+)%/);
-                if (qPctMatch) foundPercent = qPctMatch[1];
+          let qText = fullText;
+          const catMatch = fullText.match(/^([A-Z][A-Z /]+?)\s*-\s+(.+)/s);
+          if (catMatch) {
+            const catCandidate = catMatch[1].trim();
+            for (const cat of CATEGORIES) {
+              if (cat !== "ALL" && catCandidate.toUpperCase().includes(cat)) {
+                foundCategory = cat;
+                break;
               }
             }
-          } catch (e) {
-            console.log(`[Sync] Failed to fetch answer for D${day}Q${qNum}:`, e);
+            qText = catMatch[2].trim();
           }
           
+          // Answer is in div[id='Q{qNum}1ANS'] or div[id='Q{qNum}ANS'] with class a-red
+          const ansDiv = ansDivs[qIdx];
+          const ansText = ansDiv?.textContent?.trim() || "";
+          
           if (!qText || !ansText) {
-            console.log(`[Sync] D${day}Q${qNum}: missing question or answer, skipping.`);
+            console.log(`[Sync] D${day}Q${qNum}: missing q="${!!qText}" or ans="${!!ansText}", skipping.`);
             continue;
           }
           
+          const foundPercent = leaguewidePercents[qIdx] || "50";
           const qId = `S${season}D${dayStr}Q${qNum}`;
+          
           dayQuestions.push({
             id: qId,
             question: qText,
             answer: ansText,
             season: season,
-            date: dateStr || `Day ${day}`,
+            date: dateStr || `S${season} Day ${day}`,
             category: foundCategory,
             percent: foundPercent,
             question_num: `D${dayStr}Q${qNum}`,
@@ -879,7 +887,7 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
         if (dayQuestions.length > 0) {
           await dbInstance.questions.bulkPut(dayQuestions);
           newQuestionsCount += dayQuestions.length;
-          setDownloadStatus(`Day ${day}: saved ${dayQuestions.length} questions. Total so far: ${newQuestionsCount}`);
+          setDownloadStatus(`Day ${day}: saved ${dayQuestions.length} questions (${newQuestionsCount} total)`);
         }
       }
       
