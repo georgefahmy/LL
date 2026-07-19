@@ -58,10 +58,13 @@ const directLoginToLL = async (username: string, password: string): Promise<{ su
       headers: {
         "Content-Type": "application/x-www-form-urlencoded"
       },
-      body: postData
+      body: postData,
+      credentials: "include"
     });
     
-    const testRes = await fetch("https://www.learnedleague.com");
+    const testRes = await fetch("https://www.learnedleague.com", {
+      credentials: "include"
+    });
     const html = await testRes.text();
     const hasFlag = html.includes("class=\"flag\"");
     const hasIncorrect = html.includes("incorrect") || html.includes("Incorrect");
@@ -80,7 +83,9 @@ const directLoginToLL = async (username: string, password: string): Promise<{ su
 
 const directFetchLL = async (url: string): Promise<{ success: boolean; data?: string; error?: string }> => {
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      credentials: "include"
+    });
     if (!response.ok) {
       return { success: false, error: `HTTP ${response.status}` };
     }
