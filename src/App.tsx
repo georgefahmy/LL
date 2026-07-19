@@ -45,6 +45,52 @@ const CATEGORIES = [
 ];
 
 const App: React.FC = () => {
+const directLoginToLL = async (username: string, password: string): Promise<{ success: boolean; profileId?: string; username?: string; error?: string }> => {
+  try {
+    const postData = new URLSearchParams({
+      login: "Login",
+      username: username,
+      password: password
+    });
+    
+    await fetch("https://www.learnedleague.com/ucp.php?mode=login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: postData
+    });
+    
+    const testRes = await fetch("https://www.learnedleague.com");
+    const html = await testRes.text();
+    const hasFlag = html.includes("class=\"flag\"");
+    const hasIncorrect = html.includes("incorrect") || html.includes("Incorrect");
+    
+    if (hasFlag && !hasIncorrect) {
+      const profileMatch = html.match(/profiles\.php\?(\d+)/);
+      const profileId = profileMatch ? profileMatch[1] : "";
+      return { success: true, profileId, username };
+    } else {
+      return { success: false, error: "Invalid username/password or Cloudflare challenge. Open LL website in browser to solve." };
+    }
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
+const directFetchLL = async (url: string): Promise<{ success: boolean; data?: string; error?: string }> => {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      return { success: false, error: `HTTP ${response.status}` };
+    }
+    const data = await response.text();
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
   // Navigation State
   const [currentPage, setCurrentPage] = useState<'practice' | 'mockday' | 'onedays' | 'minileagues' | 'settings'>('practice');
   const [isLoading, setIsLoading] = useState(true);
@@ -203,7 +249,7 @@ const App: React.FC = () => {
   const handleLoadOneDays = async () => {
     setOneDaysLoading(true);
     try {
-      const res = await window.electronAPI.fetchLL("https://www.learnedleague.com/oneday/onedaysalpha.php");
+      const res = await directFetchLL("https://www.learnedleague.com/oneday/onedaysalpha.php");
       if (res.success && res.data) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(res.data, 'text/html');
@@ -243,7 +289,7 @@ const App: React.FC = () => {
   const handleSelectOneDay = async (onedayItem: any) => {
     setOneDaysLoading(true);
     try {
-      const pageRes = await window.electronAPI.fetchLL(onedayItem.url);
+      const pageRes = await directFetchLL(onedayItem.url);
       if (pageRes.success && pageRes.data) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(pageRes.data, 'text/html');
@@ -281,7 +327,7 @@ const App: React.FC = () => {
         let overallAvg = "N/A";
         let playerNum = "N/A";
         if (metricsUrl) {
-          const metricsRes = await window.electronAPI.fetchLL(metricsUrl);
+          const metricsRes = await directFetchLL(metricsUrl);
           if (metricsRes.success && metricsRes.data) {
             const mDoc = parser.parseFromString(metricsRes.data, 'text/html');
             // Extract difficulty/metrics
@@ -322,7 +368,7 @@ const App: React.FC = () => {
   const handleLoadMiniLeagues = async () => {
     setMiniLeaguesLoading(true);
     try {
-      const res = await window.electronAPI.fetchLL("https://www.learnedleague.com/mini/");
+      const res = await directFetchLL("https://www.learnedleague.com/mini/");
       if (res.success && res.data) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(res.data, 'text/html');
@@ -363,7 +409,7 @@ const App: React.FC = () => {
   const handleSelectMiniLeague = async (miniItem: any) => {
     setMiniLeaguesLoading(true);
     try {
-      const res = await window.electronAPI.fetchLL(miniItem.url);
+      const res = await directFetchLL(miniItem.url);
       if (res.success && res.data) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(res.data, 'text/html');
@@ -389,7 +435,7 @@ const App: React.FC = () => {
         // To be fast and friendly, load first 3 match days to verify, or all
         for (let idx = 0; idx < Math.min(matches.length, 12); idx++) {
           const match = matches[idx];
-          const mRes = await window.electronAPI.fetchLL(match.url);
+          const mRes = await directFetchLL(match.url);
           if (mRes.success && mRes.data) {
             const mDoc = parser.parseFromString(mRes.data, 'text/html');
             const qEls = mDoc.querySelectorAll('div.ind-Q20');
@@ -474,7 +520,7 @@ const App: React.FC = () => {
     
     setLoginStatus("Authenticating...");
     try {
-      const res = await window.electronAPI.loginToLL(username.trim(), password.trim());
+      const res = await directLoginToLL(username.trim(), password.trim());
       if (res.success && res.profileId) {
         setProfileId(res.profileId);
         setIsLoggedIn(true);

@@ -15,7 +15,8 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      webSecurity: false
     },
     title: "LearnedLeague Practice Tool",
     backgroundColor: '#060814' // Dark theme matching Outfit design system
