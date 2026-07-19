@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, net } = require('electron');
+const { app, BrowserWindow, ipcMain, net, session } = require('electron');
 const path = require('path');
 
 let mainWindow;
@@ -118,14 +118,18 @@ ipcMain.handle('login-ll', async (event, { username, password }) => {
         "Content-Type": "application/x-www-form-urlencoded",
         ...DEFAULT_HEADERS
       },
-      body: postData.toString()
+      body: postData.toString(),
+      session: session.defaultSession,
+      credentials: 'include'
     });
 
     // Verify login success by requesting home page (cookies are sent automatically by net.fetch)
     const verifyRes = await net.fetch("https://www.learnedleague.com", {
       headers: {
         ...DEFAULT_HEADERS
-      }
+      },
+      session: session.defaultSession,
+      credentials: 'include'
     });
 
     const html = await verifyRes.text();
@@ -156,7 +160,9 @@ ipcMain.handle('fetch-ll', async (event, url) => {
     const response = await net.fetch(url, {
       headers: {
         ...DEFAULT_HEADERS
-      }
+      },
+      session: session.defaultSession,
+      credentials: 'include'
     });
     if (!response.ok) {
       return { success: false, error: `HTTP ${response.status}` };
@@ -174,7 +180,9 @@ ipcMain.handle('run-luck-analysis', async (event, { season, matchday, usernames,
     net.fetch(csvUrl, {
       headers: {
         ...DEFAULT_HEADERS
-      }
+      },
+      session: session.defaultSession,
+      credentials: 'include'
     }).then(async (response) => {
       if (!response.ok) {
         resolve({ success: false, error: `Failed to download stats CSV (HTTP ${response.status})` });
