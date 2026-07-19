@@ -3,6 +3,8 @@ import {
   TrendingUp, Calendar, Edit3, Settings, Play, Shield, 
   HelpCircle, User, Award, List, CheckCircle2, XCircle, Search, RefreshCw
 } from 'lucide-react';
+import llLogo from './assets/ll_app_logo.png';
+
 import { 
   dbInstance, 
   loadAllQuestions, 
@@ -985,7 +987,7 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
       {/* Sidebar Navigation */}
       <aside className="sidebar">
         <div className="logo-container">
-          <Award className="logo-icon" size={32} />
+          <img src={llLogo} alt="LearnedLeague Logo" className="logo-icon" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
           <span className="logo-text">LearnedLeague</span>
         </div>
         
