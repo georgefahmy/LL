@@ -46,54 +46,11 @@ const CATEGORIES = [
 
 const App: React.FC = () => {
 const directLoginToLL = async (username: string, password: string): Promise<{ success: boolean; profileId?: string; username?: string; error?: string }> => {
-  try {
-    const postData = new URLSearchParams({
-      login: "Login",
-      username: username,
-      password: password
-    });
-    
-    await fetch("https://www.learnedleague.com/ucp.php?mode=login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      body: postData,
-      credentials: "include"
-    });
-    
-    const testRes = await fetch("https://www.learnedleague.com", {
-      credentials: "include"
-    });
-    const html = await testRes.text();
-    const hasFlag = html.includes("class=\"flag\"");
-    const hasIncorrect = html.includes("incorrect") || html.includes("Incorrect");
-    
-    if (hasFlag && !hasIncorrect) {
-      const profileMatch = html.match(/profiles\.php\?(\d+)/);
-      const profileId = profileMatch ? profileMatch[1] : "";
-      return { success: true, profileId, username };
-    } else {
-      return { success: false, error: "Invalid username/password or Cloudflare challenge. Open LL website in browser to solve." };
-    }
-  } catch (err: any) {
-    return { success: false, error: err.message };
-  }
+  return window.electronAPI.loginToLL(username, password);
 };
 
 const directFetchLL = async (url: string): Promise<{ success: boolean; data?: string; error?: string }> => {
-  try {
-    const response = await fetch(url, {
-      credentials: "include"
-    });
-    if (!response.ok) {
-      return { success: false, error: `HTTP ${response.status}` };
-    }
-    const data = await response.text();
-    return { success: true, data };
-  } catch (err: any) {
-    return { success: false, error: err.message };
-  }
+  return window.electronAPI.fetchLL(url);
 };
 
   // Navigation State
