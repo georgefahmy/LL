@@ -231,6 +231,13 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
     });
   }, [currentIdx, filteredQuestions]);
 
+  // Automatically calculate defense suggestions & HUN when opponent or tab changes
+  useEffect(() => {
+    if (currentPage === 'defense' && selectedOpponent && opponentsList[selectedOpponent]) {
+      handleCalculateDefense(selectedOpponent, opponentsList);
+    }
+  }, [selectedOpponent, currentPage, opponentsList]);
+
   // Fetch OneDays list
   const handleLoadOneDays = async () => {
     setOneDaysLoading(true);
@@ -539,13 +546,12 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
   };
 
   // Defense: Calculate HUN and point suggestions
-  const handleCalculateDefense = async () => {
-    if (!selectedOpponent || !opponentsList[selectedOpponent]) {
-      alert("Please select an opponent first.");
+  const handleCalculateDefense = async (oppName = selectedOpponent, list = opponentsList) => {
+    if (!oppName || !list[oppName]) {
       return;
     }
     setDefenseLoading(true);
-    const oppId = opponentsList[selectedOpponent];
+    const oppId = list[oppName];
     try {
       // 1. Fetch Opponent profile page to parse category correctness
       const oppRes = await window.electronAPI.fetchLL(`https://www.learnedleague.com/profiles.php?${oppId}&1`);
@@ -1648,7 +1654,7 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                     </div>
 
                     <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
-                      <button className="btn primary" onClick={handleCalculateDefense} disabled={defenseLoading}>
+                      <button className="btn primary" onClick={() => handleCalculateDefense()} disabled={defenseLoading}>
                         {defenseLoading ? "Calculating..." : "Calculate Strategy & HUN"}
                       </button>
                       <button 
