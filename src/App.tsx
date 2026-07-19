@@ -71,7 +71,7 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
   // Luck Analysis States
   const [luckSeason, setLuckSeason] = useState<string>("");
   const [luckMatchday, setLuckMatchday] = useState<string>("25");
-  const [luckUsernames, setLuckUsernames] = useState<string>("FahmyG");
+  const [luckUsernames, setLuckUsernames] = useState<string>("");
   const [luckRundleOnly, setLuckRundleOnly] = useState<boolean>(false);
   const [luckResults, setLuckResults] = useState<any[]>([]);
   const [luckLoading, setLuckLoading] = useState<boolean>(false);
@@ -239,6 +239,13 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
       handleCalculateDefense(selectedOpponent, opponentsList);
     }
   }, [selectedOpponent, currentPage, opponentsList]);
+
+  // Keep luck analysis usernames synchronized with logged-in username
+  useEffect(() => {
+    if (username) {
+      setLuckUsernames(username);
+    }
+  }, [username]);
 
   // Fetch OneDays list
   const handleLoadOneDays = async () => {
