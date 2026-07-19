@@ -104,6 +104,7 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
   const [searchQuery, setSearchQuery] = useState<string>('');
   
   // Current question states
+  const isInitialMount = useRef(true);
   const [currentIdx, setCurrentIdx] = useState<number>(0);
   const [userSubmission, setUserSubmission] = useState<string>('');
   const [showAnswer, setShowAnswer] = useState<boolean>(false);
@@ -149,6 +150,11 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
 
   // Load database on mount
   useEffect(() => {
+    // Clear user answers from previous sessions
+    dbInstance.user_answers.clear().catch(err => {
+      console.error("Failed to clear previous user answers session data", err);
+    });
+
     loadAllQuestions()
       .then((qs) => {
         setAllQuestions(qs);
@@ -235,7 +241,15 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
     }
 
     setFilteredQuestions(filtered);
-    setCurrentIdx(0);
+    if (isInitialMount.current) {
+      if (filtered.length > 0) {
+        const rand = Math.floor(Math.random() * filtered.length);
+        setCurrentIdx(rand);
+      }
+      isInitialMount.current = false;
+    } else {
+      setCurrentIdx(0);
+    }
   }, [selectedSeason, selectedCategory, minPercent, maxPercent, searchQuery, allQuestions]);
 
   // Load history when current question changes
