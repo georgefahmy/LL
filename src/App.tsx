@@ -163,14 +163,18 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
       const p = settings.find(s => s.key === 'password')?.value || '';
       const pid = settings.find(s => s.key === 'profileId')?.value || '';
       
-      if (u) setUsername(u);
       if (p) setPassword(p);
       if (pid) {
         setProfileId(pid);
         setIsLoggedIn(true);
         
-        // Self-heal username if it was incorrectly saved as "LearnedLeaguer"
-        if (!u || u === 'LearnedLeaguer') {
+        // A valid LL username is a short alphanumeric string — never contains {, }, >, <
+        const usernameIsValid = u && u.length < 30 && !/[{}<>]/.test(u) && u !== 'LearnedLeaguer';
+
+        if (usernameIsValid) {
+          setUsername(u);
+        } else {
+          // Corrupt or placeholder username — re-fetch the real one from profile page
           window.electronAPI.fetchLL(`https://www.learnedleague.com/profiles.php?${pid}`).then(res => {
             if (res.success && res.data) {
               const m1 = res.data.match(/<[^>]+class="namecss"[^>]*>\s*([^<]+)\s*</);
@@ -179,7 +183,7 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
               const matched = m1 || m2 || m3;
               if (matched) {
                 const correctUsername = matched[1].trim();
-                if (correctUsername && correctUsername !== 'LearnedLeaguer') {
+                if (correctUsername && !/[{}<>]/.test(correctUsername) && correctUsername !== 'LearnedLeaguer') {
                   setUsername(correctUsername);
                   dbInstance.settings.put({ key: 'username', value: correctUsername });
                 }
