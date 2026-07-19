@@ -79,10 +79,23 @@ ipcMain.handle('open-login-window', async () => {
           
           if (hasFlag) {
             const profileMatch = html.match(/profiles\.php\?(\d+)/);
-            const profileId = profileMatch ? profileMatch[1] : "";
+            const profileId = await loginWin.webContents.executeJavaScript(`
+              (function() {
+                const link = document.querySelector('a[href*="profiles.php?"]');
+                if (link) {
+                  const m = link.getAttribute('href').match(/profiles\\.php\\?(\\d+)/);
+                  return m ? m[1] : "";
+                }
+                return "";
+              })()
+            `);
             
-            const usernameMatch = html.match(/profiles\.php\?\d+">([^<]+)<\/a>/);
-            const username = usernameMatch ? usernameMatch[1] : "LearnedLeaguer";
+            const username = await loginWin.webContents.executeJavaScript(`
+              (function() {
+                const link = document.querySelector('a[href*="profiles.php?"]');
+                return link ? link.textContent.trim() : "LearnedLeaguer";
+              })()
+            `);
             
             resolve({
               success: true,
