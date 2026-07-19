@@ -38,27 +38,7 @@ function createWindow() {
   // Load built react bundle
   mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
 }
-
-function ensureLuckAnalysisScript() {
-  try {
-    const fs = require('fs');
-    const sourcePath = path.join(__dirname, '../luck_analysis.py');
-    const destPath = path.join(app.getPath('userData'), 'luck_analysis.py');
-    
-    if (fs.existsSync(sourcePath)) {
-      const content = fs.readFileSync(sourcePath);
-      fs.writeFileSync(destPath, content);
-      console.log(`[Main] Successfully copied luck_analysis.py to ${destPath}`);
-    } else {
-      console.error(`[Main] Warning: luck_analysis.py source not found at ${sourcePath}`);
-    }
-  } catch (err) {
-    console.error('[Main] Failed to copy luck_analysis.py:', err);
-  }
-}
-
 app.whenReady().then(() => {
-  ensureLuckAnalysisScript();
   createWindow();
 
   app.on('activate', () => {
@@ -250,49 +230,31 @@ ipcMain.handle('fetch-ll', async (event, url) => {
 });
 
 ipcMain.handle('run-luck-analysis', async (event, { season, matchday, usernames, rundle }) => {
-  return new Promise((resolve) => {
+  try {
     const csvUrl = `https://www.learnedleague.com/lgwide.php?${season}`;
-    net.fetch(csvUrl, {
-      headers: {
-        ...DEFAULT_HEADERS
-      },
+    const response = await net.fetch(csvUrl, {
+      headers: { ...DEFAULT_HEADERS },
       session: session.defaultSession,
       credentials: 'include'
-    }).then(async (response) => {
-      if (!response.ok) {
-        resolve({ success: false, error: `Failed to download stats CSV (HTTP ${response.status})` });
-        return;
-      }
-      const csvText = await response.text();
-      
-      const homeDir = require('os').homedir();
-      const csvFolder = path.join(homeDir, '.LearnedLeague', 'league_wide_csvs');
-      require('fs').mkdirSync(csvFolder, { recursive: true });
-      const csvFile = path.join(csvFolder, `LL${season}_Leaguewide_MD_${matchday}.csv`);
-      require('fs').writeFileSync(csvFile, csvText);
-      
-      const usernamesArg = usernames.join(' ');
-      const rundleFlag = rundle ? '-r' : '';
-      const cmd = `python3 luck_analysis.py -f "${csvFile}" ${rundleFlag} -u ${usernamesArg}`;
-      
-      const { exec } = require('child_process');
-      const userDataPath = app.getPath('userData');
-      exec(cmd, { cwd: userDataPath }, (error, stdout, stderr) => {
-        if (error) {
-          resolve({ success: false, error: error.message + '\n' + stderr });
-          return;
-        }
-        try {
-          const res = JSON.parse(stdout);
-          resolve(res);
-        } catch (e) {
-          resolve({ success: false, error: `Invalid JSON output: ${stdout}\nStderr: ${stderr}` });
-        }
-      });
-    }).catch(err => {
-      resolve({ success: false, error: err.message });
     });
-  });
+    if (!response.ok) {
+      return { success: false, error: `Failed to download stats CSV (HTTP ${response.status})` };
+    }
+    const csvText = await response.text();
+    
+    // Save CSV locally as cache
+    const homeDir = require('os').homedir();
+    const csvFolder = path.join(homeDir, '.LearnedLeague', 'league_wide_csvs');
+    require('fs').mkdirSync(csvFolder, { recursive: true });
+    const csvFile = path.join(csvFolder, `LL${season}_Leaguewide_MD_${matchday}.csv`);
+    require('fs').writeFileSync(csvFile, csvText);
+    
+    // Run the JS luck analysis algorithm
+    const result = calculateLuckJS(csvText, usernames, rundle);
+    return { success: true, data: result };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
 });
 
 ipcMain.handle('debug-allquestions', async (event, season) => {
@@ -318,3 +280,287 @@ ipcMain.handle('debug-allquestions', async (event, season) => {
     return { success: false, error: err.message };
   }
 });
+
+// Pure JavaScript re-implementation of the LL Luck Analysis OLS algorithm
+function parseCSV(text) {
+  const lines = [];
+  let row = [""];
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const next = text[i+1];
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        row[row.length - 1] += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      row.push("");
+    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+      if (char === '\r' && next === '\n') {
+        i++;
+      }
+      lines.push(row);
+      row = [""];
+    } else {
+      row[row.length - 1] += char;
+    }
+  }
+  if (row.length > 1 || row[0] !== "") {
+    lines.push(row);
+  }
+  
+  const headers = lines[0].map(h => h.trim());
+  return lines.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, idx) => {
+      obj[h] = row[idx] || "";
+    });
+    return obj;
+  });
+}
+
+function solveLinearSystem(A, B) {
+  const n = B.length;
+  const M = [];
+  for (let i = 0; i < n; i++) {
+    M.push([...A[i], B[i]]);
+  }
+  
+  for (let i = 0; i < n; i++) {
+    let maxRow = i;
+    for (let k = i + 1; k < n; k++) {
+      if (Math.abs(M[k][i]) > Math.abs(M[maxRow][i])) {
+        maxRow = k;
+      }
+    }
+    const temp = M[i];
+    M[i] = M[maxRow];
+    M[maxRow] = temp;
+    
+    if (Math.abs(M[i][i]) < 1e-12) {
+      M[i][i] = 1e-12;
+    }
+    
+    for (let k = i + 1; k < n; k++) {
+      const factor = M[k][i] / M[i][i];
+      for (let j = i; j <= n; j++) {
+        M[k][j] -= factor * M[i][j];
+      }
+    }
+  }
+  
+  const x = new Array(n).fill(0);
+  for (let i = n - 1; i >= 0; i--) {
+    let sum = M[i][n];
+    for (let j = i + 1; j < n; j++) {
+      sum -= M[i][j] * x[j];
+    }
+    x[i] = sum / M[i][i];
+  }
+  return x;
+}
+
+function calculateLuckJS(csvText, usernames, rundleFlag) {
+  const rows = parseCSV(csvText);
+  if (rows.length === 0) {
+    throw new Error("CSV file is empty");
+  }
+  
+  const parseNum = (val) => {
+    if (val === "" || val === "--" || val === null || val === undefined) return 0;
+    const n = parseFloat(val);
+    return isNaN(n) ? 0 : n;
+  };
+  
+  const data = rows.map(r => {
+    const W = parseNum(r["Wins"]);
+    const L = parseNum(r["Losses"]);
+    const T = parseNum(r["Ties"]);
+    const PTS = parseNum(r["Pts"]);
+    const Rank = parseNum(r["Rundle Rank"]);
+    const OE = parseNum(r["OE"]);
+    const DE = parseNum(r["DE"]);
+    const QPct = parseNum(r["QPct"]);
+    const CAA = parseNum(r["CAA"]);
+    const FL = parseNum(r["FL"]);
+    const MPD = parseNum(r["MPD"]);
+    const TCA = parseNum(r["TCA"]);
+    const FW = parseNum(r["FW"]);
+    const Rundle = r["Rundle"] || "";
+    const Player = r["Player"] || "";
+    
+    const Matches = W + L + T;
+    const Played = Matches - FL;
+    
+    return {
+      Player, Rundle, W, L, T, PTS, Rank, OE, DE, QPct, CAA, FL, MPD, TCA, FW, Matches, Played
+    };
+  }).filter(r => r.Player !== "");
+  
+  const rundleGroups = {};
+  data.forEach(r => {
+    if (!rundleGroups[r.Rundle]) {
+      rundleGroups[r.Rundle] = [];
+    }
+    rundleGroups[r.Rundle].push(r);
+  });
+  
+  const rundleQPctMean = {};
+  Object.keys(rundleGroups).forEach(rundle => {
+    const list = rundleGroups[rundle];
+    const sum = list.reduce((acc, curr) => acc + curr.QPct, 0);
+    rundleQPctMean[rundle] = sum / list.length;
+  });
+  
+  data.forEach(r => {
+    const meanQPct = rundleQPctMean[r.Rundle] || 1;
+    const denom = 6 * (r.Matches - r.FW) * meanQPct;
+    r.SOS = denom !== 0 ? r.CAA / denom : 0;
+  });
+  
+  const normalizeVars = ["OE", "DE", "QPct", "CAA", "FL", "MPD", "TCA", "SOS"];
+  
+  Object.keys(rundleGroups).forEach(rundle => {
+    const list = rundleGroups[rundle];
+    const n = list.length;
+    
+    normalizeVars.forEach(varName => {
+      const sum = list.reduce((acc, curr) => acc + curr[varName], 0);
+      const mean = sum / n;
+      const sqDiffSum = list.reduce((acc, curr) => acc + Math.pow(curr[varName] - mean, 2), 0);
+      const std = n > 1 ? Math.sqrt(sqDiffSum / (n - 1)) : 0;
+      
+      list.forEach(r => {
+        r[`norm_${varName}`] = std !== 0 ? (r[varName] - mean) / std : (r[varName] - mean);
+      });
+    });
+  });
+  
+  const N = data.length;
+  const numPredictors = 7;
+  const X = [];
+  const y = [];
+  
+  data.forEach(r => {
+    const row = [
+      r.Played,
+      r.norm_OE,
+      r.FL,
+      r.norm_OE * r.FL,
+      r.norm_QPct,
+      r.norm_QPct * r.FL,
+      r.norm_DE
+    ];
+    X.push(row);
+    y.push(r.PTS);
+  });
+  
+  const XtX = Array.from({ length: numPredictors }, () => new Array(numPredictors).fill(0));
+  const Xty = new Array(numPredictors).fill(0);
+  
+  for (let i = 0; i < N; i++) {
+    const rowX = X[i];
+    const valY = y[i];
+    for (let r = 0; r < numPredictors; r++) {
+      for (let c = 0; c < numPredictors; c++) {
+        XtX[r][c] += rowX[r] * rowX[c];
+      }
+      Xty[r] += rowX[r] * valY;
+    }
+  }
+  
+  const beta = solveLinearSystem(XtX, Xty);
+  
+  data.forEach((r, idx) => {
+    const rowX = X[idx];
+    let expPts = 0;
+    for (let j = 0; j < numPredictors; j++) {
+      expPts += rowX[j] * beta[j];
+    }
+    r.Exp_PTS = expPts;
+    r.Luck = r.PTS - r.Exp_PTS;
+  });
+  
+  const rundlePlayerCount = {};
+  Object.keys(rundleGroups).forEach(rundle => {
+    rundlePlayerCount[rundle] = rundleGroups[rundle].length;
+  });
+  
+  const rundleNames = Object.keys(rundleGroups);
+  const rundleSizesSum = rundleNames.reduce((acc, curr) => acc + rundlePlayerCount[curr], 0);
+  const meanRundleSize = rundleNames.length > 0 ? rundleSizesSum / rundleNames.length : 0;
+  
+  Object.keys(rundleGroups).forEach(rundle => {
+    const list = rundleGroups[rundle];
+    list.sort((a, b) => b.Exp_PTS - a.Exp_PTS);
+    
+    let rank = 1;
+    for (let i = 0; i < list.length; i++) {
+      if (i > 0 && list[i].Exp_PTS < list[i-1].Exp_PTS) {
+        rank++;
+      }
+      list[i].Exp_Rank = rank;
+      list[i].Player_count = rundlePlayerCount[rundle];
+      list[i].Luck_Rank = list[i].Exp_Rank - list[i].Rank;
+      list[i].Luck_Rank_adj = (list[i].Luck_Rank / list[i].Player_count) * meanRundleSize;
+    }
+  });
+  
+  const sortedByLuckRankAdj = [...data].sort((a, b) => a.Luck_Rank_adj - b.Luck_Rank_adj);
+  
+  for (let i = 0; i < sortedByLuckRankAdj.length; i++) {
+    let maxIdx = i;
+    while (maxIdx + 1 < sortedByLuckRankAdj.length && sortedByLuckRankAdj[maxIdx + 1].Luck_Rank_adj === sortedByLuckRankAdj[i].Luck_Rank_adj) {
+      maxIdx++;
+    }
+    const rank = maxIdx + 1;
+    for (let k = i; k <= maxIdx; k++) {
+      sortedByLuckRankAdj[k].max_rank = rank;
+    }
+    i = maxIdx;
+  }
+  
+  data.forEach(r => {
+    r.LuckPctile = (r.max_rank / N) * 100;
+  });
+  
+  data.sort((a, b) => b.LuckPctile - a.LuckPctile);
+  
+  const fields = [
+    "Player", "W", "L", "T", "QPct", "TCA", "CAA", 
+    "PTS", "Exp_PTS", "Luck", "LuckPctile", "Rank", "Exp_Rank", "Rundle"
+  ];
+  
+  let resultData = data;
+  if (rundleFlag && usernames && usernames.length > 0) {
+    const userRundles = new Set();
+    const usernamesSet = new Set(usernames);
+    data.forEach(r => {
+      if (usernamesSet.has(r.Player)) {
+        userRundles.add(r.Rundle);
+      }
+    });
+    resultData = data.filter(r => userRundles.has(r.Rundle));
+  } else if (usernames && usernames.length > 0) {
+    const usernamesSet = new Set(usernames);
+    resultData = data.filter(r => usernamesSet.has(r.Player));
+  }
+  
+  return resultData.map(r => {
+    const obj = {};
+    fields.forEach(f => {
+      const val = r[f];
+      if (f === "LuckPctile") {
+        obj[f] = parseFloat(val.toFixed(2));
+      } else if (typeof val === "number" && !Number.isInteger(val)) {
+        obj[f] = parseFloat(val.toFixed(3));
+      } else {
+        obj[f] = val;
+      }
+    });
+    return obj;
+  });
+}
