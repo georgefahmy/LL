@@ -68,6 +68,7 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
   const [modalQuestions, setModalQuestions] = useState<{ num: number; category: string; text: string }[]>([]);
   const [modalLoading, setModalLoading] = useState<boolean>(false);
   const [modalError, setModalError] = useState<string>("");
+  const [activeQuestionTab, setActiveQuestionTab] = useState<number>(1);
   const [defenseCategories, setDefenseCategories] = useState<string[]>(new Array(6).fill("ALL"));
   const [defenseSuggestions, setDefenseSuggestions] = useState<number[]>([]);
   const [defensePercentages, setDefensePercentages] = useState<string[]>([]);
@@ -738,6 +739,7 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
     setModalLoading(true);
     setModalError("");
     setModalQuestions([]);
+    setActiveQuestionTab(1);
     setShowQuestionsModal(true);
     
     try {
@@ -2081,24 +2083,78 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                         </div>
                       )}
 
-                      {!modalLoading && !modalError && modalQuestions.length > 0 && (
+                       {!modalLoading && !modalError && modalQuestions.length > 0 && (
                         <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-                          {modalQuestions.map((q) => (
-                            <div key={q.num} style={{ padding: "1rem", background: "var(--bg-secondary)", borderRadius: "var(--border-radius-md)", border: "1px solid var(--card-border)" }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.85rem" }}>
-                                <span style={{ fontWeight: "700", color: "var(--accent-cyan)" }}>Question {q.num}</span>
-                                <span className="category-tag" style={{
-                                  background: "rgba(0, 242, 254, 0.1)",
-                                  color: "var(--accent-cyan)",
-                                  padding: "0.15rem 0.4rem",
-                                  borderRadius: "4px",
-                                  fontSize: "0.75rem",
-                                  fontWeight: "600"
-                                }}>{q.category}</span>
+                          {/* Tab selectors for Q1 - Q6 */}
+                          <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", borderBottom: "1px solid var(--card-border)", paddingBottom: "1rem" }}>
+                            {modalQuestions.map((q) => (
+                              <button
+                                key={q.num}
+                                className={`btn ${activeQuestionTab === q.num ? 'primary' : 'secondary'}`}
+                                onClick={() => setActiveQuestionTab(q.num)}
+                                style={{
+                                  padding: "0.5rem 1rem",
+                                  minWidth: "60px",
+                                  fontWeight: "700"
+                                }}
+                              >
+                                Q{q.num}
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Active Question Panel */}
+                          {(() => {
+                            const q = modalQuestions.find(mq => mq.num === activeQuestionTab) || modalQuestions[0];
+                            return (
+                              <div style={{
+                                padding: "2rem",
+                                background: "var(--bg-secondary)",
+                                borderRadius: "var(--border-radius-md)",
+                                border: "1px solid var(--card-border)",
+                                minHeight: "150px",
+                                display: "flex",
+                                flexDirection: "column",
+                                justifyContent: "center"
+                              }}>
+                                <div style={{ marginBottom: "1rem", fontSize: "0.9rem", fontWeight: "700", color: "var(--accent-cyan)", letterSpacing: "1px" }}>
+                                  QUESTION {q.num}
+                                </div>
+                                <p style={{
+                                  margin: 0,
+                                  fontSize: "1.1rem",
+                                  lineHeight: "1.6",
+                                  color: "var(--text-primary)",
+                                  fontWeight: "400"
+                                }}>
+                                  {q.text}
+                                </p>
                               </div>
-                              <p style={{ margin: 0, fontSize: "0.95rem", lineHeight: "1.5", color: "var(--text-primary)" }}>{q.text}</p>
-                            </div>
-                          ))}
+                            );
+                          })()}
+
+                          {/* Prev / Next controls */}
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.5rem" }}>
+                            <button
+                              className="btn secondary"
+                              onClick={() => setActiveQuestionTab(prev => Math.max(1, prev - 1))}
+                              disabled={activeQuestionTab === 1}
+                              style={{ padding: "0.4rem 1rem" }}
+                            >
+                              ← Previous
+                            </button>
+                            <span style={{ fontSize: "0.9rem", color: "var(--text-secondary)", fontWeight: "500" }}>
+                              {activeQuestionTab} of 6
+                            </span>
+                            <button
+                              className="btn secondary"
+                              onClick={() => setActiveQuestionTab(next => Math.min(6, next + 1))}
+                              disabled={activeQuestionTab === 6}
+                              style={{ padding: "0.4rem 1rem" }}
+                            >
+                              Next →
+                            </button>
+                          </div>
                         </div>
                       )}
 
