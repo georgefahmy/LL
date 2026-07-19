@@ -1,6 +1,21 @@
 const { app, BrowserWindow, ipcMain, net, session } = require('electron');
 const path = require('path');
 
+// Fix $PATH inside packaged macOS GUI app to match terminal shell environment
+if (process.platform === 'darwin') {
+  try {
+    const { execSync } = require('child_process');
+    const stdout = execSync('/bin/zsh -l -c "echo \\$PATH"', { encoding: 'utf8' });
+    if (stdout.trim()) {
+      process.env.PATH = stdout.trim();
+    }
+  } catch (err) {
+    console.error('Failed to get shell PATH:', err);
+    // Fallback if zsh call fails
+    process.env.PATH = `/opt/homebrew/bin:/usr/local/bin:/Library/Frameworks/Python.framework/Versions/3.14/bin:${process.env.PATH}`;
+  }
+}
+
 let mainWindow;
 
 function createWindow() {
