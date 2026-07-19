@@ -75,6 +75,14 @@ ipcMain.handle('open-login-window', async () => {
       // If user successfully authenticated or routed to main dashboard
       if (url === "https://www.learnedleague.com/" || url === "https://www.learnedleague.com/index.php" || (!url.includes("login") && url.includes(".php"))) {
         try {
+          const pageUrl = loginWin.webContents.getURL();
+          const links = await loginWin.webContents.executeJavaScript(`
+            Array.from(document.querySelectorAll('a')).map(a => ({ href: a.getAttribute('href'), text: a.textContent }))
+          `);
+          const profileLinks = links.filter(l => l.href && l.href.includes('profiles.php'));
+          console.log("[Login Debug] Current URL:", pageUrl);
+          console.log("[Login Debug] Profile Links found:", JSON.stringify(profileLinks));
+
           const profileId = await loginWin.webContents.executeJavaScript(`
             (function() {
               const link = document.querySelector('a[href*="profiles.php?"]');
@@ -87,13 +95,23 @@ ipcMain.handle('open-login-window', async () => {
           `);
           
           if (profileId) {
-            const username = await loginWin.webContents.executeJavaScript(`
-              (function() {
-                const link = document.querySelector('a[href*="profiles.php?"]');
-                return link ? link.textContent.trim() : "LearnedLeaguer";
-              })()
-            `);
+            let username = "LearnedLeaguer";
+            try {
+              const profileRes = await net.fetch(`https://www.learnedleague.com/profiles.php?${profileId}`, {
+                session: session.defaultSession,
+                credentials: 'include',
+                headers: { ...DEFAULT_HEADERS }
+              });
+              const profileHtml = await profileRes.text();
+              const nameMatch = profileHtml.match(/class="namecss">([^<]+)/);
+              if (nameMatch) {
+                username = nameMatch[1].trim();
+              }
+            } catch (err) {
+              console.error("Error fetching username from profile page:", err);
+            }
             
+            console.log("[Login Debug] Resolved profileId:", profileId, "username:", username);
             resolve({
               success: true,
               profileId: profileId,
