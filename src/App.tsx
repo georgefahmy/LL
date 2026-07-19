@@ -173,9 +173,12 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
         if (!u || u === 'LearnedLeaguer') {
           window.electronAPI.fetchLL(`https://www.learnedleague.com/profiles.php?${pid}`).then(res => {
             if (res.success && res.data) {
-              const nameMatch = res.data.match(/namecss[^>]*>([^<]+)/);
-              if (nameMatch) {
-                const correctUsername = nameMatch[1].trim();
+              const m1 = res.data.match(/<[^>]+class="namecss"[^>]*>\s*([^<]+)\s*</);
+              const m2 = res.data.match(/<h1[^>]*>\s*([^<]+)\s*<\/h1>/);
+              const m3 = res.data.match(/<title>([^-<]+)\s*-\s*LearnedLeague<\/title>/);
+              const matched = m1 || m2 || m3;
+              if (matched) {
+                const correctUsername = matched[1].trim();
                 if (correctUsername && correctUsername !== 'LearnedLeaguer') {
                   setUsername(correctUsername);
                   dbInstance.settings.put({ key: 'username', value: correctUsername });

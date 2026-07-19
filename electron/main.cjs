@@ -104,9 +104,20 @@ ipcMain.handle('open-login-window', async () => {
                 headers: { ...DEFAULT_HEADERS }
               });
               const profileHtml = await profileRes.text();
-              const nameMatch = profileHtml.match(/namecss[^>]*>([^<]+)/);
-              if (nameMatch) {
-                username = nameMatch[1].trim();
+              // Try several patterns to extract username robustly
+              // Pattern 1: <span class="namecss">FahmyG</span>
+              const m1 = profileHtml.match(/<[^>]+class="namecss"[^>]*>\s*([^<]+)\s*</);
+              // Pattern 2: <h1>FahmyG</h1> or <h1 ...>FahmyG</h1>
+              const m2 = profileHtml.match(/<h1[^>]*>\s*([^<]+)\s*<\/h1>/);
+              // Pattern 3: <title>FahmyG - LearnedLeague</title>
+              const m3 = profileHtml.match(/<title>([^-<]+)\s*-\s*LearnedLeague<\/title>/);
+              const matched = m1 || m2 || m3;
+              console.log("[Login Debug] Name patterns:", { m1: m1?.[1], m2: m2?.[1], m3: m3?.[1] });
+              if (matched) {
+                const candidate = matched[1].trim();
+                if (candidate && candidate !== 'LearnedLeaguer') {
+                  username = candidate;
+                }
               }
             } catch (err) {
               console.error("Error fetching username from profile page:", err);
