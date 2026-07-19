@@ -2,7 +2,6 @@ const { app, BrowserWindow, ipcMain, net } = require('electron');
 const path = require('path');
 
 let mainWindow;
-let cookieString = ""; // Stores session cookies globally in memory
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -22,9 +21,6 @@ function createWindow() {
 
   // Load built react bundle
   mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
-  
-  // Optional: Open devtools for debugging if running in development mode
-  // mainWindow.webContents.openDevTools();
 }
 
 app.whenReady().then(() => {
@@ -52,30 +48,19 @@ ipcMain.handle('login-ll', async (event, { username, password }) => {
       password: password
     });
 
-    // Use net.fetch which runs in Chromium net stack (bypassing TLS WAF blocks)
-    // but executes in Main process (avoiding Renderer SameSite cookie limits)
+    // Use net.fetch which automatically manages cookies globally in the default Electron session
     const response = await net.fetch("https://www.learnedleague.com/ucp.php?mode=login", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
       },
-      body: postData.toString(),
-      redirect: "manual"
+      body: postData.toString()
     });
 
-    // Extract cookie headers
-    const setCookies = response.headers.get("set-cookie");
-    if (setCookies) {
-      // Parse out the primary cookies
-      const cookies = setCookies.split(',').map(c => c.split(';')[0].trim());
-      cookieString = cookies.join('; ');
-    }
-
-    // Verify login success by requesting home page
+    // Verify login success by requesting home page (cookies are sent automatically by net.fetch)
     const verifyRes = await net.fetch("https://www.learnedleague.com", {
       headers: {
-        "Cookie": cookieString,
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
       }
     });
@@ -107,7 +92,6 @@ ipcMain.handle('fetch-ll', async (event, url) => {
   try {
     const response = await net.fetch(url, {
       headers: {
-        "Cookie": cookieString,
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
       }
     });
