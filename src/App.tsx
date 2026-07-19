@@ -65,6 +65,8 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
   const [defensePercentages, setDefensePercentages] = useState<string[]>([]);
   const [hunScore, setHunScore] = useState<string>("");
   const [defenseLoading, setDefenseLoading] = useState<boolean>(false);
+  const [userCategoryStats, setUserCategoryStats] = useState<Record<string, number>>({});
+  const [oppCategoryStats, setOppCategoryStats] = useState<Record<string, number>>({});
 
   // Luck Analysis States
   const [luckSeason, setLuckSeason] = useState<string>("");
@@ -553,14 +555,18 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
     setDefenseLoading(true);
     const oppId = list[oppName];
     try {
-      // 1. Fetch Opponent profile page to parse category correctness
+      // 1. Fetch Opponent and User profile pages to parse category correctness
       const oppRes = await window.electronAPI.fetchLL(`https://www.learnedleague.com/profiles.php?${oppId}&1`);
-      if (oppRes.success && oppRes.data) {
+      const userRes = await window.electronAPI.fetchLL(`https://www.learnedleague.com/profiles.php?${profileId}&1`);
+      
+      if (oppRes.success && oppRes.data && userRes.success && userRes.data) {
         const parser = new DOMParser();
-        const doc = parser.parseFromString(oppRes.data, "text/html");
-        const rows = doc.querySelectorAll("table.std.sortable.this_sea.std_bord tbody tr");
+        
+        // Parse Opponent
+        const oDoc = parser.parseFromString(oppRes.data, "text/html");
+        const oRows = oDoc.querySelectorAll("table.std.sortable.this_sea.std_bord tbody tr");
         const oppCategoryPercents: Record<string, number> = {};
-        rows.forEach(row => {
+        oRows.forEach(row => {
           const cells = row.querySelectorAll("td");
           if (cells.length > 1) {
             const catName = cells[0].textContent?.trim() || "";
@@ -570,6 +576,23 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
             oppCategoryPercents[catName] = total > 0 ? (correct / total) : 0;
           }
         });
+        setOppCategoryStats(oppCategoryPercents);
+
+        // Parse User
+        const uDoc = parser.parseFromString(userRes.data, "text/html");
+        const uRows = uDoc.querySelectorAll("table.std.sortable.this_sea.std_bord tbody tr");
+        const userCategoryPercents: Record<string, number> = {};
+        uRows.forEach(row => {
+          const cells = row.querySelectorAll("td");
+          if (cells.length > 1) {
+            const catName = cells[0].textContent?.trim() || "";
+            const parts = cells[1].textContent?.split("-") || [];
+            const correct = parseInt(parts[0]) || 0;
+            const total = parseInt(parts[1]) || 0;
+            userCategoryPercents[catName] = total > 0 ? (correct / total) : 0;
+          }
+        });
+        setUserCategoryStats(userCategoryPercents);
 
         // Compute defense suggestion: [3, 2, 2, 1, 1, 0] allocated from lowest opponent percent to highest
         const activeCategories = [...defenseCategories];
@@ -1674,16 +1697,150 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                   {/* Right Column: Similarity Info */}
                   <div className="glass-panel" style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
                     <h3 style={{ borderBottom: "1px solid var(--card-border)", paddingBottom: "0.5rem" }}>HUN Similarity</h3>
-                    <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", lineHeight: "1.5" }}>
-                      HUN (How U Nnow) represents the percentage of questions that you and your opponent both answered correctly or both missed in past matches. A higher HUN indicates similar trivia strengths.
-                    </p>
                     
-                    <div style={{ padding: "1.5rem", background: "var(--bg-secondary)", borderRadius: "var(--border-radius-md)", border: "1px solid var(--card-border)", textAlign: "center", marginTop: "1rem" }}>
-                      <span style={{ fontSize: "0.9rem", color: "var(--text-muted)", display: "block", marginBottom: "0.5rem" }}>Similarity Index Score</span>
+                    <div style={{ padding: "1rem", background: "var(--bg-secondary)", borderRadius: "var(--border-radius-md)", border: "1px solid var(--card-border)", textAlign: "center" }}>
                       <strong style={{ fontSize: "2rem", color: "var(--accent-cyan)" }}>{hunScore || "N/A"}</strong>
                     </div>
 
-                    <h3 style={{ borderBottom: "1px solid var(--card-border)", paddingBottom: "0.5rem", marginTop: "1.5rem" }}>Rules for Defense point assignment</h3>
+                    {/* Radar Chart */}
+                    {Object.keys(userCategoryStats).length > 0 && Object.keys(oppCategoryStats).length > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: "0.5rem" }}>
+                        <h4 style={{ color: "var(--text-primary)", marginBottom: "0.5rem", fontSize: "0.95rem" }}>Category Correctness Comparison</h4>
+                        
+                        {(() => {
+                          const width = 280;
+                          const height = 280;
+                          const cx = width / 2;
+                          const cy = height / 2;
+                          const rMax = 80;
+                          const numAxes = 6;
+                          const categories = [...defenseCategories];
+
+                          // Grid hexagons
+                          const gridLevels = [0.25, 0.5, 0.75, 1.0];
+                          
+                          const getCoords = (index: number, value: number) => {
+                            const angle = (index * 2 * Math.PI) / numAxes - Math.PI / 2;
+                            const r = rMax * value;
+                            return {
+                              x: cx + r * Math.cos(angle),
+                              y: cy + r * Math.sin(angle)
+                            };
+                          };
+
+                          // Generate polygon points path
+                          const getPolygonPath = (stats: Record<string, number>) => {
+                            const points = categories.map((cat, i) => {
+                              const pct = stats[cat] !== undefined ? stats[cat] : 0.5;
+                              const { x, y } = getCoords(i, pct);
+                              return `${x.toFixed(1)},${y.toFixed(1)}`;
+                            });
+                            return points.join(" ");
+                          };
+
+                          const userPoints = getPolygonPath(userCategoryStats);
+                          const oppPoints = getPolygonPath(oppCategoryStats);
+
+                          return (
+                            <div style={{ position: "relative", width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                              <svg width={width} height={height} style={{ overflow: "visible" }}>
+                                {/* Concentric hexagon grid */}
+                                {gridLevels.map((lvl, idx) => {
+                                  const points = Array.from({ length: numAxes }).map((_, i) => {
+                                    const { x, y } = getCoords(i, lvl);
+                                    return `${x},${y}`;
+                                  }).join(" ");
+                                  return (
+                                    <polygon
+                                      key={idx}
+                                      points={points}
+                                      fill="none"
+                                      stroke="rgba(255, 255, 255, 0.08)"
+                                      strokeWidth="1"
+                                      strokeDasharray={lvl < 1.0 ? "3,3" : "none"}
+                                    />
+                                  );
+                                })}
+
+                                {/* Axis lines and Labels */}
+                                {categories.map((cat, i) => {
+                                  const outer = getCoords(i, 1.0);
+                                  const labelPos = getCoords(i, 1.25);
+                                  return (
+                                    <g key={i}>
+                                      {/* Radial line */}
+                                      <line
+                                        x1={cx}
+                                        y1={cy}
+                                        x2={outer.x}
+                                        y2={outer.y}
+                                        stroke="rgba(255, 255, 255, 0.08)"
+                                        strokeWidth="1"
+                                      />
+                                      {/* Category label */}
+                                      <text
+                                        x={labelPos.x}
+                                        y={labelPos.y + 4}
+                                        fill="var(--text-secondary)"
+                                        fontSize="10"
+                                        fontWeight="600"
+                                        textAnchor="middle"
+                                      >
+                                        {cat}
+                                      </text>
+                                    </g>
+                                  );
+                                })}
+
+                                {/* User Polygon */}
+                                <polygon
+                                  points={userPoints}
+                                  fill="rgba(0, 240, 255, 0.15)"
+                                  stroke="#00F0FF"
+                                  strokeWidth="2"
+                                />
+
+                                {/* Opponent Polygon */}
+                                <polygon
+                                  points={oppPoints}
+                                  fill="rgba(255, 0, 127, 0.15)"
+                                  stroke="#FF007F"
+                                  strokeWidth="2"
+                                />
+
+                                {/* Axis circles for points */}
+                                {categories.map((cat, i) => {
+                                  const userVal = userCategoryStats[cat] !== undefined ? userCategoryStats[cat] : 0.5;
+                                  const oppVal = oppCategoryStats[cat] !== undefined ? oppCategoryStats[cat] : 0.5;
+                                  const userPt = getCoords(i, userVal);
+                                  const oppPt = getCoords(i, oppVal);
+                                  return (
+                                    <g key={i}>
+                                      <circle cx={userPt.x} cy={userPt.y} r="3.5" fill="#00F0FF" />
+                                      <circle cx={oppPt.x} cy={oppPt.y} r="3.5" fill="#FF007F" />
+                                    </g>
+                                  );
+                                })}
+                              </svg>
+
+                              {/* Custom Legend */}
+                              <div style={{ display: "flex", gap: "1rem", justifyContent: "center", marginTop: "0.5rem", fontSize: "0.8rem" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                                  <span style={{ display: "inline-block", width: "12px", height: "12px", borderRadius: "2px", background: "#00F0FF" }}></span>
+                                  <span style={{ color: "var(--text-secondary)" }}>You ({username})</span>
+                                </div>
+                                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                                  <span style={{ display: "inline-block", width: "12px", height: "12px", borderRadius: "2px", background: "#FF007F" }}></span>
+                                  <span style={{ color: "var(--text-secondary)" }}>Opponent ({selectedOpponent})</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+
+                    <h3 style={{ borderBottom: "1px solid var(--card-border)", paddingBottom: "0.5rem", marginTop: "1rem" }}>Rules for Defense point assignment</h3>
                     <ul style={{ paddingLeft: "1.2rem", color: "var(--text-secondary)", fontSize: "0.9rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                       <li>Points are assigned to opponent's questions: 3, 2, 2, 1, 1, 0 (sum to 9).</li>
                       <li>Assign <strong>higher points</strong> (3, 2) to categories they are <strong>weak in</strong> (lower correctness percentage).</li>
