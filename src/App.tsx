@@ -18,6 +18,7 @@ declare global {
     electronAPI: {
       loginToLL: (username: string, password: string) => Promise<{ success: boolean; profileId?: string; username?: string; error?: string }>;
       fetchLL: (url: string) => Promise<{ success: boolean; data?: string; error?: string }>;
+      openLoginWindow: () => Promise<{ success: boolean; profileId?: string; username?: string; error?: string }>;
     };
   }
 }
@@ -472,32 +473,25 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
     });
   };
 
-  // Submit credentials to Learned League
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!username.trim() || !password.trim()) {
-      setLoginStatus("Please fill in both fields.");
-      return;
-    }
-    
-    setLoginStatus("Authenticating...");
+  // Open login popup window
+  const handleOpenLoginPopup = async () => {
+    setLoginStatus("Opening login window...");
     try {
-      const res = await directLoginToLL(username.trim(), password.trim());
-      if (res.success && res.profileId) {
+      const res = await window.electronAPI.openLoginWindow();
+      if (res.success && res.profileId && res.username) {
         setProfileId(res.profileId);
+        setUsername(res.username);
         setIsLoggedIn(true);
         setLoginStatus("Login Successful!");
         
         // Save to Dexie settings
-        await dbInstance.settings.put({ key: 'username', value: username.trim() });
-        await dbInstance.settings.put({ key: 'password', value: password.trim() });
+        await dbInstance.settings.put({ key: 'username', value: res.username });
         await dbInstance.settings.put({ key: 'profileId', value: res.profileId });
       } else {
-        setIsLoggedIn(false);
-        setLoginStatus(res.error || "Authentication failed.");
+        setLoginStatus(res.error || "Authentication cancelled or failed.");
       }
     } catch (err: any) {
-      setLoginStatus("Login Error: " + err.message);
+      setLoginStatus("Popup Error: " + err.message);
     }
   };
 
@@ -1237,44 +1231,25 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                   </div>
                 </header>
 
-                <div className="glass-panel" style={{ maxWidth: '600px', margin: '0 auto' }}>
-                  <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.5rem' }}>LearnedLeague.com Authentication</h3>
+                 <div className="glass-panel" style={{ maxWidth: '600px', margin: '0 auto' }}>
+                  <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.5rem' }}>LearnedLeague.com Authentication</h3>
                   
-                  <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    <div className="form-group">
-                      <label>Username</label>
-                      <input 
-                        type="text" 
-                        className="text-input" 
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        disabled={isLoggedIn}
-                      />
-                    </div>
+                  <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                    LearnedLeague requires cookie authentication to fetch customized OneDay specials and MiniLeagues. 
+                    Clicking the button below will launch a secure browser window to log in directly on the official LearnedLeague website, allowing you to solve any Cloudflare verification challenges.
+                  </p>
 
-                    <div className="form-group">
-                      <label>Password</label>
-                      <input 
-                        type="password" 
-                        className="text-input" 
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={isLoggedIn}
-                      />
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                      {isLoggedIn ? (
-                        <button type="button" className="btn rose" onClick={handleLogout}>
-                          Log Out
-                        </button>
-                      ) : (
-                        <button type="submit" className="btn primary">
-                          Sign In
-                        </button>
-                      )}
-                    </div>
-                  </form>
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    {isLoggedIn ? (
+                      <button className="btn rose" onClick={handleLogout}>
+                        Log Out
+                      </button>
+                    ) : (
+                      <button className="btn primary" onClick={handleOpenLoginPopup}>
+                        Sign In via LearnedLeague Website
+                      </button>
+                    )}
+                  </div>
 
                   {loginStatus && (
                     <div 
@@ -1292,7 +1267,7 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                   )}
 
                   {isLoggedIn && (
-                    <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid var(--card-border)', paddingTop: '1.25rem' }}>
                       <p>🟢 Logged in as: <strong style={{ color: 'var(--accent-cyan)' }}>{username}</strong></p>
                       <p>🪪 Profile ID: <strong style={{ color: 'var(--accent-cyan)' }}>{profileId}</strong></p>
                     </div>

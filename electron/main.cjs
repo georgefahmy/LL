@@ -54,6 +54,55 @@ const DEFAULT_HEADERS = {
 };
 
 // IPC Handlers
+ipcMain.handle('open-login-window', async () => {
+  return new Promise((resolve) => {
+    const loginWin = new BrowserWindow({
+      width: 550,
+      height: 700,
+      parent: mainWindow,
+      modal: true,
+      title: "LearnedLeague Login",
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true
+      }
+    });
+
+    loginWin.loadURL("https://www.learnedleague.com/ucp.php?mode=login");
+
+    loginWin.webContents.on('did-navigate', async (event, url) => {
+      // If user successfully authenticated or routed to main dashboard
+      if (url === "https://www.learnedleague.com/" || url === "https://www.learnedleague.com/index.php" || (!url.includes("login") && url.includes(".php"))) {
+        try {
+          const html = await loginWin.webContents.executeJavaScript("document.documentElement.innerHTML");
+          const hasFlag = html.includes("class=\"flag\"");
+          
+          if (hasFlag) {
+            const profileMatch = html.match(/profiles\.php\?(\d+)/);
+            const profileId = profileMatch ? profileMatch[1] : "";
+            
+            const usernameMatch = html.match(/profiles\.php\?\d+">([^<]+)<\/a>/);
+            const username = usernameMatch ? usernameMatch[1] : "LearnedLeaguer";
+            
+            resolve({
+              success: true,
+              profileId: profileId,
+              username: username
+            });
+            loginWin.close();
+          }
+        } catch (e) {
+          console.error("Popup scraping error:", e);
+        }
+      }
+    });
+
+    loginWin.on('closed', () => {
+      resolve({ success: false, error: "Window closed by user." });
+    });
+  });
+});
+
 ipcMain.handle('login-ll', async (event, { username, password }) => {
   try {
     const postData = new URLSearchParams({
