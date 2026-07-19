@@ -35,7 +35,8 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "package.json"
+      "package.json",
+      "luck_analysis.py"
     ],
     "mac": {
       "target": [

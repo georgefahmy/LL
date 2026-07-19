@@ -24,7 +24,26 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
 }
 
+function ensureLuckAnalysisScript() {
+  try {
+    const fs = require('fs');
+    const sourcePath = path.join(__dirname, '../luck_analysis.py');
+    const destPath = path.join(app.getPath('userData'), 'luck_analysis.py');
+    
+    if (fs.existsSync(sourcePath)) {
+      const content = fs.readFileSync(sourcePath);
+      fs.writeFileSync(destPath, content);
+      console.log(`[Main] Successfully copied luck_analysis.py to ${destPath}`);
+    } else {
+      console.error(`[Main] Warning: luck_analysis.py source not found at ${sourcePath}`);
+    }
+  } catch (err) {
+    console.error('[Main] Failed to copy luck_analysis.py:', err);
+  }
+}
+
 app.whenReady().then(() => {
+  ensureLuckAnalysisScript();
   createWindow();
 
   app.on('activate', () => {
@@ -242,7 +261,8 @@ ipcMain.handle('run-luck-analysis', async (event, { season, matchday, usernames,
       const cmd = `python3 luck_analysis.py -f "${csvFile}" ${rundleFlag} -u ${usernamesArg}`;
       
       const { exec } = require('child_process');
-      exec(cmd, { cwd: path.join(__dirname, '..') }, (error, stdout, stderr) => {
+      const userDataPath = app.getPath('userData');
+      exec(cmd, { cwd: userDataPath }, (error, stdout, stderr) => {
         if (error) {
           resolve({ success: false, error: error.message + '\n' + stderr });
           return;
