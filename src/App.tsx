@@ -1748,55 +1748,95 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                   </div>
                 </div>
 
-                {luckResults.length > 0 && (
-                  <div className="glass-panel" style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
-                      <thead>
-                        <tr style={{ borderBottom: "2px solid var(--card-border)", color: "var(--text-secondary)", fontSize: "0.9rem" }}>
-                          <th style={{ padding: "0.75rem 1rem" }}>Player</th>
-                          <th style={{ padding: "0.75rem 1rem" }}>Rundle</th>
-                          <th style={{ padding: "0.75rem 1rem" }}>Record</th>
-                          <th style={{ padding: "0.75rem 1rem" }}>QPct</th>
-                          <th style={{ padding: "0.75rem 1rem" }}>TCA</th>
-                          <th style={{ padding: "0.75rem 1rem" }}>CAA</th>
-                          <th style={{ padding: "0.75rem 1rem" }}>PTS</th>
-                          <th style={{ padding: "0.75rem 1rem" }}>Expected PTS</th>
-                          <th style={{ padding: "0.75rem 1rem" }}>Luck Diff</th>
-                          <th style={{ padding: "0.75rem 1rem" }}>Luck Pctile</th>
-                          <th style={{ padding: "0.75rem 1rem" }}>Rank</th>
-                          <th style={{ padding: "0.75rem 1rem" }}>Expected Rank</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {luckResults.map((row, idx) => (
-                          <tr 
-                            key={idx} 
-                            style={{ 
-                              borderBottom: "1px solid var(--card-border)", 
-                              fontSize: "0.9rem",
-                              background: luckUsernames.split(",").map(u=>u.trim().toLowerCase()).includes(row.Player.toLowerCase()) ? "rgba(0, 240, 255, 0.08)" : "transparent"
-                            }}
-                          >
-                            <td style={{ padding: "0.75rem 1rem", fontWeight: "bold" }}>{row.Player}</td>
-                            <td style={{ padding: "0.75rem 1rem" }}>{row.Rundle}</td>
-                            <td style={{ padding: "0.75rem 1rem" }}>{row.W}-{row.L}-{row.T}</td>
-                            <td style={{ padding: "0.75rem 1rem" }}>{(row.QPct * 100).toFixed(1)}%</td>
-                            <td style={{ padding: "0.75rem 1rem" }}>{row.TCA}</td>
-                            <td style={{ padding: "0.75rem 1rem" }}>{row.CAA}</td>
-                            <td style={{ padding: "0.75rem 1rem", fontWeight: "600" }}>{row.PTS}</td>
-                            <td style={{ padding: "0.75rem 1rem" }}>{row.Exp_PTS}</td>
-                            <td style={{ padding: "0.75rem 1rem", color: row.Luck >= 0 ? "#10B981" : "#EF4444", fontWeight: "bold" }}>
-                              {row.Luck > 0 ? `+${row.Luck}` : row.Luck}
-                            </td>
-                            <td style={{ padding: "0.75rem 1rem", fontWeight: "bold", color: "var(--accent-cyan)" }}>{row.LuckPctile}%</td>
-                            <td style={{ padding: "0.75rem 1rem" }}>{row.Rank}</td>
-                            <td style={{ padding: "0.75rem 1rem" }}>{row.Exp_Rank}</td>
+                {luckResults.length > 0 && (() => {
+                  const sortedResults = [...luckResults].sort((a, b) => {
+                    let valA = a[luckSortKey];
+                    let valB = b[luckSortKey];
+                    
+                    if (luckSortKey === "Record") {
+                      valA = (parseInt(a.W) || 0) * 1000 + (parseInt(a.T) || 0);
+                      valB = (parseInt(b.W) || 0) * 1000 + (parseInt(b.T) || 0);
+                    }
+                    
+                    if (valA === undefined) valA = "";
+                    if (valB === undefined) valB = "";
+                    
+                    if (typeof valA === "string") {
+                      return luckSortAsc
+                        ? valA.localeCompare(valB as string)
+                        : (valB as string).localeCompare(valA);
+                    } else {
+                      return luckSortAsc
+                        ? (valA as number) - (valB as number)
+                        : (valB as number) - (valA as number);
+                    }
+                  });
+                  
+                  const handleSort = (key: string) => {
+                    if (luckSortKey === key) {
+                      setLuckSortAsc(!luckSortAsc);
+                    } else {
+                      setLuckSortKey(key);
+                      const descFirst = ["LuckPctile", "Luck", "PTS", "Exp_PTS", "QPct", "TCA", "CAA", "Record"];
+                      setLuckSortAsc(!descFirst.includes(key));
+                    }
+                  };
+                  
+                  const renderSortIndicator = (key: string) => {
+                    if (luckSortKey !== key) return null;
+                    return luckSortAsc ? " ▲" : " ▼";
+                  };
+                  
+                  return (
+                    <div className="glass-panel" style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                        <thead>
+                          <tr style={{ borderBottom: "2px solid var(--card-border)", color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                            <th style={{ padding: "0.75rem 1rem", cursor: "pointer", userSelect: "none" }} onClick={() => handleSort("Player")}>Player{renderSortIndicator("Player")}</th>
+                            <th style={{ padding: "0.75rem 1rem", cursor: "pointer", userSelect: "none" }} onClick={() => handleSort("Rundle")}>Rundle{renderSortIndicator("Rundle")}</th>
+                            <th style={{ padding: "0.75rem 1rem", cursor: "pointer", userSelect: "none" }} onClick={() => handleSort("Record")}>Record{renderSortIndicator("Record")}</th>
+                            <th style={{ padding: "0.75rem 1rem", cursor: "pointer", userSelect: "none" }} onClick={() => handleSort("QPct")}>QPct{renderSortIndicator("QPct")}</th>
+                            <th style={{ padding: "0.75rem 1rem", cursor: "pointer", userSelect: "none" }} onClick={() => handleSort("TCA")}>TCA{renderSortIndicator("TCA")}</th>
+                            <th style={{ padding: "0.75rem 1rem", cursor: "pointer", userSelect: "none" }} onClick={() => handleSort("CAA")}>CAA{renderSortIndicator("CAA")}</th>
+                            <th style={{ padding: "0.75rem 1rem", cursor: "pointer", userSelect: "none" }} onClick={() => handleSort("PTS")}>PTS{renderSortIndicator("PTS")}</th>
+                            <th style={{ padding: "0.75rem 1rem", cursor: "pointer", userSelect: "none" }} onClick={() => handleSort("Exp_PTS")}>Expected PTS{renderSortIndicator("Exp_PTS")}</th>
+                            <th style={{ padding: "0.75rem 1rem", cursor: "pointer", userSelect: "none" }} onClick={() => handleSort("Luck")}>Luck Diff{renderSortIndicator("Luck")}</th>
+                            <th style={{ padding: "0.75rem 1rem", cursor: "pointer", userSelect: "none" }} onClick={() => handleSort("LuckPctile")}>Luck Pctile{renderSortIndicator("LuckPctile")}</th>
+                            <th style={{ padding: "0.75rem 1rem", cursor: "pointer", userSelect: "none" }} onClick={() => handleSort("Rank")}>Rank{renderSortIndicator("Rank")}</th>
+                            <th style={{ padding: "0.75rem 1rem", cursor: "pointer", userSelect: "none" }} onClick={() => handleSort("Exp_Rank")}>Expected Rank{renderSortIndicator("Exp_Rank")}</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                        </thead>
+                        <tbody>
+                          {sortedResults.map((row, idx) => (
+                            <tr 
+                              key={idx} 
+                              style={{ 
+                                borderBottom: "1px solid var(--card-border)", 
+                                fontSize: "0.9rem",
+                                background: luckUsernames.split(",").map(u=>u.trim().toLowerCase()).includes(row.Player.toLowerCase()) ? "rgba(0, 240, 255, 0.08)" : "transparent"
+                              }}
+                            >
+                              <td style={{ padding: "0.75rem 1rem", fontWeight: "bold" }}>{row.Player}</td>
+                              <td style={{ padding: "0.75rem 1rem" }}>{row.Rundle}</td>
+                              <td style={{ padding: "0.75rem 1rem" }}>{row.W}-{row.L}-{row.T}</td>
+                              <td style={{ padding: "0.75rem 1rem" }}>{(row.QPct * 100).toFixed(1)}%</td>
+                              <td style={{ padding: "0.75rem 1rem" }}>{row.TCA}</td>
+                              <td style={{ padding: "0.75rem 1rem" }}>{row.CAA}</td>
+                              <td style={{ padding: "0.75rem 1rem", fontWeight: "600" }}>{row.PTS}</td>
+                              <td style={{ padding: "0.75rem 1rem" }}>{row.Exp_PTS}</td>
+                              <td style={{ padding: "0.75rem 1rem", color: row.Luck >= 0 ? "#10B981" : "#EF4444", fontWeight: "bold" }}>
+                                {row.Luck > 0 ? `+${row.Luck}` : row.Luck}
+                              </td>
+                              <td style={{ padding: "0.75rem 1rem", fontWeight: "bold", color: "var(--accent-cyan)" }}>{row.LuckPctile}%</td>
+                              <td style={{ padding: "0.75rem 1rem" }}>{row.Rank}</td>
+                              <td style={{ padding: "0.75rem 1rem" }}>{row.Exp_Rank}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
               </div>
             )}
             {/* 5. Settings / Login */}
