@@ -63,12 +63,9 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
   const [opponentsList, setOpponentsList] = useState<Record<string, { profileId: string; matchDay: number }>>({});
   const [selectedOpponent, setSelectedOpponent] = useState<string>("");
 
-  // Modal states for Matchday Questions without answers
-  const [showQuestionsModal, setShowQuestionsModal] = useState<boolean>(false);
-  const [modalQuestions, setModalQuestions] = useState<{ num: number; category: string; text: string }[]>([]);
-  const [modalLoading, setModalLoading] = useState<boolean>(false);
-  const [modalError, setModalError] = useState<string>("");
-  const [activeQuestionTab, setActiveQuestionTab] = useState<number>(1);
+  // Defense page questions and radar state
+  const [defenseQuestions, setDefenseQuestions] = useState<{ num: number; category: string; text: string }[]>([]);
+  const [showRadarModal, setShowRadarModal] = useState<boolean>(false);
   const [defenseCategories, setDefenseCategories] = useState<string[]>(new Array(6).fill("ALL"));
   const [defenseSuggestions, setDefenseSuggestions] = useState<number[]>([]);
   const [defensePercentages, setDefensePercentages] = useState<string[]>([]);
@@ -283,6 +280,7 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
   useEffect(() => {
     if (currentPage === 'defense' && selectedOpponent && opponentsList[selectedOpponent]) {
       handleCalculateDefense(selectedOpponent, opponentsList);
+      loadDefenseQuestions(selectedOpponent, opponentsList);
     }
   }, [selectedOpponent, currentPage, opponentsList]);
 
@@ -736,31 +734,21 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
     setDefenseLoading(false);
   };
 
-  // Defense: View Day's questions without answers
-  const handleViewDaysQuestions = async () => {
-    const oppInfo = opponentsList[selectedOpponent];
-    if (!oppInfo) {
-      alert("No opponent selected or opponent list empty.");
-      return;
-    }
+  // Defense: Load Match Day's questions directly in the background
+  const loadDefenseQuestions = async (oppName: string, list: Record<string, { profileId: string; matchDay: number }>) => {
+    const oppInfo = list[oppName];
+    if (!oppInfo) return;
     
     const day = typeof oppInfo === 'object' ? oppInfo.matchDay : null;
-    if (!day) {
-      alert("Could not determine Match Day for this opponent.");
-      return;
-    }
+    if (!day) return;
     
-    setModalLoading(true);
-    setModalError("");
-    setModalQuestions([]);
-    setActiveQuestionTab(1);
-    setShowQuestionsModal(true);
+    setDefenseQuestions([]);
     
     try {
       const season = parseInt(syncSeason) || 109;
       const dayStr = day.toString().padStart(2, '0');
       
-      // 1. Try to load from Dexie database first
+      // 1. Try database first
       const dbQs = await dbInstance.questions
         .where('season').equals(season)
         .toArray();
@@ -769,13 +757,11 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
       
       if (filtered.length > 0) {
         filtered.sort((a, b) => a.id.localeCompare(b.id));
-        const parsed = filtered.map((q, idx) => ({
+        setDefenseQuestions(filtered.map((q, idx) => ({
           num: idx + 1,
           category: q.category,
           text: q.question
-        }));
-        setModalQuestions(parsed);
-        setModalLoading(false);
+        })));
         return;
       }
       
@@ -784,51 +770,35 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
       if (res.success && res.data) {
         const parser = new DOMParser();
         const mDoc = parser.parseFromString(res.data, "text/html");
-        
-        const bodyText = mDoc.body.textContent || "";
-        if (bodyText.includes("not yet active") || bodyText.includes("No Active Match Day")) {
-          setModalError(`Match Day ${day} is not active yet.`);
-          setModalLoading(false);
-          return;
-        }
-        
         const qDivs = mDoc.querySelectorAll("div.ind-Q20");
-        if (qDivs.length === 0) {
-          setModalError(`No questions found for Match Day ${day}.`);
-          setModalLoading(false);
-          return;
+        if (qDivs.length > 0) {
+          const parsed = Array.from(qDivs).map((qDiv, idx) => {
+            const clone = qDiv.cloneNode(true) as HTMLElement;
+            const labelSpan = clone.querySelector("span.ind-Numb3");
+            if (labelSpan) labelSpan.remove();
+            
+            const fullText = clone.textContent?.trim() || "";
+            
+            let category = "ALL";
+            let text = fullText;
+            const catMatch = fullText.match(/^([A-Z][A-Z /]+?)\s*-\s+(.+)/s);
+            if (catMatch) {
+              category = catMatch[1].trim();
+              text = catMatch[2].trim();
+            }
+            
+            return {
+              num: idx + 1,
+              category,
+              text
+            };
+          });
+          setDefenseQuestions(parsed);
         }
-        
-        const parsed = Array.from(qDivs).map((qDiv, idx) => {
-          const clone = qDiv.cloneNode(true) as HTMLElement;
-          const labelSpan = clone.querySelector("span.ind-Numb3");
-          if (labelSpan) labelSpan.remove();
-          
-          const fullText = clone.textContent?.trim() || "";
-          
-          let category = "ALL";
-          let text = fullText;
-          const catMatch = fullText.match(/^([A-Z][A-Z /]+?)\s*-\s+(.+)/s);
-          if (catMatch) {
-            category = catMatch[1].trim();
-            text = catMatch[2].trim();
-          }
-          
-          return {
-            num: idx + 1,
-            category,
-            text
-          };
-        });
-        
-        setModalQuestions(parsed);
-      } else {
-        setModalError(`Failed to fetch Match Day ${day} page: ${res.error}`);
       }
-    } catch (err: any) {
-      setModalError(`Error: ${err.message}`);
+    } catch (err) {
+      console.error("Error loading defense questions", err);
     }
-    setModalLoading(false);
   };
 
   // Luck: Trigger Python luck analysis script
@@ -1801,7 +1771,14 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                 <div className="grid-container" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
                   {/* Left Column: Strategy */}
                   <div className="glass-panel" style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-                    <h3 style={{ borderBottom: "1px solid var(--card-border)", paddingBottom: "0.5rem" }}>Select Opponent</h3>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--card-border)", paddingBottom: "0.5rem" }}>
+                      <h3 style={{ margin: 0 }}>Select Opponent</h3>
+                      {hunScore && (
+                        <span style={{ fontSize: "0.85rem", color: "var(--accent-cyan)", fontWeight: "600", background: "rgba(0, 240, 255, 0.1)", padding: "0.25rem 0.6rem", borderRadius: "4px" }}>
+                          HUN Similarity: {hunScore.includes(" (") ? hunScore.split(" (")[0] : hunScore}
+                        </span>
+                      )}
+                    </div>
                     
                     <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
                       <div className="form-group" style={{ flex: 1 }}>
@@ -1826,17 +1803,16 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                       >
                         Refresh Opponents
                       </button>
-                    </div>
 
-                    {selectedOpponent && opponentsList[selectedOpponent] && (
                       <button 
                         className="btn secondary" 
-                        onClick={handleViewDaysQuestions}
-                        style={{ alignSelf: "flex-start", marginTop: "-0.5rem", padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}
+                        onClick={() => setShowRadarModal(true)} 
+                        style={{ marginTop: "1.3rem" }}
+                        disabled={Object.keys(oppCategoryStats).length === 0}
                       >
-                        View Day {typeof opponentsList[selectedOpponent] === 'object' ? (opponentsList[selectedOpponent] as any).matchDay : ""} Questions (No Answers)
+                        View Radar Chart
                       </button>
-                    )}
+                    </div>
 
                     <h3 style={{ borderBottom: "1px solid var(--card-border)", paddingBottom: "0.5rem", marginTop: "1rem" }}>Matchday Question Categories</h3>
                     
@@ -1888,41 +1864,98 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                     </div>
                   </div>
 
-                  {/* Right Column: Similarity Info */}
+                  {/* Right Column: Questions List Display */}
                   <div className="glass-panel" style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-                    <h3 style={{ borderBottom: "1px solid var(--card-border)", paddingBottom: "0.5rem" }}>HUN Similarity</h3>
-                    
-                    <div style={{ padding: "1rem", background: "var(--bg-secondary)", borderRadius: "var(--border-radius-md)", border: "1px solid var(--card-border)", textAlign: "center" }}>
-                      <strong style={{ fontSize: "2rem", color: "var(--accent-cyan)" }}>{hunScore || "N/A"}</strong>
-                    </div>
+                    <h3 style={{ borderBottom: "1px solid var(--card-border)", paddingBottom: "0.5rem" }}>
+                      Match Day {typeof opponentsList[selectedOpponent] === 'object' ? (opponentsList[selectedOpponent] as any).matchDay : ""} Questions
+                    </h3>
 
-                    {/* Radar Chart */}
-                    {Object.keys(userCategoryStats).length > 0 && Object.keys(oppCategoryStats).length > 0 && (
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: "0.5rem" }}>
-                        <h4 style={{ color: "var(--text-primary)", marginBottom: "0.5rem", fontSize: "0.95rem" }}>Category Correctness Comparison</h4>
-                        
+                    {defenseLoading && (
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "4rem 0", color: "var(--text-secondary)", flex: 1, justifyContent: "center" }}>
+                        <div className="spinner" style={{ marginBottom: "1rem" }}></div>
+                        Loading questions...
+                      </div>
+                    )}
+
+                    {!defenseLoading && defenseQuestions.length === 0 && (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "4rem 0", color: "var(--text-muted)", flex: 1, textAlign: "center" }}>
+                        No questions loaded. Select an opponent to view Match Day questions.
+                      </div>
+                    )}
+
+                    {!defenseLoading && defenseQuestions.length > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "1rem", overflowY: "auto", maxHeight: "580px", paddingRight: "0.5rem" }}>
+                        {defenseQuestions.map((q) => (
+                          <div key={q.num} style={{ padding: "1rem", background: "var(--bg-secondary)", borderRadius: "var(--border-radius-md)", border: "1px solid var(--card-border)" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.85rem" }}>
+                              <span style={{ fontWeight: "700", color: "var(--accent-cyan)" }}>Question {q.num}</span>
+                            </div>
+                            <p style={{ margin: 0, fontSize: "0.95rem", lineHeight: "1.5", color: "var(--text-primary)" }}>{q.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Modal Overlay for Radar Chart */}
+                {showRadarModal && (
+                  <div style={{
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: "rgba(0, 0, 0, 0.75)",
+                    backdropFilter: "blur(4px)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 1000
+                  }}>
+                    <div className="glass-panel" style={{
+                      width: "90%",
+                      maxWidth: "520px",
+                      padding: "2rem",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "1.5rem",
+                      boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+                      border: "1px solid var(--card-border)",
+                      animation: "fadeIn 0.2s ease-out"
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--card-border)", paddingBottom: "0.75rem" }}>
+                        <h2 style={{ margin: 0, fontSize: "1.3rem", color: "var(--text-primary)" }}>
+                          Category Comparison (Radar)
+                        </h2>
+                        <button 
+                          className="btn secondary" 
+                          onClick={() => setShowRadarModal(false)}
+                          style={{ padding: "0.25rem 0.5rem", minWidth: "auto" }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                         {(() => {
-                          const width = 460;
-                          const height = 460;
+                          const width = 440;
+                          const height = 400;
                           const cx = width / 2;
                           const cy = height / 2;
-                          const rMax = 130;
+                          const rMax = 120;
                           const categories = Object.keys(oppCategoryStats).filter(cat => cat && cat !== "Overall" && cat !== "TOTAL" && cat !== "AVG" && cat !== "ALL" && cat !== "Avg" && cat !== "Total");
                           const numAxes = categories.length || 6;
 
-                          // Grid hexagons
-                          const gridLevels = [0.25, 0.5, 0.75, 1.0];
-                          
-                          const getCoords = (index: number, value: number, offset = 1.0) => {
-                            const angle = (index * 2 * Math.PI) / numAxes - Math.PI / 2;
-                            const r = rMax * value * offset;
+                          const getCoords = (i: number, val: number) => {
+                            const angle = (i * 2 * Math.PI) / numAxes - Math.PI / 2;
+                            const r = val * rMax;
                             return {
                               x: cx + r * Math.cos(angle),
                               y: cy + r * Math.sin(angle)
                             };
                           };
 
-                          // Generate polygon points path
                           const getPolygonPath = (stats: Record<string, number>) => {
                             const points = categories.map((cat, i) => {
                               const pct = stats[cat] !== undefined ? stats[cat] : 0.5;
@@ -1934,11 +1967,11 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
 
                           const userPoints = getPolygonPath(userCategoryStats);
                           const oppPoints = getPolygonPath(oppCategoryStats);
+                          const gridLevels = [0.2, 0.4, 0.6, 0.8, 1.0];
 
                           return (
                             <div style={{ position: "relative", width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
                               <svg width={width} height={height} style={{ overflow: "visible" }}>
-                                {/* Concentric hexagon grid */}
                                 {gridLevels.map((lvl, idx) => {
                                   const points = Array.from({ length: numAxes }).map((_, i) => {
                                     const { x, y } = getCoords(i, lvl);
@@ -1956,13 +1989,11 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                                   );
                                 })}
 
-                                {/* Axis lines and Labels */}
                                 {categories.map((cat, i) => {
                                   const outer = getCoords(i, 1.0);
                                   const labelPos = getCoords(i, 1.25);
                                   return (
                                     <g key={i}>
-                                      {/* Radial line */}
                                       <line
                                         x1={cx}
                                         y1={cy}
@@ -1971,7 +2002,6 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                                         stroke="rgba(255, 255, 255, 0.08)"
                                         strokeWidth="1"
                                       />
-                                      {/* Category label */}
                                       <text
                                         x={labelPos.x}
                                         y={labelPos.y + 3}
@@ -1992,23 +2022,20 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                                   );
                                 })}
 
-                                {/* User Polygon */}
                                 <polygon
                                   points={userPoints}
-                                  fill="rgba(0, 240, 255, 0.15)"
+                                  fill="rgba(0, 240, 255, 0.12)"
                                   stroke="#00F0FF"
                                   strokeWidth="2"
                                 />
 
-                                {/* Opponent Polygon */}
                                 <polygon
                                   points={oppPoints}
-                                  fill="rgba(255, 0, 127, 0.15)"
+                                  fill="rgba(255, 0, 127, 0.12)"
                                   stroke="#FF007F"
                                   strokeWidth="2"
                                 />
 
-                                {/* Axis circles for points */}
                                 {categories.map((cat, i) => {
                                   const userVal = userCategoryStats[cat] !== undefined ? userCategoryStats[cat] : 0.5;
                                   const oppVal = oppCategoryStats[cat] !== undefined ? oppCategoryStats[cat] : 0.5;
@@ -2023,7 +2050,6 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                                 })}
                               </svg>
 
-                              {/* Custom Legend */}
                               <div style={{ display: "flex", gap: "1rem", justifyContent: "center", marginTop: "0.5rem", fontSize: "0.8rem" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
                                   <span style={{ display: "inline-block", width: "12px", height: "12px", borderRadius: "2px", background: "#00F0FF" }}></span>
@@ -2038,142 +2064,9 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                           );
                         })()}
                       </div>
-                    )}
-
-                  </div>
-                </div>
-
-                {/* Modal Overlay for Questions without answers */}
-                {showQuestionsModal && (
-                  <div style={{
-                    position: "fixed",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: "rgba(0, 0, 0, 0.75)",
-                    backdropFilter: "blur(4px)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    zIndex: 1000
-                  }}>
-                    <div className="glass-panel" style={{
-                      width: "90%",
-                      maxWidth: "700px",
-                      maxHeight: "85vh",
-                      overflowY: "auto",
-                      padding: "2rem",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "1.5rem",
-                      boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
-                      border: "1px solid var(--card-border)",
-                      animation: "fadeIn 0.2s ease-out"
-                    }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--card-border)", paddingBottom: "0.75rem" }}>
-                        <h2 style={{ margin: 0, fontSize: "1.5rem", color: "var(--text-primary)" }}>
-                          Match Day {typeof opponentsList[selectedOpponent] === 'object' ? (opponentsList[selectedOpponent] as any).matchDay : ""} Questions
-                        </h2>
-                        <button 
-                          className="btn secondary" 
-                          onClick={() => setShowQuestionsModal(false)}
-                          style={{ padding: "0.25rem 0.5rem", minWidth: "auto" }}
-                        >
-                          ✕
-                        </button>
-                      </div>
-
-                      {modalLoading && (
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "3rem 0", color: "var(--text-secondary)" }}>
-                          <div className="spinner" style={{ marginBottom: "1rem" }}></div>
-                          Loading questions...
-                        </div>
-                      )}
-
-                      {modalError && (
-                        <div style={{ padding: "1rem", background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "var(--border-radius-md)", color: "#ef4444", fontSize: "0.95rem" }}>
-                          {modalError}
-                        </div>
-                      )}
-
-                       {!modalLoading && !modalError && modalQuestions.length > 0 && (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-                          {/* Tab selectors for Q1 - Q6 */}
-                          <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", borderBottom: "1px solid var(--card-border)", paddingBottom: "1rem" }}>
-                            {modalQuestions.map((q) => (
-                              <button
-                                key={q.num}
-                                className={`btn ${activeQuestionTab === q.num ? 'primary' : 'secondary'}`}
-                                onClick={() => setActiveQuestionTab(q.num)}
-                                style={{
-                                  padding: "0.5rem 1rem",
-                                  minWidth: "60px",
-                                  fontWeight: "700"
-                                }}
-                              >
-                                Q{q.num}
-                              </button>
-                            ))}
-                          </div>
-
-                          {/* Active Question Panel */}
-                          {(() => {
-                            const q = modalQuestions.find(mq => mq.num === activeQuestionTab) || modalQuestions[0];
-                            return (
-                              <div style={{
-                                padding: "2rem",
-                                background: "var(--bg-secondary)",
-                                borderRadius: "var(--border-radius-md)",
-                                border: "1px solid var(--card-border)",
-                                minHeight: "150px",
-                                display: "flex",
-                                flexDirection: "column",
-                                justifyContent: "center"
-                              }}>
-                                <div style={{ marginBottom: "1rem", fontSize: "0.9rem", fontWeight: "700", color: "var(--accent-cyan)", letterSpacing: "1px" }}>
-                                  QUESTION {q.num}
-                                </div>
-                                <p style={{
-                                  margin: 0,
-                                  fontSize: "1.1rem",
-                                  lineHeight: "1.6",
-                                  color: "var(--text-primary)",
-                                  fontWeight: "400"
-                                }}>
-                                  {q.text}
-                                </p>
-                              </div>
-                            );
-                          })()}
-
-                          {/* Prev / Next controls */}
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.5rem" }}>
-                            <button
-                              className="btn secondary"
-                              onClick={() => setActiveQuestionTab(prev => Math.max(1, prev - 1))}
-                              disabled={activeQuestionTab === 1}
-                              style={{ padding: "0.4rem 1rem" }}
-                            >
-                              ← Previous
-                            </button>
-                            <span style={{ fontSize: "0.9rem", color: "var(--text-secondary)", fontWeight: "500" }}>
-                              {activeQuestionTab} of 6
-                            </span>
-                            <button
-                              className="btn secondary"
-                              onClick={() => setActiveQuestionTab(next => Math.min(6, next + 1))}
-                              disabled={activeQuestionTab === 6}
-                              style={{ padding: "0.4rem 1rem" }}
-                            >
-                              Next →
-                            </button>
-                          </div>
-                        </div>
-                      )}
 
                       <div style={{ display: "flex", justifyContent: "flex-end", borderTop: "1px solid var(--card-border)", paddingTop: "0.75rem" }}>
-                        <button className="btn secondary" onClick={() => setShowQuestionsModal(false)}>
+                        <button className="btn secondary" onClick={() => setShowRadarModal(false)}>
                           Close
                         </button>
                       </div>
