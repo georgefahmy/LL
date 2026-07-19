@@ -53,12 +53,24 @@ export class LearnedLeagueDatabase extends Dexie {
 export const dbInstance = new LearnedLeagueDatabase();
 
 export async function initializeDatabaseIfEmpty() {
-  const count = await dbInstance.questions.count();
-  if (count === 0) {
-    console.log("Database is empty, importing questions.json...");
-    // Bulk add questions
-    await dbInstance.questions.bulkAdd(questionsJson as Question[]);
-    console.log(`Successfully imported ${questionsJson.length} questions into IndexedDB.`);
+  try {
+    console.log("[DB] Checking question count...");
+    const count = await dbInstance.questions.count();
+    console.log(`[DB] Current question count in IndexedDB: ${count}`);
+    if (count === 0) {
+      const isArr = Array.isArray(questionsJson);
+      console.log(`[DB] Database is empty. questionsJson type: ${typeof questionsJson}, isArray: ${isArr}`);
+      if (isArr) {
+        console.log(`[DB] Importing ${questionsJson.length} questions...`);
+        await dbInstance.questions.bulkPut(questionsJson as Question[]);
+        const newCount = await dbInstance.questions.count();
+        console.log(`[DB] Successfully imported. New count: ${newCount}`);
+      } else {
+        console.error("[DB] Error: questions.json is not an array!");
+      }
+    }
+  } catch (err) {
+    console.error("[DB] Error in initializeDatabaseIfEmpty:", err);
   }
 }
 

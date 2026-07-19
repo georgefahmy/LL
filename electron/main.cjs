@@ -22,6 +22,14 @@ function createWindow() {
 
   // Load built react bundle
   mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+  
+  // Forward renderer logs to main process stdout
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log(`[Renderer Log] ${message} (line ${line} in ${sourceId})`);
+  });
+
+  // Open Developer Tools to debug database initialization
+  mainWindow.webContents.openDevTools();
 }
 
 app.whenReady().then(() => {
