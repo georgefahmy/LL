@@ -910,6 +910,10 @@ interface OpponentHistoryRecord {
         }
       }
       return true;
+    }).sort((a, b) => {
+      if (b.season !== a.season) return b.season - a.season;
+      if (b.day !== a.day) return b.day - a.day;
+      return b.qNum - a.qNum;
     });
   };
 
