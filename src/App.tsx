@@ -2067,7 +2067,7 @@ interface OpponentHistoryRecord {
                           const cx = width / 2;
                           const cy = height / 2;
                           const rMax = 120;
-                          const categories = Object.keys(oppCategoryStats).filter(cat => cat && cat !== "Overall" && cat !== "TOTAL" && cat !== "AVG" && cat !== "ALL" && cat !== "Avg" && cat !== "Total");
+                          const categories = Object.keys(oppCategoryStats).filter(cat => cat && cat !== "Overall" && cat !== "TOTAL" && cat !== "AVG" && cat !== "ALL" && cat !== "Avg" && cat !== "Total").sort();
                           const numAxes = categories.length || 6;
 
                           const getCoords = (i: number, val: number) => {
