@@ -620,7 +620,7 @@ interface OpponentHistoryRecord {
   };
 
   // Defense: Calculate HUN and point suggestions
-  const handleCalculateDefense = async (oppName = selectedOpponent, list = opponentsList) => {
+  const handleCalculateDefense = async (oppName = selectedOpponent, list = opponentsList, calculateHun = true) => {
     if (!oppName || !list[oppName]) {
       return;
     }
@@ -690,56 +690,58 @@ interface OpponentHistoryRecord {
         }));
 
         // 2. Fetch User and Opponent question histories to calculate HUN similarity
-        setHunScore("Calculating...");
-        const userQRes = await window.electronAPI.fetchLL(`https://www.learnedleague.com/profiles.php?${profileId}&9`);
-        const oppQRes = await window.electronAPI.fetchLL(`https://www.learnedleague.com/profiles.php?${oppId}&9`);
+        if (calculateHun) {
+          setHunScore("Calculating...");
+          const userQRes = await window.electronAPI.fetchLL(`https://www.learnedleague.com/profiles.php?${profileId}&9`);
+          const oppQRes = await window.electronAPI.fetchLL(`https://www.learnedleague.com/profiles.php?${oppId}&9`);
 
-        if (userQRes.success && userQRes.data && oppQRes.success && oppQRes.data) {
-          const uDoc = parser.parseFromString(userQRes.data, "text/html");
-          const oDoc = parser.parseFromString(oppQRes.data, "text/html");
+          if (userQRes.success && userQRes.data && oppQRes.success && oppQRes.data) {
+            const uDoc = parser.parseFromString(userQRes.data, "text/html");
+            const oDoc = parser.parseFromString(oppQRes.data, "text/html");
 
-          const parseHistory = (qhDoc: Document) => {
-            const history: Record<string, boolean> = {};
-            const qhistory = qhDoc.querySelector("div.qhistory");
-            if (qhistory) {
-              const liList = qhistory.querySelectorAll("li");
-              liList.forEach(li => {
-                const qhRows = li.querySelectorAll("table.qh tr");
-                qhRows.forEach((r, rIdx) => {
-                  if (rIdx === 0) return;
-                  const cells = r.querySelectorAll("td");
-                  if (cells.length > 2) {
-                    const a = cells[0].querySelectorAll("a")[2];
-                    const qId = a ? a.getAttribute("href")?.split("?")[1] : "";
-                    const correct = cells[2].querySelector("svg")?.getAttribute("aria-label")?.includes("Check") || false;
-                    if (qId) {
-                      history[qId] = correct;
+            const parseHistory = (qhDoc: Document) => {
+              const history: Record<string, boolean> = {};
+              const qhistory = qhDoc.querySelector("div.qhistory");
+              if (qhistory) {
+                const liList = qhistory.querySelectorAll("li");
+                liList.forEach(li => {
+                  const qhRows = li.querySelectorAll("table.qh tr");
+                  qhRows.forEach((r, rIdx) => {
+                    if (rIdx === 0) return;
+                    const cells = r.querySelectorAll("td");
+                    if (cells.length > 2) {
+                      const a = cells[0].querySelectorAll("a")[2];
+                      const qId = a ? a.getAttribute("href")?.split("?")[1] : "";
+                      const correct = cells[2].querySelector("svg")?.getAttribute("aria-label")?.includes("Check") || false;
+                      if (qId) {
+                        history[qId] = correct;
+                      }
                     }
-                  }
+                  });
                 });
-              });
-            }
-            return history;
-          };
-
-          const userHistory = parseHistory(uDoc);
-          const oppHistory = parseHistory(oDoc);
-
-          let raw = 0;
-          let total = 0;
-          Object.keys(userHistory).forEach(key => {
-            if (oppHistory[key] !== undefined) {
-              total++;
-              if (userHistory[key] === oppHistory[key]) {
-                raw++;
               }
-            }
-          });
+              return history;
+            };
 
-          const hun = total > 0 ? (raw / total) : 0;
-          setHunScore(`${(hun * 100).toFixed(2)}% (Matches compared: ${total})`);
-        } else {
-          setHunScore("Failed (mismatched profiles history)");
+            const userHistory = parseHistory(uDoc);
+            const oppHistory = parseHistory(oDoc);
+
+            let raw = 0;
+            let total = 0;
+            Object.keys(userHistory).forEach(key => {
+              if (oppHistory[key] !== undefined) {
+                total++;
+                if (userHistory[key] === oppHistory[key]) {
+                  raw++;
+                }
+              }
+            });
+
+            const hun = total > 0 ? (raw / total) : 0;
+            setHunScore(`${(hun * 100).toFixed(2)}% (Matches compared: ${total})`);
+          } else {
+            setHunScore("Failed (mismatched profiles history)");
+          }
         }
       }
     } catch (e) {
@@ -1970,8 +1972,8 @@ interface OpponentHistoryRecord {
                     </div>
 
                     <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
-                      <button className="btn primary" onClick={() => handleCalculateDefense()} disabled={defenseLoading}>
-                        {defenseLoading ? "Calculating..." : "Calculate Strategy & HUN"}
+                      <button className="btn primary" onClick={() => handleCalculateDefense(selectedOpponent, opponentsList, false)} disabled={defenseLoading}>
+                        {defenseLoading ? "Processing..." : "Submit"}
                       </button>
                       <button 
                         className="btn secondary" 
