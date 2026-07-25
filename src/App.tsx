@@ -58,6 +58,14 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
   return window.electronAPI.fetchLL(url);
 };
 
+interface OpponentHistoryRecord {
+  id: string;
+  season: number;
+  day: number;
+  qNum: number;
+  correct: boolean;
+}
+
 
   // Defense Tactics States
   const [opponentsList, setOpponentsList] = useState<Record<string, { profileId: string; matchDay: number }>>({});
@@ -66,6 +74,13 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
   // Defense page questions and radar state
   const [defenseQuestions, setDefenseQuestions] = useState<{ num: number; category: string; text: string }[]>([]);
   const [showRadarModal, setShowRadarModal] = useState<boolean>(false);
+  const [oppHistoryList, setOppHistoryList] = useState<OpponentHistoryRecord[]>([]);
+  const [historyLoading, setHistoryLoading] = useState<boolean>(false);
+  const [showHistoryModal, setShowHistoryModal] = useState<boolean>(false);
+  const [historySearch, setHistorySearch] = useState<string>("");
+  const [historyCategory, setHistoryCategory] = useState<string>("ALL");
+  const [showDetailModal, setShowDetailModal] = useState<boolean>(false);
+  const [selectedHistoryQuestion, setSelectedHistoryQuestion] = useState<{ id: string; question: string; answer: string; category: string } | null>(null);
   const [defenseCategories, setDefenseCategories] = useState<string[]>(new Array(6).fill("ALL"));
   const [defenseSuggestions, setDefenseSuggestions] = useState<number[]>([]);
   const [defensePercentages, setDefensePercentages] = useState<string[]>([]);
@@ -799,6 +814,101 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
     } catch (err) {
       console.error("Error loading defense questions", err);
     }
+  };
+
+  // Defense: Load Opponent's Question History from profile
+  const loadOpponentHistory = async () => {
+    const oppInfo = opponentsList[selectedOpponent];
+    if (!oppInfo) {
+      alert("Please select an opponent first.");
+      return;
+    }
+    const oppId = typeof oppInfo === 'object' ? oppInfo.profileId : oppInfo;
+    
+    setHistoryLoading(true);
+    setOppHistoryList([]);
+    
+    try {
+      const res = await window.electronAPI.fetchLL(`https://www.learnedleague.com/profiles.php?${oppId}&9`);
+      if (res.success && res.data) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(res.data, "text/html");
+        
+        const qhistory = doc.querySelector("div.qhistory");
+        const list: OpponentHistoryRecord[] = [];
+        
+        if (qhistory) {
+          const liList = qhistory.querySelectorAll("li");
+          liList.forEach(li => {
+            const qhRows = li.querySelectorAll("table.qh tr");
+            qhRows.forEach((r, rIdx) => {
+              if (rIdx === 0) return;
+              const cells = r.querySelectorAll("td");
+              if (cells.length > 2) {
+                const a = cells[0].querySelectorAll("a")[2];
+                const href = a ? a.getAttribute("href") || "" : "";
+                const qIdString = href.split("?")[1] || "";
+                
+                const correct = cells[2].querySelector("svg")?.getAttribute("aria-label")?.includes("Check") || false;
+                
+                if (qIdString) {
+                  const parts = qIdString.split("&");
+                  if (parts.length >= 3) {
+                    const season = parseInt(parts[0]);
+                    const day = parseInt(parts[1]);
+                    const qNum = parseInt(parts[2]);
+                    const dayStr = parts[1].padStart(2, '0');
+                    const id = `S${season}D${dayStr}Q${qNum}`;
+                    
+                    list.push({
+                      id,
+                      season,
+                      day,
+                      qNum,
+                      correct
+                    });
+                  }
+                }
+              }
+            });
+          });
+        }
+        
+        setOppHistoryList(list);
+      } else {
+        alert("Failed to load opponent history: " + res.error);
+      }
+    } catch (e) {
+      alert("Error loading history: " + e);
+    }
+    setHistoryLoading(false);
+  };
+
+  // Defense: Get filtered opponent question history mapped to full details
+  const getFilteredHistory = () => {
+    return oppHistoryList.map(record => {
+      const qInfo = allQuestions.find(q => q.id === record.id);
+      return {
+        ...record,
+        category: qInfo?.category || "Unknown",
+        question: qInfo?.question || "Question text not synced in database.",
+        answer: qInfo?.answer || "Answer text not synced in database."
+      };
+    }).filter(record => {
+      if (historyCategory !== 'ALL' && record.category.toUpperCase() !== historyCategory.toUpperCase()) {
+        return false;
+      }
+      if (historySearch.trim() !== '') {
+        const query = historySearch.toLowerCase();
+        const inQuestion = record.question.toLowerCase().includes(query);
+        const inAnswer = record.answer.toLowerCase().includes(query);
+        const inId = record.id.toLowerCase().includes(query);
+        if (!inQuestion && !inAnswer && !inId) {
+          return false;
+        }
+      }
+      return true;
+    });
   };
 
   // Luck: Trigger Python luck analysis script
@@ -1812,6 +1922,18 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
                       >
                         View Radar Chart
                       </button>
+
+                      <button 
+                        className="btn secondary" 
+                        onClick={() => {
+                          setShowHistoryModal(true);
+                          loadOpponentHistory();
+                        }} 
+                        style={{ marginTop: "1.3rem" }}
+                        disabled={!selectedOpponent}
+                      >
+                        Question History
+                      </button>
                     </div>
 
                     <h3 style={{ borderBottom: "1px solid var(--card-border)", paddingBottom: "0.5rem", marginTop: "1rem" }}>Matchday Question Categories</h3>
@@ -2067,6 +2189,228 @@ const directFetchLL = async (url: string): Promise<{ success: boolean; data?: st
 
                       <div style={{ display: "flex", justifyContent: "flex-end", borderTop: "1px solid var(--card-border)", paddingTop: "0.75rem" }}>
                         <button className="btn secondary" onClick={() => setShowRadarModal(false)}>
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Modal Overlay for Opponent Question History */}
+                {showHistoryModal && (
+                  <div style={{
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: "rgba(0, 0, 0, 0.75)",
+                    backdropFilter: "blur(4px)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 1000
+                  }}>
+                    <div className="glass-panel" style={{
+                      width: "95%",
+                      maxWidth: "800px",
+                      height: "85vh",
+                      padding: "2rem",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "1.25rem",
+                      boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+                      border: "1px solid var(--card-border)",
+                      animation: "fadeIn 0.2s ease-out"
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--card-border)", paddingBottom: "0.75rem" }}>
+                        <h2 style={{ margin: 0, fontSize: "1.5rem", color: "var(--text-primary)" }}>
+                          {selectedOpponent}'s Question History
+                        </h2>
+                        <button 
+                          className="btn secondary" 
+                          onClick={() => setShowHistoryModal(false)}
+                          style={{ padding: "0.25rem 0.5rem", minWidth: "auto" }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+                        <div className="form-group" style={{ width: "200px" }}>
+                          <label>Category</label>
+                          <select 
+                            className="text-input" 
+                            value={historyCategory}
+                            onChange={(e) => setHistoryCategory(e.target.value)}
+                            style={{ background: "var(--bg-secondary)", color: "var(--text-primary)" }}
+                          >
+                            <option value="ALL">All Categories</option>
+                            {CATEGORIES.map(cat => (
+                              <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label>Search Questions / Answers</label>
+                          <input 
+                            type="text" 
+                            className="text-input" 
+                            placeholder="Search keyword or question ID..."
+                            value={historySearch}
+                            onChange={(e) => setHistorySearch(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      {historyLoading && (
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, color: "var(--text-secondary)" }}>
+                          <div className="spinner" style={{ marginBottom: "1rem" }}></div>
+                          Fetching history from LearnedLeague...
+                        </div>
+                      )}
+
+                      {!historyLoading && (
+                        <div className="data-table-wrapper" style={{ flex: 1, overflowY: "auto", border: "1px solid var(--card-border)", borderRadius: "var(--border-radius-md)" }}>
+                          <table className="data-table">
+                            <thead>
+                              <tr>
+                                <th style={{ width: "130px" }}>Question ID</th>
+                                <th style={{ width: "120px" }}>Category</th>
+                                <th style={{ width: "100px" }}>Result</th>
+                                <th>Question Snippet</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {getFilteredHistory().map((record) => (
+                                <tr 
+                                  key={record.id} 
+                                  style={{ cursor: "pointer" }}
+                                  onDoubleClick={() => {
+                                    setSelectedHistoryQuestion({
+                                      id: record.id,
+                                      question: record.question,
+                                      answer: record.answer,
+                                      category: record.category
+                                    });
+                                    setShowDetailModal(true);
+                                  }}
+                                  title="Double click to view full question and answer"
+                                >
+                                  <td style={{ fontWeight: "700", color: "var(--accent-cyan)", fontSize: "0.85rem" }}>{record.id}</td>
+                                  <td style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>{record.category}</td>
+                                  <td>
+                                    <span style={{ 
+                                      color: record.correct ? "var(--accent-emerald)" : "var(--accent-rose)", 
+                                      fontWeight: "700",
+                                      background: record.correct ? "var(--accent-emerald-glow)" : "var(--accent-rose-glow)",
+                                      padding: "0.15rem 0.5rem",
+                                      borderRadius: "4px",
+                                      fontSize: "0.8rem",
+                                      display: "inline-block",
+                                      textAlign: "center",
+                                      minWidth: "75px"
+                                    }}>
+                                      {record.correct ? "CORRECT" : "WRONG"}
+                                    </span>
+                                  </td>
+                                  <td style={{ 
+                                    fontSize: "0.85rem", 
+                                    whiteSpace: "nowrap", 
+                                    overflow: "hidden", 
+                                    textOverflow: "ellipsis", 
+                                    maxWidth: "350px",
+                                    color: "var(--text-muted)"
+                                  }}>
+                                    {record.question}
+                                  </td>
+                                </tr>
+                              ))}
+                              {getFilteredHistory().length === 0 && (
+                                <tr>
+                                  <td colSpan={4} style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)" }}>
+                                    No matching history records found.
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                        <span>Tip: Double click any row to view the full question and answer text.</span>
+                        <button className="btn secondary" onClick={() => setShowHistoryModal(false)}>
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Modal Overlay for Question Details */}
+                {showDetailModal && selectedHistoryQuestion && (
+                  <div style={{
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: "rgba(0, 0, 0, 0.8)",
+                    backdropFilter: "blur(4px)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 1001
+                  }}>
+                    <div className="glass-panel" style={{
+                      width: "90%",
+                      maxWidth: "600px",
+                      padding: "2rem",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "1.25rem",
+                      boxShadow: "0 25px 50px rgba(0, 0, 0, 0.6)",
+                      border: "1px solid var(--card-border)",
+                      animation: "fadeIn 0.15s ease-out"
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--card-border)", paddingBottom: "0.75rem" }}>
+                        <div>
+                          <span style={{ fontSize: "0.8rem", fontWeight: "700", color: "var(--accent-cyan)", letterSpacing: "1px", display: "block" }}>
+                            {selectedHistoryQuestion.category}
+                          </span>
+                          <h2 style={{ margin: 0, fontSize: "1.25rem", color: "var(--text-primary)" }}>
+                            Question {selectedHistoryQuestion.id}
+                          </h2>
+                        </div>
+                        <button 
+                          className="btn secondary" 
+                          onClick={() => setShowDetailModal(false)}
+                          style={{ padding: "0.25rem 0.5rem", minWidth: "auto" }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                        <div>
+                          <label style={{ fontSize: "0.8rem", color: "var(--text-secondary)", fontWeight: "600", display: "block", marginBottom: "0.4rem" }}>QUESTION</label>
+                          <p style={{ margin: 0, fontSize: "1rem", lineHeight: "1.5", color: "var(--text-primary)" }}>
+                            {selectedHistoryQuestion.question}
+                          </p>
+                        </div>
+
+                        <div style={{ borderTop: "1px solid var(--card-border)", paddingTop: "1rem" }}>
+                          <label style={{ fontSize: "0.8rem", color: "var(--text-secondary)", fontWeight: "600", display: "block", marginBottom: "0.4rem" }}>CORRECT ANSWER</label>
+                          <div style={{ padding: "0.75rem 1rem", background: "var(--bg-secondary)", border: "1px solid var(--card-border)", borderRadius: "var(--border-radius-sm)", color: "var(--accent-cyan)", fontWeight: "700", fontSize: "1.1rem" }}>
+                            {selectedHistoryQuestion.answer}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.5rem" }}>
+                        <button className="btn secondary" onClick={() => setShowDetailModal(false)}>
                           Close
                         </button>
                       </div>
