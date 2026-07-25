@@ -1,7 +1,7 @@
 {
   "name": "learned_league_practice",
   "private": true,
-  "version": "1.5.2",
+  "version": "1.6.0",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -44,6 +44,27 @@
       ],
       "category": "public.app-category.education",
       "icon": "build/icon.png"
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220,
+          "type": "file"
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        },
+        {
+          "x": 270,
+          "y": 220,
+          "type": "file",
+          "path": "build/Install.command"
+        }
+      ]
     }
   },
   "allowScripts": {
