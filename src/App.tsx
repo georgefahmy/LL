@@ -1908,10 +1908,11 @@ interface OpponentHistoryRecord {
                       <button 
                         className="btn secondary" 
                         onClick={handleLoadOpponents} 
-                        style={{ marginTop: "1.3rem" }}
+                        style={{ marginTop: "1.3rem", padding: "0.5rem", minWidth: "38px", height: "38px", display: "flex", alignItems: "center", justifyContent: "center" }}
                         disabled={defenseLoading}
+                        title="Refresh Opponents"
                       >
-                        Refresh Opponents
+                        <RefreshCw size={16} style={{ animation: defenseLoading ? "spin 1s linear infinite" : "none" }} />
                       </button>
 
                       <button 
@@ -1920,7 +1921,7 @@ interface OpponentHistoryRecord {
                         style={{ marginTop: "1.3rem" }}
                         disabled={Object.keys(oppCategoryStats).length === 0}
                       >
-                        View Radar Chart
+                        Radar Chart
                       </button>
 
                       <button 
