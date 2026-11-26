@@ -407,7 +407,7 @@ def _ensure_binary(name: str) -> None:
         raise ReleaseError(f"Required executable '{name}' was not found on PATH.")
 
 
-def _check_git_clean(root: Path) -> None:
+def _has_uncommitted_changes(root: Path) -> bool:
     res = subprocess.run(
         ["git", "status", "--porcelain"],
         cwd=root,
@@ -415,9 +415,14 @@ def _check_git_clean(root: Path) -> None:
         text=True,
         capture_output=True,
     )
-    if res.stdout.strip():
+    return bool(res.stdout.strip())
+
+
+def _check_git_clean(root: Path) -> None:
+    if _has_uncommitted_changes(root):
         raise ReleaseError(
-            "Git working tree has uncommitted changes. Commit/stash them or pass --allow-dirty."
+            "Git working tree has uncommitted changes. "
+            "Commit or stash them before publishing (or use 'dry-run' to preview)."
         )
 
 
@@ -446,16 +451,6 @@ def _remote_tag_exists(root: Path, tag: str, *, allow_offline: bool = False) -> 
     return bool(res.stdout.strip())
 
 
-def _github_release_exists(root: Path, tag: str) -> bool:
-    res = subprocess.run(
-        ["gh", "release", "view", tag],
-        cwd=root,
-        text=True,
-        capture_output=True,
-    )
-    return res.returncode == 0
-
-
 def _check_gh_auth(root: Path) -> None:
     res = subprocess.run(
         ["gh", "auth", "status"],
@@ -469,7 +464,7 @@ def _check_gh_auth(root: Path) -> None:
 
 
 def run_release(args: argparse.Namespace, root: Path = ROOT_DIR) -> int:
-    """Execute the requested release workflow mode."""
+    """Execute the requested release workflow command."""
     if args.check_version:
         ok, message, versions = check_version_consistency(root, expect_tag=args.expect_tag)
         for label, value in versions.items():
@@ -488,64 +483,51 @@ def run_release(args: argparse.Namespace, root: Path = ROOT_DIR) -> int:
         raise ReleaseError(message)
     current_version = next(iter(versions.values()))
 
-    target_arg = args.version
-    if not target_arg:
-        if args.build_only or args.package_dmg_only:
-            target_arg = "current"
-        else:
-            raise ReleaseError(
-                "Missing version argument (patch, minor, major, current, or X.Y.Z). "
-                "Use --build-only or --package-dmg-only to default to current."
-            )
-
-    target_version = compute_next_version(current_version, target_arg)
-    tag_name = f"v{target_version}"
-
     if args.package_dmg_only:
-        dmg_path, sha_path = package_dmg(root, target_version, dry_run=args.dry_run)
+        pkg_version = compute_next_version(current_version, args.package_dmg_only)
+        dmg_path, sha_path = package_dmg(root, pkg_version)
         print(f"Packaged: {dmg_path}")
         print(f"Checksum: {sha_path}")
         return 0
 
-    if args.build_only:
-        if not args.skip_checks:
-            run_pre_release_checks(root, dry_run=args.dry_run)
-        build_frontend(root, dry_run=args.dry_run)
-        build_macos_app(root, dry_run=args.dry_run)
-        smoke_test_macos_app(root, dry_run=args.dry_run)
-        dmg_path, sha_path = package_dmg(root, target_version, dry_run=args.dry_run)
+    if args.command == "build":
+        run_pre_release_checks(root)
+        build_frontend(root)
+        build_macos_app(root)
+        smoke_test_macos_app(root)
+        dmg_path, sha_path = package_dmg(root, current_version)
         print(f"Built & packaged: {dmg_path}")
         print(f"Checksum: {sha_path}")
         return 0
 
-    # Full or upload-only release preflight
-    _ensure_binary("git")
-    will_upload = not args.no_upload
-    if will_upload:
-        _ensure_binary("gh")
-        if not args.dry_run:
-            _check_gh_auth(root)
+    dry_run = args.command == "dry-run"
+    target_version = compute_next_version(current_version, args.version)
+    tag_name = f"v{target_version}"
 
-    if not args.upload_only and not args.allow_dirty:
+    _ensure_binary("git")
+    _ensure_binary("gh")
+    if dry_run:
+        if _has_uncommitted_changes(root):
+            print(
+                "[dry-run] Note: working tree has uncommitted changes "
+                "(publish needs a clean tree)."
+            )
+    else:
+        _check_gh_auth(root)
         _check_git_clean(root)
 
-    allow_existing_tag = bool(args.upload_only or args.clobber)
-    if not args.upload_only:
-        if _local_tag_exists(root, tag_name):
-            raise ReleaseError(f"Git tag {tag_name} already exists locally.")
-        if not args.no_push and _remote_tag_exists(root, tag_name, allow_offline=args.dry_run):
-            raise ReleaseError(f"Git tag {tag_name} already exists on origin.")
-    elif not allow_existing_tag:
-        raise ReleaseError("Specify --upload-only or --clobber when updating an existing tag.")
+    if _local_tag_exists(root, tag_name):
+        raise ReleaseError(f"Git tag {tag_name} already exists locally.")
+    if _remote_tag_exists(root, tag_name, allow_offline=dry_run):
+        raise ReleaseError(f"Git tag {tag_name} already exists on origin.")
 
     print(f"Release version: {current_version} -> {target_version} (tag {tag_name})")
 
-    if not args.upload_only and not args.skip_checks:
-        run_pre_release_checks(root, dry_run=args.dry_run)
+    run_pre_release_checks(root, dry_run=dry_run)
 
     bumped_paths: list[Path] = []
-    if not args.upload_only and target_version != current_version:
-        if args.dry_run:
+    if target_version != current_version:
+        if dry_run:
             for rel_path in TRACKED_VERSION_FILES:
                 print(
                     f"[dry-run] Update {root / rel_path}: "
@@ -555,48 +537,36 @@ def run_release(args: argparse.Namespace, root: Path = ROOT_DIR) -> int:
             bumped_paths = write_version(root, target_version)
             print(f"Updated version in {len(bumped_paths)} file(s) to {target_version}.")
 
-    if not args.upload_only and not args.skip_build:
-        build_frontend(root, dry_run=args.dry_run)
-        build_macos_app(root, dry_run=args.dry_run)
-        smoke_test_macos_app(root, dry_run=args.dry_run)
-        dmg_path, sha_path = package_dmg(root, target_version, dry_run=args.dry_run)
-    else:
-        dmg_path, sha_path = dmg_artifact_paths(root, target_version)
-        if not args.dry_run:
-            if not dmg_path.is_file():
-                raise ReleaseError(f"Expected DMG not found at {dmg_path}")
-            if not sha_path.is_file():
-                write_sha256_file(dmg_path, sha_path)
+    build_frontend(root, dry_run=dry_run)
+    build_macos_app(root, dry_run=dry_run)
+    smoke_test_macos_app(root, dry_run=dry_run)
+    dmg_path, sha_path = package_dmg(root, target_version, dry_run=dry_run)
 
-    if not args.upload_only:
-        if bumped_paths or (args.dry_run and target_version != current_version):
-            _run(["git", "add", *TRACKED_VERSION_FILES], cwd=root, dry_run=args.dry_run)
-            _run(
-                ["git", "commit", "-m", f"chore(release): {tag_name}"],
-                cwd=root,
-                dry_run=args.dry_run,
-            )
-
+    if bumped_paths or (dry_run and target_version != current_version):
+        _run(["git", "add", *TRACKED_VERSION_FILES], cwd=root, dry_run=dry_run)
         _run(
-            ["git", "tag", "-a", tag_name, "-m", f"Release {tag_name}"],
+            ["git", "commit", "-m", f"chore(release): {tag_name}"],
             cwd=root,
-            dry_run=args.dry_run,
+            dry_run=dry_run,
         )
 
-        if not args.no_push:
-            _run(["git", "push", "origin", "HEAD"], cwd=root, dry_run=args.dry_run)
-            _run(["git", "push", "origin", tag_name], cwd=root, dry_run=args.dry_run)
+    _run(
+        ["git", "tag", "-a", tag_name, "-m", f"Release {tag_name}"],
+        cwd=root,
+        dry_run=dry_run,
+    )
+    _run(["git", "push", "origin", "HEAD"], cwd=root, dry_run=dry_run)
+    _run(["git", "push", "origin", tag_name], cwd=root, dry_run=dry_run)
 
-    if will_upload:
-        _publish_github_release(
-            root=root,
-            tag_name=tag_name,
-            version=target_version,
-            dmg_path=dmg_path,
-            sha_path=sha_path,
-            args=args,
-        )
-
+    _publish_github_release(
+        root=root,
+        tag_name=tag_name,
+        version=target_version,
+        dmg_path=dmg_path,
+        sha_path=sha_path,
+        draft=args.draft,
+        dry_run=dry_run,
+    )
     return 0
 
 
@@ -607,47 +577,28 @@ def _publish_github_release(
     version: str,
     dmg_path: Path,
     sha_path: Path,
-    args: argparse.Namespace,
+    draft: bool,
+    dry_run: bool,
 ) -> None:
-    """Create or update a GitHub Release with the packaged DMG and checksum."""
+    """Create a GitHub Release with the packaged DMG and checksum."""
     assets = [str(dmg_path), str(sha_path)]
-    if args.clobber and not args.dry_run and _github_release_exists(root, tag_name):
-        _run(["gh", "release", "upload", tag_name, *assets, "--clobber"], cwd=root)
-        return
-
-    if args.upload_only:
-        if args.dry_run or _github_release_exists(root, tag_name):
-            _run(
-                ["gh", "release", "upload", tag_name, *assets, "--clobber"],
-                cwd=root,
-                dry_run=args.dry_run,
-            )
-            return
-
     temp_notes_path: Path | None = None
-    notes_flag: list[str]
-    if args.notes_file:
-        notes_path = Path(args.notes_file)
-        if not args.dry_run and not notes_path.is_file():
-            raise ReleaseError(f"Release notes file not found: {notes_path}")
-        notes_flag = ["--notes-file", str(notes_path)]
-    else:
-        extracted = extract_changelog_section(root / "changelog.md", version)
-        if extracted:
-            if args.dry_run:
-                notes_flag = ["--notes-file", "<changelog-section>"]
-            else:
-                with tempfile.NamedTemporaryFile(
-                    "w",
-                    encoding="utf-8",
-                    suffix=".md",
-                    delete=False,
-                ) as tmp:
-                    tmp.write(extracted + "\n")
-                    temp_notes_path = Path(tmp.name)
-                notes_flag = ["--notes-file", str(temp_notes_path)]
+    extracted = extract_changelog_section(root / "changelog.md", version)
+    if extracted:
+        if dry_run:
+            notes_flag = ["--notes-file", "<changelog-section>"]
         else:
-            notes_flag = ["--generate-notes"]
+            with tempfile.NamedTemporaryFile(
+                "w",
+                encoding="utf-8",
+                suffix=".md",
+                delete=False,
+            ) as tmp:
+                tmp.write(extracted + "\n")
+                temp_notes_path = Path(tmp.name)
+            notes_flag = ["--notes-file", str(temp_notes_path)]
+    else:
+        notes_flag = ["--generate-notes"]
 
     cmd = [
         "gh",
@@ -659,108 +610,62 @@ def _publish_github_release(
         f"LearnedLeague {tag_name}",
         *notes_flag,
     ]
-    if args.draft:
+    if draft:
         cmd.append("--draft")
-    if args.prerelease:
-        cmd.append("--prerelease")
 
     try:
-        _run(cmd, cwd=root, dry_run=args.dry_run)
+        _run(cmd, cwd=root, dry_run=dry_run)
     finally:
         if temp_notes_path and temp_notes_path.exists():
             temp_notes_path.unlink(missing_ok=True)
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Create CLI argument parser."""
+    """Create simplified 3-command CLI argument parser."""
     parser = argparse.ArgumentParser(
         description=(
-            "Synchronize version numbers, build LearnedLeague.app + macOS .dmg, "
-            "tag git, and publish to GitHub Releases."
-        )
+            "Build LearnedLeague .app/.dmg locally, dry-run a release, or publish to GitHub."
+        ),
     )
-    parser.add_argument(
+    parser.add_argument("--check-version", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--expect-tag", help=argparse.SUPPRESS)
+    parser.add_argument("--extract-notes", metavar="VERSION", help=argparse.SUPPRESS)
+    parser.add_argument("--package-dmg-only", metavar="VERSION", help=argparse.SUPPRESS)
+
+    subparsers = parser.add_subparsers(dest="command", metavar="{build,dry-run,publish}")
+    subparsers.add_parser(
+        "build",
+        help="Build .app and .dmg locally (dist/) without touching git or GitHub.",
+    )
+
+    p_dry = subparsers.add_parser(
+        "dry-run",
+        help="Preview version bump, build, git tag, and GitHub Release without making changes.",
+    )
+    p_dry.add_argument(
         "version",
         nargs="?",
-        help="Bump kind (patch, minor, major, current) or explicit semver (e.g. 9.1.0 or v9.1.0).",
+        default="patch",
+        help="patch, minor, major, current, or explicit X.Y.Z (default: patch).",
     )
-    parser.add_argument(
-        "--check-version",
+    p_dry.add_argument(
+        "--draft",
         action="store_true",
-        help="Verify all tracked version files agree and exit.",
+        help="Preview creating the GitHub Release as a draft.",
     )
-    parser.add_argument(
-        "--expect-tag",
-        help="With --check-version, also require versions match this tag (e.g. v9.0.0).",
+
+    p_pub = subparsers.add_parser(
+        "publish",
+        help="Bump version, build .dmg, commit & tag git, and publish to GitHub Releases.",
     )
-    parser.add_argument(
-        "--extract-notes",
-        metavar="VERSION",
-        help="Extract release notes for VERSION from changelog.md to stdout and exit.",
+    p_pub.add_argument(
+        "version",
+        help="patch, minor, major, current, or explicit X.Y.Z.",
     )
-    parser.add_argument(
-        "--build-only",
-        action="store_true",
-        help="Build frontend, LearnedLeague.app, .dmg, and .sha256 locally without git/GitHub.",
-    )
-    parser.add_argument(
-        "--package-dmg-only",
-        action="store_true",
-        help="Package existing dist/LearnedLeague.app into .dmg and .sha256 and exit.",
-    )
-    parser.add_argument(
-        "--upload-only",
-        action="store_true",
-        help="Upload existing .dmg + .sha256 for the target version to GitHub Releases.",
-    )
-    parser.add_argument(
-        "--clobber",
-        action="store_true",
-        help="Overwrite matching assets if the GitHub Release already exists.",
-    )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Print release actions without modifying files, git, or GitHub.",
-    )
-    parser.add_argument(
+    p_pub.add_argument(
         "--draft",
         action="store_true",
         help="Create the GitHub Release as a draft.",
-    )
-    parser.add_argument(
-        "--prerelease",
-        action="store_true",
-        help="Mark the GitHub Release as a prerelease.",
-    )
-    parser.add_argument(
-        "--skip-checks",
-        action="store_true",
-        help="Skip ruff, pytest, and frontend typecheck before building.",
-    )
-    parser.add_argument(
-        "--skip-build",
-        action="store_true",
-        help="Skip frontend/PyInstaller/.dmg build and expect dist artifacts to exist.",
-    )
-    parser.add_argument(
-        "--allow-dirty",
-        action="store_true",
-        help="Allow running even when git working tree has uncommitted changes.",
-    )
-    parser.add_argument(
-        "--no-push",
-        action="store_true",
-        help="Do not push commit or git tag to origin.",
-    )
-    parser.add_argument(
-        "--no-upload",
-        action="store_true",
-        help="Do not create or upload assets to GitHub Releases.",
-    )
-    parser.add_argument(
-        "--notes-file",
-        help="Explicit markdown file to use for GitHub Release notes.",
     )
     return parser
 
@@ -769,6 +674,9 @@ def main(argv: Sequence[str] | None = None, *, root: Path = ROOT_DIR) -> int:
     """CLI entrypoint."""
     parser = build_parser()
     args = parser.parse_args(argv)
+    if not (args.check_version or args.extract_notes or args.package_dmg_only or args.command):
+        parser.print_help()
+        return 2
     try:
         return run_release(args, root=root)
     except ReleaseError as exc:

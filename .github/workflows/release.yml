@@ -63,7 +63,7 @@ jobs:
       - name: Package macOS DMG
         if: matrix.platform == 'macos'
         run: |
-          uv run --no-project python scripts/release.py "${GITHUB_REF_NAME}" --package-dmg-only
+          uv run --no-project python scripts/release.py --package-dmg-only "${GITHUB_REF_NAME}"
 
       - name: Package Windows ZIP
         if: matrix.platform == 'windows'

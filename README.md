@@ -61,17 +61,14 @@ Existing `~/.LearnedLeague/` data (questions, practice answer history, favorites
 Use `scripts/release.py` to keep versions synchronized across `pyproject.toml`, `backend/config.py`, `frontend/package.json`, and `desktop/learnedleague.spec`, package a compressed macOS `.dmg` + `.sha256`, tag git, and publish to GitHub Releases (requires `gh auth login`):
 
 ```bash
-# Verify all tracked version strings match
-uv run python scripts/release.py --check-version
+# 1. Build locally (.app + .dmg in dist/, no git/GitHub changes)
+uv run python scripts/release.py build
 
-# Build frontend + LearnedLeague.app + dist/LearnedLeague-<ver>-macos-<arch>.dmg locally
-uv run python scripts/release.py --build-only
+# 2. Dry-run a release (preview version bump, git tag, and GitHub Release)
+uv run python scripts/release.py dry-run patch
 
-# Preview a version bump, git tag, and GitHub Release upload without modifying anything
-uv run python scripts/release.py patch --dry-run
-
-# Bump version (patch, minor, major, or explicit 9.1.0), build .dmg, commit & tag, and publish
-uv run python scripts/release.py patch        # add --draft to create a draft release first
+# 3. Build, bump version, tag git, and publish to GitHub Releases
+uv run python scripts/release.py publish patch   # or minor, major, 9.1.0 (optional --draft)
 ```
 
 ---
