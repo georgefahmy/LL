@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>LearnedLeague Analytics Bridge</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 14px;
+      width: 320px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge.ok { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+    .badge.warn { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+    label {
+      display: block;
+      font-size: 11px;
+      color: #94a3b8;
+      margin-bottom: 4px;
+    }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: #f1f5f9;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    button {
+      flex: 1;
+      padding: 7px 10px;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      background: #334155;
+      color: #f8fafc;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.primary {
+      background: #2563eb;
+      border-color: #2563eb;
+    }
+    button:hover { filter: brightness(1.08); }
+  </style>
+</head>
+<body>
+  <h1>LearnedLeague Analytics Bridge</h1>
+
+  <div class="card">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+      <span style="font-size:11px; color:#94a3b8;">LearnedLeague Session</span>
+      <button id="refresh-btn" type="button" style="flex:0 0 auto; padding:2px 8px; font-size:11px;">Refresh</button>
+    </div>
+    <div id="status-badge" class="badge warn">Checking session...</div>
+    <div id="status-detail" style="margin-top:6px; font-size:11px; color:#94a3b8;"></div>
+  </div>
+
+  <div class="card">
+    <label for="app-url">Analytics Web App URL</label>
+    <input id="app-url" type="url" value="http://localhost:5173" />
+    <div class="actions" style="margin-bottom:8px;">
+      <button type="button" data-url="http://localhost:5173">Local :5173</button>
+      <button type="button" data-url="http://127.0.0.1:8000">Local :8000</button>
+      <button type="button" data-url="https://ll.n890gf.com">Hosted</button>
+    </div>
+    <div class="actions">
+      <button id="open-app-btn" type="button" class="primary">Open Analytics App</button>
+      <button id="open-ll-btn" type="button">LL Sign In</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

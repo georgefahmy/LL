@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+
+  --bg-page: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-muted: #f1f5f9;
+  --border-subtle: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-text: #ffffff;
+
+  @media (prefers-color-scheme: dark) {
+    --bg-page: #0b1120;
+    --bg-card: #111827;
+    --bg-muted: #1e293b;
+    --border-subtle: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --accent: #3b82f6;
+    --accent-hover: #60a5fa;
+    --accent-text: #ffffff;
+  }
+
+  &:has(> head > meta[name="color-scheme"][content="dark"]) {
+    color-scheme: dark;
+    --bg-page: #0b1120;
+    --bg-card: #111827;
+    --bg-muted: #1e293b;
+    --border-subtle: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --accent: #3b82f6;
+    --accent-hover: #60a5fa;
+    --accent-text: #ffffff;
+  }
+
+  &:has(> head > meta[name="color-scheme"][content="light"]) {
+    color-scheme: light;
+    --bg-page: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-muted: #f1f5f9;
+    --border-subtle: #e2e8f0;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --accent-text: #ffffff;
+  }
+
+  accent-color: var(--accent);
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  line-height: 1.5;
+}
+
+.ll-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+}
+
+.ll-muted {
+  background-color: var(--bg-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+.ll-input {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.925rem;
+}
+
+.ll-input:focus-visible,
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Mandatory native <dialog> scroll containment & backdrop styling */
+dialog:modal {
+  overscroll-behavior: contain;
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.875rem;
+  padding: 0;
+  max-width: min(94vw, 44rem);
+  max-height: 90vh;
+  margin: auto;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.4);
+}
+
+dialog.ll-dialog-wide:modal {
+  max-width: min(95vw, 64rem);
+}
+
+dialog::backdrop {
+  background-color: rgb(2 6 23 / 0.6);
+  backdrop-filter: blur(2px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* Tab underline indicator (non-color WCAG 1.4.1 indicator) */
+.ll-tab-btn {
+  position: relative;
+}
+.ll-tab-btn[aria-selected="true"] {
+  color: var(--accent);
+}
+.ll-tab-btn[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  border-block-end: 3px solid var(--accent);
+}

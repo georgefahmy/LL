@@ -1,0 +1,1362 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <title>LearnedLeague IRT Defense Tool (Standalone)</title>
+  <style>
+    :root {
+      --bg-page: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-muted: #f1f5f9;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-soft: rgba(37, 99, 235, 0.12);
+      --ok-bg: rgba(16, 185, 129, 0.15);
+      --ok-text: #047857;
+      --warn-bg: rgba(245, 158, 11, 0.16);
+      --warn-text: #b45309;
+      --err-text: #dc2626;
+      --shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+
+    html[data-theme="dark"] {
+      --bg-page: #0b1120;
+      --bg-card: #111827;
+      --bg-muted: #1e293b;
+      --border: #334155;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-hover: #60a5fa;
+      --accent-soft: rgba(59, 130, 246, 0.18);
+      --ok-bg: rgba(16, 185, 129, 0.18);
+      --ok-text: #6ee7b7;
+      --warn-bg: rgba(245, 158, 11, 0.2);
+      --warn-text: #fcd34d;
+      --err-text: #f87171;
+      --shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg-page);
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      margin: 2px 0 0;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    @media (max-width: 980px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .row-between {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .flex-gap {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-muted);
+      color: var(--text);
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      transition: background 0.12s, border-color 0.12s;
+    }
+
+    button:hover:not(:disabled) { filter: brightness(0.96); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+    }
+    button.primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    button.danger {
+      color: var(--err-text);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+
+    .pill.ok { background: var(--ok-bg); color: var(--ok-text); }
+    .pill.warn { background: var(--warn-bg); color: var(--warn-text); }
+    .pill.blue { background: var(--accent-soft); color: var(--accent); }
+    .pill.muted { background: var(--bg-muted); color: var(--text-muted); border-color: var(--border); }
+
+    select, input[type="number"], textarea {
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 0.85rem;
+      font-family: inherit;
+    }
+
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+
+    .strategy-scroll {
+      overflow-x: auto;
+    }
+
+    .strategy-table {
+      min-width: 520px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .strategy-row {
+      display: grid;
+      grid-template-columns: 2.2rem minmax(0, 1fr) auto 2.8rem 3.8rem 3.8rem;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .strategy-header {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      padding: 0 2px;
+    }
+
+    .diff-group {
+      display: inline-flex;
+      gap: 2px;
+    }
+
+    .diff-btn {
+      width: 26px;
+      height: 28px;
+      padding: 0;
+      font-size: 0.76rem;
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .diff-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+    }
+
+    .pts-cell {
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 800;
+    }
+
+    .pct-cell {
+      text-align: right;
+      font-size: 0.78rem;
+    }
+
+    .muted-text { color: var(--text-muted); }
+    .error-text { color: var(--err-text); font-size: 0.82rem; margin: 0; }
+
+    .footer-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      font-size: 0.8rem;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab-btn {
+      border: none;
+      background: transparent;
+      border-bottom: 3px solid transparent;
+      border-radius: 6px 6px 0 0;
+      padding: 7px 10px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .dropzone {
+      border: 2px dashed var(--border);
+      background: var(--bg-muted);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+    }
+
+    .dropzone.dragover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .preview-box {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: zoom-in;
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    .preview-box img {
+      width: 100%;
+      max-height: 200px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .preview-box.tall img {
+      max-height: 460px;
+    }
+
+    .stats-table-wrap {
+      max-height: 310px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    table.stats-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.76rem;
+    }
+
+    table.stats-table th {
+      position: sticky;
+      top: 0;
+      background: var(--bg-muted);
+      color: var(--text-muted);
+      text-align: left;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    table.stats-table td {
+      padding: 4px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    table.stats-table input {
+      width: 100%;
+      padding: 3px 6px;
+      font-size: 0.75rem;
+    }
+
+    dialog {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--bg-card);
+      color: var(--text);
+      padding: 16px;
+      max-width: min(94vw, 960px);
+      max-height: 90vh;
+    }
+
+    dialog::backdrop {
+      background: rgba(2, 6, 23, 0.65);
+    }
+
+    .modal-img {
+      max-width: 100%;
+      max-height: 75vh;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="card topbar">
+      <div>
+        <h1>LearnedLeague IRT Defense Calculator</h1>
+        <p class="subtitle">
+          100% standalone offline tool — Empirical-Bayes Logit IRT model, screenshot OCR, paste-text &amp; inline editing.
+        </p>
+      </div>
+      <div class="flex-gap">
+        <label class="flex-gap" style="font-size:0.78rem;">
+          <span class="muted-text">Prior Weight (m):</span>
+          <input id="prior-input" type="number" min="0" max="50" step="1" value="8" style="width:64px;" class="mono" />
+        </label>
+        <button id="theme-toggle" type="button">Toggle Theme</button>
+      </div>
+    </header>
+
+    <div id="global-error" class="card error-text" style="display:none;"></div>
+
+    <main class="grid-2">
+      <!-- Left: 6-Question Defense Strategy -->
+      <section class="card" style="display:flex; flex-direction:column; gap:12px;">
+        <div class="row-between">
+          <h2 style="margin:0; font-size:1rem;">Defense Strategy</h2>
+          <div class="flex-gap">
+            <button id="clear-strategy-btn" type="button">Clear</button>
+            <button id="recommend-btn" type="button" class="primary">Recommend Points</button>
+          </div>
+        </div>
+
+        <div class="flex-gap">
+          <button id="pill-opp" type="button" class="pill warn">Opponent Stats: 0/18</button>
+          <button id="pill-me" type="button" class="pill muted">My Stats: 0/18</button>
+          <button id="pill-qshot" type="button" class="pill blue" style="display:none;">Questions Shot Loaded</button>
+        </div>
+
+        <div id="neutral-tip" class="subtitle" style="display:none;">
+          Tip: add My Stats (saved in your browser) to invert your own category skill; using a neutral 50% baseline without it.
+        </div>
+
+        <div class="subtitle">
+          My Diff (optional): 1 Gimme (90%) &middot; 2 Easy (75%) &middot; 3 Med (50%) &middot; 4 Hard (25%) &middot; 5 Stump (10%)
+        </div>
+
+        <div class="strategy-scroll">
+          <div class="strategy-table">
+            <div class="strategy-row strategy-header">
+              <span>Slot</span>
+              <span>Category</span>
+              <span style="text-align:center;">My Diff (1&ndash;5)</span>
+              <span style="text-align:center;">Rec Pts</span>
+              <span style="text-align:right;">Est Opp %</span>
+              <span style="text-align:right;">Truth %</span>
+            </div>
+            <div id="strategy-rows"></div>
+          </div>
+        </div>
+
+        <div id="strategy-footer" class="footer-bar" style="display:none;">
+          <span id="mode-badge" class="pill blue">IRT Model</span>
+          <span id="exp-pts-label" class="mono" style="font-weight:700;">Expected Opp Pts: -- / 9</span>
+        </div>
+      </section>
+
+      <!-- Right: Screenshots & Parsed Stats -->
+      <section class="card" style="display:flex; flex-direction:column; gap:12px;">
+        <div class="row-between">
+          <h2 style="margin:0; font-size:1rem;">Screenshots &amp; Parsed Stats</h2>
+          <div class="tabs" role="tablist">
+            <button type="button" class="tab-btn active" data-tab="opponent">Opponent (0)</button>
+            <button type="button" class="tab-btn" data-tab="me">My Stats (0)</button>
+            <button type="button" class="tab-btn" data-tab="questions">Questions Shot</button>
+          </div>
+        </div>
+
+        <div id="dropzone" class="dropzone" tabindex="0">
+          <div>
+            Press <strong>Cmd+V / Ctrl+V</strong> anywhere, drag &amp; drop, or choose a screenshot for
+            <strong id="active-tab-name">Opponent Stats</strong>
+          </div>
+          <div class="flex-gap">
+            <input id="file-input" type="file" accept="image/*" style="display:none;" />
+            <button id="upload-btn" type="button" class="primary">Choose Image</button>
+            <button id="enlarge-btn" type="button" style="display:none;">Enlarge</button>
+            <button id="remove-img-btn" type="button" class="danger" style="display:none;">Remove Image</button>
+          </div>
+        </div>
+
+        <div id="preview-wrap" class="preview-box" style="display:none;">
+          <img id="preview-img" alt="Uploaded screenshot preview" />
+        </div>
+
+        <div id="stats-panel" style="display:flex; flex-direction:column; gap:10px;">
+          <div class="row-between" style="font-size:0.78rem;">
+            <span id="ocr-badge" class="muted-text">Upload a stats screenshot or paste/edit below.</span>
+            <div class="flex-gap">
+              <button id="toggle-text-btn" type="button">Paste Table Text</button>
+              <button id="toggle-table-btn" type="button">Hide Table</button>
+              <button id="clear-stats-btn" type="button" class="danger" style="display:none;">Clear Stats</button>
+            </div>
+          </div>
+
+          <p id="ocr-error" class="error-text" style="display:none;"></p>
+          <p id="ocr-missing" class="subtitle" style="display:none; margin:0;"></p>
+
+          <div id="text-fallback-box" style="display:none; flex-direction:column; gap:8px; padding:10px; border-radius:8px; background:var(--bg-muted);">
+            <textarea id="raw-text-input" rows="5" class="mono" placeholder="AMER HIST 15-20 .750&#10;ART 8-16 .500&#10;BUS/ECON 12-20 .600"></textarea>
+            <div style="display:flex; justify-content:flex-end;">
+              <button id="parse-text-btn" type="button" class="primary">Parse Text</button>
+            </div>
+          </div>
+
+          <div id="editable-table-wrap" class="stats-table-wrap">
+            <table class="stats-table">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th style="width:72px;">Correct</th>
+                  <th style="width:72px;">Total</th>
+                  <th style="width:82px; text-align:right;">%</th>
+                </tr>
+              </thead>
+              <tbody id="stats-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="zoom-dialog">
+    <div class="row-between" style="margin-bottom:10px;">
+      <strong id="zoom-title">Screenshot Preview</strong>
+      <button id="zoom-close" type="button">Close</button>
+    </div>
+    <img id="zoom-img" class="modal-img" alt="Enlarged screenshot" />
+  </dialog>
+
+  <script>
+    (() => {
+      const CATEGORIES = [
+        "AMER HIST", "ART", "BUS/ECON", "CLASS MUSIC", "CURR EVENTS", "FILM",
+        "FOOD/DRINK", "GAMES/SPORT", "GEOGRAPHY", "LANGUAGE", "LIFESTYLE", "LITERATURE",
+        "MATH", "POP MUSIC", "SCIENCE", "TELEVISION", "THEATRE", "WORLD HIST"
+      ];
+
+      const DIFFICULTY_LEVELS = [
+        { value: 1, label: "1", title: "Gimme (~90%)", prob: 0.90 },
+        { value: 2, label: "2", title: "Easy (~75%)", prob: 0.75 },
+        { value: 3, label: "3", title: "Med (~50%)", prob: 0.50 },
+        { value: 4, label: "4", title: "Hard (~25%)", prob: 0.25 },
+        { value: 5, label: "5", title: "Stump (~10%)", prob: 0.10 }
+      ];
+      const DIFFICULTY_PROBS = Object.fromEntries(DIFFICULTY_LEVELS.map(d => [d.value, d.prob]));
+      const POINT_ALLOCATION = [3, 2, 2, 1, 1, 0];
+      const PROB_EPS = 0.01;
+      const MY_STATS_KEY = "ll-standalone-my-stats-v1";
+
+      // ---- Core Empirical-Bayes Logit IRT Engine ----
+      function clampProb(p) {
+        return Math.min(1 - PROB_EPS, Math.max(PROB_EPS, Number(p) || 0));
+      }
+
+      function logit(p) {
+        const c = clampProb(p);
+        return Math.log(c / (1 - c));
+      }
+
+      function sigmoid(x) {
+        if (x >= 0) return 1 / (1 + Math.exp(-x));
+        const ex = Math.exp(x);
+        return ex / (1 + ex);
+      }
+
+      function lookupMetric(metrics, category) {
+        if (!metrics) return {};
+        const cat = category.trim();
+        if (metrics[cat]) return metrics[cat];
+        const upper = cat.toUpperCase();
+        for (const [k, v] of Object.entries(metrics)) {
+          if (k.toUpperCase() === upper) return v || {};
+        }
+        return {};
+      }
+
+      function overallPlayerAccuracy(metrics) {
+        if (!metrics) return 0.50;
+        let totalCorrect = 0;
+        let totalAnswered = 0;
+        const pctVals = [];
+        for (const val of Object.values(metrics)) {
+          if (!val || typeof val !== "object") continue;
+          const tot = Number(val.total || 0);
+          if (tot > 0) {
+            totalAnswered += tot;
+            totalCorrect += Number(val.correct || 0);
+          } else if (val.percent !== undefined && val.percent !== null) {
+            pctVals.push(Number(val.percent));
+          }
+        }
+        if (totalAnswered > 0) return clampProb(totalCorrect / totalAnswered);
+        if (pctVals.length > 0) {
+          return clampProb(pctVals.reduce((a, b) => a + b, 0) / pctVals.length);
+        }
+        return 0.50;
+      }
+
+      function smoothedCategoryProb(metrics, category, priorWeight = 8) {
+        const overallAcc = overallPlayerAccuracy(metrics);
+        const m = lookupMetric(metrics, category);
+        if (m && Object.keys(m).length > 0) {
+          const total = Number(m.total || 0);
+          if (total > 0) {
+            const correct = Number(m.correct || 0);
+            return clampProb((correct + priorWeight * overallAcc) / (total + priorWeight));
+          }
+          if (m.percent !== undefined && m.percent !== null) {
+            return clampProb(Number(m.percent));
+          }
+        }
+        return clampProb(overallAcc);
+      }
+
+      function recommendDefense(categories, opponentMetrics, {
+        playerMetrics = null,
+        difficulties = null,
+        priorWeight = 8
+      } = {}) {
+        if (!Array.isArray(categories) || categories.length !== 6) {
+          throw new Error("Exactly 6 question categories are required.");
+        }
+        const hasAnyDiff = Boolean(difficulties && difficulties.some(d => d !== null && d !== undefined));
+        const hasPlayerMetrics = Boolean(playerMetrics && Object.keys(playerMetrics).length > 0);
+
+        const slots = categories.map((rawCat, idx) => {
+          const cat = rawCat.trim();
+          const oppM = lookupMetric(opponentMetrics, cat);
+          const rawOppPct = Math.round(Number(oppM.percent || 0) * 10000) / 100;
+          const d = difficulties ? difficulties[idx] : null;
+
+          let estOppPct = rawOppPct;
+          let estTruthPct = null;
+          let slotDiff = null;
+
+          if (hasAnyDiff) {
+            const pOppCat = smoothedCategoryProb(opponentMetrics, cat, priorWeight);
+            const thetaOpp = logit(pOppCat);
+            if (d === null || d === undefined) {
+              estOppPct = Math.round(pOppCat * 10000) / 100;
+            } else {
+              const pMeQ = DIFFICULTY_PROBS[d];
+              const thetaMe = hasPlayerMetrics
+                ? logit(smoothedCategoryProb(playerMetrics, cat, priorWeight))
+                : 0.0;
+              const truthLogit = logit(pMeQ) - thetaMe;
+              estTruthPct = Math.round(sigmoid(truthLogit) * 10000) / 100;
+              const oppLogit = truthLogit + thetaOpp;
+              estOppPct = Math.round(sigmoid(oppLogit) * 10000) / 100;
+              slotDiff = d;
+            }
+          }
+
+          return {
+            slot: idx + 1,
+            category: cat,
+            opponent_percent: rawOppPct,
+            recommended_points: 0,
+            difficulty: slotDiff,
+            estimated_opponent_pct: estOppPct,
+            estimated_ground_truth_pct: estTruthPct
+          };
+        });
+
+        const sortKey = hasAnyDiff ? "estimated_opponent_pct" : "opponent_percent";
+        const ordered = [...slots].sort((a, b) => (a[sortKey] - b[sortKey]) || (a.slot - b.slot));
+        ordered.forEach((item, rankIdx) => {
+          item.recommended_points = POINT_ALLOCATION[rankIdx];
+        });
+
+        const expPts = Math.round(
+          slots.reduce((acc, r) => acc + r.recommended_points * (r.estimated_opponent_pct / 100), 0) * 100
+        ) / 100;
+
+        return {
+          mode: hasAnyDiff ? "irt" : "category_only",
+          expected_opponent_points: expPts,
+          recommendations: slots
+        };
+      }
+
+      // ---- Category Stats Text Parser (mirrors backend/core/ocr.py) ----
+      function normalizeForMatch(s) {
+        return s.toUpperCase().replace(/[/\\|_:\-]+/g, " ").replace(/\s+/g, " ").trim();
+      }
+
+      function levenshtein(a, b) {
+        const dp = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+        for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+        for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+        for (let i = 1; i <= a.length; i++) {
+          for (let j = 1; j <= b.length; j++) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
+          }
+        }
+        return dp[a.length][b.length];
+      }
+
+      function simRatio(a, b) {
+        const maxLen = Math.max(a.length, b.length);
+        if (maxLen === 0) return 100;
+        return ((maxLen - levenshtein(a, b)) / maxLen) * 100;
+      }
+
+      function matchCategoryLine(line) {
+        const normLine = normalizeForMatch(line);
+        if (!normLine) return [null, ""];
+
+        const prefixMatch = line.trim().match(/^([^\d%]+?)(?=\s*\d|\s*\.|\s*$)/);
+        const prefixRaw = prefixMatch ? prefixMatch[1].trim() : line.trim();
+        const normPrefix = normalizeForMatch(prefixRaw);
+        const tail = prefixMatch ? line.trim().slice(prefixRaw.length).trim() : line.trim();
+
+        for (const cat of CATEGORIES) {
+          const normCat = normalizeForMatch(cat);
+          const escaped = normCat.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          if (new RegExp(`\\b${escaped}\\b`).test(normLine)) {
+            return [cat, tail];
+          }
+        }
+
+        if (normPrefix.length < 2) return [null, ""];
+
+        let bestCat = null;
+        let bestScore = 0;
+        const compactPrefix = normPrefix.replace(/\s+/g, "");
+        for (const cat of CATEGORIES) {
+          const normCat = normalizeForMatch(cat);
+          const compactCat = normCat.replace(/\s+/g, "");
+          let score;
+          if (normCat.length <= 4) {
+            score = simRatio(normCat, normPrefix);
+          } else {
+            score = Math.max(simRatio(normCat, normPrefix), simRatio(compactCat, compactPrefix));
+          }
+          if (score > bestScore) {
+            bestScore = score;
+            bestCat = cat;
+          }
+        }
+
+        return bestScore >= 78 ? [bestCat, tail] : [null, ""];
+      }
+
+      function extractMetricFromTail(tail) {
+        const pairRe = /(\d+)\s*[-–—/]\s*(\d+)/g;
+        let m;
+        while ((m = pairRe.exec(tail)) !== null) {
+          const correct = parseInt(m[1], 10);
+          const total = parseInt(m[2], 10);
+          if (total > 0 && correct >= 0 && correct <= total) {
+            return { correct, total, percent: Number((correct / total).toFixed(6)) };
+          }
+        }
+        const pctM = tail.match(/(\d+(?:\.\d+)?)\s*%/);
+        if (pctM) {
+          const val = parseFloat(pctM[1]) / 100;
+          if (val >= 0 && val <= 1) {
+            return { correct: 0, total: 0, percent: Number(val.toFixed(6)) };
+          }
+        }
+        const decM = tail.match(/(?:^|\s)(0?\.\d{2,4}|1\.0{1,3})(?=\s|$)/);
+        if (decM) {
+          const val = parseFloat(decM[1]);
+          if (val >= 0 && val <= 1) {
+            return { correct: 0, total: 0, percent: Number(val.toFixed(6)) };
+          }
+        }
+        return null;
+      }
+
+      function parseCategoryStatsText(text) {
+        const categoryMetrics = {};
+        for (const rawLine of text.split(/\r?\n/)) {
+          const line = rawLine.trim();
+          if (!line) continue;
+          const [cat, tail] = matchCategoryLine(line);
+          if (!cat) continue;
+          const metric = extractMetricFromTail(tail) || extractMetricFromTail(line);
+          if (!metric) continue;
+          const existing = categoryMetrics[cat];
+          if (!existing || (existing.total === 0 && metric.total > 0)) {
+            categoryMetrics[cat] = metric;
+          }
+        }
+        const missing = CATEGORIES.filter(c => !(c in categoryMetrics));
+        return {
+          category_metrics: categoryMetrics,
+          matched_count: Object.keys(categoryMetrics).length,
+          missing_categories: missing,
+          raw_text: text
+        };
+      }
+
+      // ---- Browser OCR via Tesseract.js CDN (on-demand) ----
+      let tesseractPromise = null;
+      function loadTesseract() {
+        if (window.Tesseract) return Promise.resolve(window.Tesseract);
+        if (!tesseractPromise) {
+          tesseractPromise = new Promise((resolve, reject) => {
+            const s = document.createElement("script");
+            s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+            s.async = true;
+            s.onload = () => window.Tesseract ? resolve(window.Tesseract) : reject(new Error("Tesseract failed to initialize."));
+            s.onerror = () => reject(new Error("Could not load browser OCR library (offline or blocked). Use 'Paste Table Text' or edit the table manually."));
+            document.head.appendChild(s);
+          });
+        }
+        return tesseractPromise;
+      }
+
+      async function preprocessImageForOcr(dataUrl) {
+        return await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => {
+            const scale = img.width < 1800 ? 2 : 1;
+            const w = Math.max(1, Math.round(img.width * scale));
+            const h = Math.max(1, Math.round(img.height * scale));
+            const canvas = document.createElement("canvas");
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext("2d");
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0, w, h);
+
+            const imgData = ctx.getImageData(0, 0, w, h);
+            const data = imgData.data;
+            let lumSum = 0;
+            for (let i = 0; i < data.length; i += 4) {
+              lumSum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+            }
+            const meanLum = lumSum / (data.length / 4);
+            const invert = meanLum < 128;
+
+            for (let i = 0; i < data.length; i += 4) {
+              let g = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+              if (invert) g = 255 - g;
+              // Contrast boost around midpoint
+              g = Math.max(0, Math.min(255, (g - 128) * 1.25 + 128));
+              data[i] = data[i + 1] = data[i + 2] = g;
+              data[i + 3] = 255;
+            }
+            ctx.putImageData(imgData, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          };
+          img.onerror = () => reject(new Error("Could not decode image."));
+          img.src = dataUrl;
+        });
+      }
+
+      async function runClientOcr(dataUrl) {
+        const Tesseract = await loadTesseract();
+        const processed = await preprocessImageForOcr(dataUrl);
+        const result = await Tesseract.recognize(processed, "eng");
+        return result?.data?.text || "";
+      }
+
+      // ---- Standalone UI State (only initialized inside browser DOM) ----
+      if (typeof document === "undefined") {
+        globalThis.__LL_TEST_API__ = {
+          recommendDefense,
+          parseCategoryStatsText,
+          smoothedCategoryProb,
+          overallPlayerAccuracy
+        };
+        return;
+      }
+
+      function loadMyStats() {
+        try {
+          const raw = localStorage.getItem(MY_STATS_KEY);
+          if (!raw) return {};
+          const parsed = JSON.parse(raw);
+          return parsed && typeof parsed === "object" ? parsed : {};
+        } catch {
+          return {};
+        }
+      }
+
+      const state = {
+        slotCats: Array(6).fill(""),
+        slotDiffs: Array(6).fill(null),
+        recs: null,
+        defenseMeta: null,
+        activeTab: "opponent",
+        oppMetrics: {},
+        myMetrics: loadMyStats(),
+        previews: { opponent: null, me: null, questions: null },
+        ocr: {
+          opponent: { loading: false, matched: null, missing: [], rawText: "", error: "" },
+          me: { loading: false, matched: null, missing: [], rawText: "", error: "" }
+        },
+        showTextBox: { opponent: false, me: false },
+        showTable: { opponent: true, me: true }
+      };
+
+      const el = id => document.getElementById(id);
+
+      // Theme initialization
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.dataset.theme = prefersDark ? "dark" : "light";
+      el("theme-toggle").addEventListener("click", () => {
+        const cur = document.documentElement.dataset.theme;
+        document.documentElement.dataset.theme = cur === "dark" ? "light" : "dark";
+      });
+
+      function saveMyStats() {
+        try { localStorage.setItem(MY_STATS_KEY, JSON.stringify(state.myMetrics)); } catch {}
+      }
+
+      function computeIfReady(showErrors = false) {
+        const errBox = el("global-error");
+        errBox.style.display = "none";
+
+        if (state.slotCats.some(c => !c)) {
+          if (showErrors) {
+            errBox.textContent = "Please choose a category for all 6 questions.";
+            errBox.style.display = "block";
+          }
+          return;
+        }
+        if (Object.keys(state.oppMetrics).length === 0) {
+          if (showErrors) {
+            errBox.textContent = "Upload or enter Opponent Stats first.";
+            errBox.style.display = "block";
+          }
+          return;
+        }
+
+        const priorWeight = Math.max(0, Math.min(100, Number(el("prior-input").value) || 0));
+        const res = recommendDefense(state.slotCats, state.oppMetrics, {
+          playerMetrics: state.myMetrics,
+          difficulties: state.slotDiffs.some(d => d !== null) ? state.slotDiffs : null,
+          priorWeight
+        });
+        state.recs = res.recommendations;
+        state.defenseMeta = {
+          mode: res.mode,
+          expectedOpponentPoints: res.expected_opponent_points
+        };
+        renderStrategy();
+      }
+
+      function renderStrategy() {
+        const oppCount = Object.keys(state.oppMetrics).length;
+        const myCount = Object.keys(state.myMetrics).length;
+
+        const pillOpp = el("pill-opp");
+        pillOpp.textContent = `Opponent Stats: ${oppCount}/18`;
+        pillOpp.className = `pill ${oppCount > 0 ? "ok" : "warn"}`;
+
+        const pillMe = el("pill-me");
+        pillMe.textContent = `My Stats: ${myCount}/18`;
+        pillMe.className = `pill ${myCount > 0 ? "blue" : "muted"}`;
+
+        el("pill-qshot").style.display = state.previews.questions ? "inline-flex" : "none";
+        el("neutral-tip").style.display =
+          state.slotDiffs.some(d => d !== null) && myCount === 0 ? "block" : "none";
+
+        const container = el("strategy-rows");
+        container.innerHTML = "";
+        for (let i = 0; i < 6; i++) {
+          const row = document.createElement("div");
+          row.className = "strategy-row";
+
+          const slotSpan = document.createElement("span");
+          slotSpan.className = "mono";
+          slotSpan.style.fontWeight = "700";
+          slotSpan.textContent = `Q${i + 1}`;
+          row.appendChild(slotSpan);
+
+          const sel = document.createElement("select");
+          sel.setAttribute("aria-label", `Question ${i + 1} category`);
+          const blankOpt = document.createElement("option");
+          blankOpt.value = "";
+          blankOpt.textContent = "Select Category...";
+          sel.appendChild(blankOpt);
+          for (const cat of CATEGORIES) {
+            const opt = document.createElement("option");
+            opt.value = cat;
+            opt.textContent = cat;
+            sel.appendChild(opt);
+          }
+          sel.value = state.slotCats[i];
+          sel.addEventListener("change", () => {
+            state.slotCats[i] = sel.value;
+            computeIfReady(false);
+          });
+          row.appendChild(sel);
+
+          const diffGroup = document.createElement("div");
+          diffGroup.className = "diff-group";
+          for (const lvl of DIFFICULTY_LEVELS) {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = `diff-btn${state.slotDiffs[i] === lvl.value ? " active" : ""}`;
+            btn.textContent = lvl.label;
+            btn.title = lvl.title;
+            btn.setAttribute("aria-pressed", String(state.slotDiffs[i] === lvl.value));
+            btn.addEventListener("click", () => {
+              state.slotDiffs[i] = state.slotDiffs[i] === lvl.value ? null : lvl.value;
+              renderStrategy();
+              computeIfReady(false);
+            });
+            diffGroup.appendChild(btn);
+          }
+          row.appendChild(diffGroup);
+
+          const rec = state.recs ? state.recs[i] : null;
+          const ptsSpan = document.createElement("span");
+          ptsSpan.className = "pts-cell mono";
+          ptsSpan.textContent = rec ? String(rec.recommended_points) : "--";
+          row.appendChild(ptsSpan);
+
+          const oppSpan = document.createElement("span");
+          oppSpan.className = "pct-cell mono";
+          oppSpan.textContent = rec ? `${rec.estimated_opponent_pct.toFixed(1)}%` : "--";
+          row.appendChild(oppSpan);
+
+          const truthSpan = document.createElement("span");
+          truthSpan.className = "pct-cell mono muted-text";
+          truthSpan.textContent =
+            rec && rec.estimated_ground_truth_pct !== null
+              ? `${rec.estimated_ground_truth_pct.toFixed(1)}%`
+              : "--";
+          row.appendChild(truthSpan);
+
+          container.appendChild(row);
+        }
+
+        const footer = el("strategy-footer");
+        if (state.defenseMeta) {
+          footer.style.display = "flex";
+          const badge = el("mode-badge");
+          badge.textContent = state.defenseMeta.mode === "irt" ? "IRT Model" : "Category-Only";
+          badge.className = `pill ${state.defenseMeta.mode === "irt" ? "blue" : "muted"}`;
+          el("exp-pts-label").textContent =
+            `Expected Opp Pts: ${state.defenseMeta.expectedOpponentPoints.toFixed(2)} / 9`;
+        } else {
+          footer.style.display = "none";
+        }
+      }
+
+      function renderRightPanel() {
+        const oppCount = Object.keys(state.oppMetrics).length;
+        const myCount = Object.keys(state.myMetrics).length;
+
+        document.querySelectorAll(".tab-btn").forEach(btn => {
+          const t = btn.dataset.tab;
+          btn.classList.toggle("active", t === state.activeTab);
+          if (t === "opponent") btn.textContent = `Opponent (${oppCount})`;
+          else if (t === "me") btn.textContent = `My Stats (${myCount})`;
+          else btn.textContent = "Questions Shot";
+        });
+
+        el("active-tab-name").textContent =
+          state.activeTab === "opponent"
+            ? "Opponent Stats"
+            : state.activeTab === "me"
+              ? "My Stats"
+              : "Today's Questions";
+
+        const preview = state.previews[state.activeTab];
+        const previewWrap = el("preview-wrap");
+        if (preview) {
+          previewWrap.style.display = "block";
+          previewWrap.className = `preview-box${state.activeTab === "questions" ? " tall" : ""}`;
+          el("preview-img").src = preview;
+          el("enlarge-btn").style.display = "inline-flex";
+          el("remove-img-btn").style.display = "inline-flex";
+        } else {
+          previewWrap.style.display = "none";
+          el("enlarge-btn").style.display = "none";
+          el("remove-img-btn").style.display = "none";
+        }
+
+        const statsPanel = el("stats-panel");
+        if (state.activeTab === "questions") {
+          statsPanel.style.display = "none";
+          return;
+        }
+        statsPanel.style.display = "flex";
+
+        const tab = state.activeTab;
+        const metricsMap = tab === "opponent" ? state.oppMetrics : state.myMetrics;
+        const ocr = state.ocr[tab];
+
+        const badge = el("ocr-badge");
+        if (ocr.loading) {
+          badge.className = "pill blue";
+          badge.textContent = "Running browser OCR...";
+        } else if (ocr.matched !== null) {
+          badge.className = `pill ${ocr.matched >= 15 ? "ok" : "warn"}`;
+          badge.textContent = `${ocr.matched}/18 categories parsed`;
+        } else {
+          badge.className = "muted-text";
+          badge.textContent = tab === "me"
+            ? "Saved locally in your browser once parsed or entered."
+            : "Upload or paste your opponent's category stats table.";
+        }
+
+        el("ocr-error").style.display = ocr.error ? "block" : "none";
+        el("ocr-error").textContent = ocr.error;
+
+        const showMissing = ocr.matched !== null && ocr.matched > 0 && ocr.missing.length > 0;
+        el("ocr-missing").style.display = showMissing ? "block" : "none";
+        el("ocr-missing").textContent = showMissing ? `Missing: ${ocr.missing.join(", ")}` : "";
+
+        el("clear-stats-btn").style.display = Object.keys(metricsMap).length > 0 ? "inline-flex" : "none";
+        el("toggle-text-btn").textContent = state.showTextBox[tab] ? "Hide Text Paste" : "Paste Table Text";
+        el("toggle-table-btn").textContent = state.showTable[tab] ? "Hide Table" : "Edit Table";
+
+        const textBox = el("text-fallback-box");
+        textBox.style.display = state.showTextBox[tab] ? "flex" : "none";
+        el("raw-text-input").value = ocr.rawText;
+
+        const tableWrap = el("editable-table-wrap");
+        tableWrap.style.display = state.showTable[tab] ? "block" : "none";
+
+        const tbody = el("stats-tbody");
+        tbody.innerHTML = "";
+        for (const cat of CATEGORIES) {
+          const m = metricsMap[cat];
+          const tr = document.createElement("tr");
+
+          const tdCat = document.createElement("td");
+          tdCat.style.fontWeight = "600";
+          tdCat.textContent = cat;
+          tr.appendChild(tdCat);
+
+          const tdCorr = document.createElement("td");
+          const inpCorr = document.createElement("input");
+          inpCorr.type = "number";
+          inpCorr.min = "0";
+          inpCorr.className = "mono";
+          inpCorr.placeholder = "0";
+          inpCorr.value = m ? String(m.correct) : "";
+          inpCorr.addEventListener("change", () => {
+            const val = Math.max(0, Number(inpCorr.value) || 0);
+            const tot = m ? m.total : 0;
+            if (val === 0 && tot === 0 && !m) return;
+            const pct = tot > 0 ? Math.min(1, val / tot) : (m ? m.percent : 0);
+            metricsMap[cat] = { correct: val, total: tot, percent: Number(pct.toFixed(6)) };
+            if (tab === "me") saveMyStats();
+            renderStrategy();
+            renderRightPanel();
+            computeIfReady(false);
+          });
+          tdCorr.appendChild(inpCorr);
+          tr.appendChild(tdCorr);
+
+          const tdTot = document.createElement("td");
+          const inpTot = document.createElement("input");
+          inpTot.type = "number";
+          inpTot.min = "0";
+          inpTot.className = "mono";
+          inpTot.placeholder = "0";
+          inpTot.value = m ? String(m.total) : "";
+          inpTot.addEventListener("change", () => {
+            const tot = Math.max(0, Number(inpTot.value) || 0);
+            const corr = m ? m.correct : 0;
+            if (corr === 0 && tot === 0) {
+              delete metricsMap[cat];
+            } else {
+              const pct = tot > 0 ? Math.min(1, corr / tot) : 0;
+              metricsMap[cat] = { correct: corr, total: tot, percent: Number(pct.toFixed(6)) };
+            }
+            if (tab === "me") saveMyStats();
+            renderStrategy();
+            renderRightPanel();
+            computeIfReady(false);
+          });
+          tdTot.appendChild(inpTot);
+          tr.appendChild(tdTot);
+
+          const tdPct = document.createElement("td");
+          const inpPct = document.createElement("input");
+          inpPct.type = "number";
+          inpPct.min = "0";
+          inpPct.max = "100";
+          inpPct.step = "0.1";
+          inpPct.className = "mono";
+          inpPct.style.textAlign = "right";
+          inpPct.placeholder = "--";
+          inpPct.value = m ? (m.percent * 100).toFixed(1) : "";
+          inpPct.addEventListener("change", () => {
+            if (inpPct.value === "") {
+              delete metricsMap[cat];
+            } else {
+              const num = Math.min(100, Math.max(0, Number(inpPct.value) || 0));
+              metricsMap[cat] = { correct: 0, total: 0, percent: Number((num / 100).toFixed(6)) };
+            }
+            if (tab === "me") saveMyStats();
+            renderStrategy();
+            renderRightPanel();
+            computeIfReady(false);
+          });
+          tdPct.appendChild(inpPct);
+          tr.appendChild(tdPct);
+
+          tbody.appendChild(tr);
+        }
+      }
+
+      async function handleImageFile(tab, file) {
+        const dataUrl = await new Promise((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => typeof r.result === "string" ? resolve(r.result) : reject(new Error("Read failed"));
+          r.onerror = () => reject(new Error("Read failed"));
+          r.readAsDataURL(file);
+        });
+        state.previews[tab] = dataUrl;
+        if (tab === "questions") {
+          renderStrategy();
+          renderRightPanel();
+          return;
+        }
+
+        state.ocr[tab] = { ...state.ocr[tab], loading: true, error: "" };
+        renderRightPanel();
+
+        try {
+          const text = await runClientOcr(dataUrl);
+          const parsed = parseCategoryStatsText(text);
+          if (tab === "opponent") state.oppMetrics = parsed.category_metrics;
+          else {
+            state.myMetrics = parsed.category_metrics;
+            saveMyStats();
+          }
+          state.ocr[tab] = {
+            loading: false,
+            matched: parsed.matched_count,
+            missing: parsed.missing_categories,
+            rawText: parsed.raw_text,
+            error: parsed.matched_count === 0
+              ? "No category rows detected. Try cropping closer or use 'Paste Table Text'."
+              : ""
+          };
+          state.showTable[tab] = true;
+          renderStrategy();
+          renderRightPanel();
+          computeIfReady(false);
+        } catch (err) {
+          state.ocr[tab] = {
+            ...state.ocr[tab],
+            loading: false,
+            error: err instanceof Error ? err.message : "OCR failed."
+          };
+          state.showTextBox[tab] = true;
+          renderRightPanel();
+        }
+      }
+
+      // Wire events
+      el("pill-opp").addEventListener("click", () => { state.activeTab = "opponent"; renderRightPanel(); });
+      el("pill-me").addEventListener("click", () => { state.activeTab = "me"; renderRightPanel(); });
+      el("pill-qshot").addEventListener("click", () => { state.activeTab = "questions"; renderRightPanel(); });
+
+      el("prior-input").addEventListener("change", () => computeIfReady(false));
+      el("recommend-btn").addEventListener("click", () => computeIfReady(true));
+      el("clear-strategy-btn").addEventListener("click", () => {
+        state.slotCats = Array(6).fill("");
+        state.slotDiffs = Array(6).fill(null);
+        state.recs = null;
+        state.defenseMeta = null;
+        el("global-error").style.display = "none";
+        renderStrategy();
+      });
+
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.activeTab = btn.dataset.tab;
+          renderRightPanel();
+        });
+      });
+
+      el("upload-btn").addEventListener("click", () => el("file-input").click());
+      el("file-input").addEventListener("change", e => {
+        const file = e.target.files?.[0];
+        if (file) void handleImageFile(state.activeTab, file);
+        e.target.value = "";
+      });
+
+      const dropzone = el("dropzone");
+      dropzone.addEventListener("dragover", e => { e.preventDefault(); dropzone.classList.add("dragover"); });
+      dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+      dropzone.addEventListener("drop", e => {
+        e.preventDefault();
+        dropzone.classList.remove("dragover");
+        const file = e.dataTransfer?.files?.[0];
+        if (file && file.type.startsWith("image/")) void handleImageFile(state.activeTab, file);
+      });
+
+      window.addEventListener("paste", e => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        for (const item of items) {
+          if (item.type.startsWith("image/")) {
+            const file = item.getAsFile();
+            if (file) {
+              e.preventDefault();
+              void handleImageFile(state.activeTab, file);
+              return;
+            }
+          }
+        }
+      });
+
+      function openZoom() {
+        const src = state.previews[state.activeTab];
+        if (!src) return;
+        el("zoom-title").textContent =
+          state.activeTab === "opponent"
+            ? "Opponent Stats Screenshot"
+            : state.activeTab === "me"
+              ? "My Stats Screenshot"
+              : "Questions Screenshot";
+        el("zoom-img").src = src;
+        el("zoom-dialog").showModal();
+      }
+      el("enlarge-btn").addEventListener("click", openZoom);
+      el("preview-wrap").addEventListener("click", openZoom);
+      el("zoom-close").addEventListener("click", () => el("zoom-dialog").close());
+      el("remove-img-btn").addEventListener("click", () => {
+        state.previews[state.activeTab] = null;
+        renderStrategy();
+        renderRightPanel();
+      });
+
+      el("toggle-text-btn").addEventListener("click", () => {
+        if (state.activeTab === "questions") return;
+        state.showTextBox[state.activeTab] = !state.showTextBox[state.activeTab];
+        renderRightPanel();
+      });
+      el("toggle-table-btn").addEventListener("click", () => {
+        if (state.activeTab === "questions") return;
+        state.showTable[state.activeTab] = !state.showTable[state.activeTab];
+        renderRightPanel();
+      });
+      el("raw-text-input").addEventListener("input", e => {
+        if (state.activeTab !== "questions") state.ocr[state.activeTab].rawText = e.target.value;
+      });
+      el("parse-text-btn").addEventListener("click", () => {
+        if (state.activeTab === "questions") return;
+        const tab = state.activeTab;
+        const raw = el("raw-text-input").value.trim();
+        if (!raw) {
+          state.ocr[tab].error = "Paste category stats text first.";
+          renderRightPanel();
+          return;
+        }
+        const parsed = parseCategoryStatsText(raw);
+        if (tab === "opponent") state.oppMetrics = parsed.category_metrics;
+        else {
+          state.myMetrics = parsed.category_metrics;
+          saveMyStats();
+        }
+        state.ocr[tab] = {
+          loading: false,
+          matched: parsed.matched_count,
+          missing: parsed.missing_categories,
+          rawText: raw,
+          error: parsed.matched_count === 0 ? "Could not match any LearnedLeague categories." : ""
+        };
+        state.showTable[tab] = true;
+        renderStrategy();
+        renderRightPanel();
+        computeIfReady(false);
+      });
+
+      el("clear-stats-btn").addEventListener("click", () => {
+        if (state.activeTab === "questions") return;
+        const tab = state.activeTab;
+        if (tab === "opponent") state.oppMetrics = {};
+        else {
+          state.myMetrics = {};
+          saveMyStats();
+        }
+        state.ocr[tab] = { loading: false, matched: null, missing: [], rawText: "", error: "" };
+        renderStrategy();
+        renderRightPanel();
+      });
+
+      renderStrategy();
+      renderRightPanel();
+    })();
+  </script>
+</body>
+</html>

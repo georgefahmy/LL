@@ -1,0 +1,766 @@
+#!/usr/bin/env python3
+"""Release, version-sync, macOS DMG packaging, and GitHub Releases CLI."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import platform
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from collections.abc import Sequence
+from dataclasses import dataclass
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+
+SEMVER_RE = re.compile(
+    r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?$"
+)
+
+
+@dataclass(frozen=True)
+class VersionSlot:
+    """Single version field inside a tracked repository file."""
+
+    label: str
+    rel_path: str
+    pattern: re.Pattern[str]
+
+
+VERSION_SLOTS: tuple[VersionSlot, ...] = (
+    VersionSlot(
+        label="pyproject.toml",
+        rel_path="pyproject.toml",
+        pattern=re.compile(r'^(version\s*=\s*")([^"]+)(")', re.MULTILINE),
+    ),
+    VersionSlot(
+        label="backend/config.py",
+        rel_path="backend/config.py",
+        pattern=re.compile(r'^(\s*app_version\s*:\s*str\s*=\s*")([^"]+)(")', re.MULTILINE),
+    ),
+    VersionSlot(
+        label="frontend/package.json",
+        rel_path="frontend/package.json",
+        pattern=re.compile(r'^(\s*"version"\s*:\s*")([^"]+)(")', re.MULTILINE),
+    ),
+    VersionSlot(
+        label="desktop/learnedleague.spec (CFBundleShortVersionString)",
+        rel_path="desktop/learnedleague.spec",
+        pattern=re.compile(r'("CFBundleShortVersionString"\s*:\s*")([^"]+)(")'),
+    ),
+    VersionSlot(
+        label="desktop/learnedleague.spec (CFBundleVersion)",
+        rel_path="desktop/learnedleague.spec",
+        pattern=re.compile(r'("CFBundleVersion"\s*:\s*")([^"]+)(")'),
+    ),
+)
+
+TRACKED_VERSION_FILES: tuple[str, ...] = tuple(dict.fromkeys(s.rel_path for s in VERSION_SLOTS))
+
+
+class ReleaseError(RuntimeError):
+    """Raised when a preflight, build, packaging, or publish step fails."""
+
+
+def normalize_version(raw: str) -> str:
+    """Validate a semantic version string (optional leading 'v') and return X.Y.Z[-pre]."""
+    cleaned = raw.strip()
+    if cleaned.startswith(("v", "V")):
+        cleaned = cleaned[1:]
+    if not SEMVER_RE.match(cleaned):
+        raise ValueError(
+            f"Invalid semantic version '{raw}'. Expected X.Y.Z or X.Y.Z-prerelease."
+        )
+    return cleaned
+
+
+def compute_next_version(current: str, target: str) -> str:
+    """Compute target version from bump keyword (patch/minor/major/current) or explicit semver."""
+    norm_current = normalize_version(current)
+    cmd = target.strip().lower()
+    if cmd == "current":
+        return norm_current
+
+    match = SEMVER_RE.match(norm_current)
+    assert match is not None
+    major, minor, patch = int(match.group(1)), int(match.group(2)), int(match.group(3))
+
+    if cmd == "patch":
+        return f"{major}.{minor}.{patch + 1}"
+    if cmd == "minor":
+        return f"{major}.{minor + 1}.0"
+    if cmd == "major":
+        return f"{major + 1}.0.0"
+
+    return normalize_version(target)
+
+
+def read_versions(root: Path = ROOT_DIR) -> dict[str, str]:
+    """Read all tracked version fields from repository files."""
+    file_cache: dict[str, str] = {}
+    versions: dict[str, str] = {}
+
+    for slot in VERSION_SLOTS:
+        if slot.rel_path not in file_cache:
+            path = root / slot.rel_path
+            if not path.is_file():
+                raise ReleaseError(f"Missing version file: {path}")
+            file_cache[slot.rel_path] = path.read_text(encoding="utf-8")
+
+        text = file_cache[slot.rel_path]
+        match = slot.pattern.search(text)
+        if match is None:
+            raise ReleaseError(f"Could not locate version field for {slot.label}")
+
+        value = match.group(2).strip()
+        if slot.rel_path == "frontend/package.json":
+            pkg = json.loads(text)
+            json_ver = str(pkg.get("version", "")).strip()
+            if json_ver != value:
+                raise ReleaseError(
+                    f"frontend/package.json version mismatch between regex ({value}) "
+                    f"and JSON ({json_ver})"
+                )
+        versions[slot.label] = value
+
+    return versions
+
+
+def check_version_consistency(
+    root: Path = ROOT_DIR,
+    expect_tag: str | None = None,
+) -> tuple[bool, str, dict[str, str]]:
+    """Verify every tracked version slot agrees (and matches expect_tag if provided)."""
+    versions = read_versions(root)
+    unique_values = set(versions.values())
+
+    if len(unique_values) != 1:
+        details = ", ".join(f"{k}={v}" for k, v in versions.items())
+        return False, f"Version mismatch across files: {details}", versions
+
+    current = next(iter(unique_values))
+    try:
+        norm_current = normalize_version(current)
+    except ValueError as exc:
+        return False, str(exc), versions
+
+    if expect_tag is not None:
+        try:
+            expected = normalize_version(expect_tag)
+        except ValueError as exc:
+            return False, str(exc), versions
+        if norm_current != expected:
+            return (
+                False,
+                f"Version mismatch: files are at {norm_current}, expected {expected} "
+                f"(from {expect_tag})",
+                versions,
+            )
+
+    return True, f"All {len(versions)} version slots match ({norm_current}).", versions
+
+
+def write_version(root: Path, new_version: str) -> list[Path]:
+    """Update all tracked repository files to new_version and return modified file paths."""
+    norm_version = normalize_version(new_version)
+    modified: list[Path] = []
+
+    slots_by_file: dict[str, list[VersionSlot]] = {}
+    for slot in VERSION_SLOTS:
+        slots_by_file.setdefault(slot.rel_path, []).append(slot)
+
+    for rel_path, slots in slots_by_file.items():
+        path = root / rel_path
+        if not path.is_file():
+            raise ReleaseError(f"Missing version file: {path}")
+
+        original = path.read_text(encoding="utf-8")
+        updated = original
+        for slot in slots:
+            updated, count = slot.pattern.subn(
+                rf"\g<1>{norm_version}\g<3>",
+                updated,
+                count=1,
+            )
+            if count != 1:
+                raise ReleaseError(f"Failed to update {slot.label} in {path}")
+
+        if updated != original:
+            path.write_text(updated, encoding="utf-8")
+            modified.append(path)
+
+    return modified
+
+
+def extract_changelog_section(changelog_path: Path, target_version: str) -> str | None:
+    """Return markdown body for target_version from changelog.md, or None if absent."""
+    if not changelog_path.is_file():
+        return None
+
+    norm_ver = normalize_version(target_version)
+    heading_re = re.compile(
+        rf"^###\s+(?:\[v?{re.escape(norm_ver)}\]|v?{re.escape(norm_ver)})(?:\s|$)",
+        re.IGNORECASE,
+    )
+    next_section_re = re.compile(r"^#{2,3}\s+")
+
+    lines = changelog_path.read_text(encoding="utf-8").splitlines()
+    capturing = False
+    captured: list[str] = []
+
+    for line in lines:
+        if capturing:
+            if next_section_re.match(line):
+                break
+            captured.append(line)
+        elif heading_re.match(line):
+            capturing = True
+
+    body = "\n".join(captured).strip()
+    return body or None
+
+
+def _run(
+    cmd: Sequence[str],
+    *,
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+    dry_run: bool = False,
+    capture_output: bool = False,
+) -> subprocess.CompletedProcess[str]:
+    """Execute a subprocess command (or log and short-circuit on dry_run)."""
+    cmd_str = " ".join(str(part) for part in cmd)
+    if dry_run:
+        prefix = f"({cwd}) " if cwd else ""
+        print(f"[dry-run] {prefix}{cmd_str}")
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    print(f"==> Running: {cmd_str}")
+    try:
+        return subprocess.run(
+            list(cmd),
+            cwd=cwd,
+            env=env,
+            check=True,
+            text=True,
+            capture_output=capture_output,
+        )
+    except subprocess.CalledProcessError as exc:
+        stderr = (exc.stderr or "").strip()
+        detail = f": {stderr}" if stderr else ""
+        raise ReleaseError(f"Command failed ({exc.returncode}): {cmd_str}{detail}") from exc
+
+
+def _pyinstaller_env(*, create: bool = True) -> dict[str, str]:
+    """Build subprocess environment with writable PYINSTALLER_CONFIG_DIR fallback."""
+    env = os.environ.copy()
+    if env.get("PYINSTALLER_CONFIG_DIR"):
+        return env
+
+    writable = False
+    try:
+        default_dir = Path.home() / "Library" / "Application Support" / "pyinstaller"
+        probe_dir = default_dir if default_dir.exists() else default_dir.parent
+        writable = probe_dir.exists() and os.access(probe_dir, os.W_OK)
+    except OSError:
+        writable = False
+
+    if not writable:
+        cache_dir = Path("/tmp/pyinstaller_cache")
+        if create:
+            cache_dir.mkdir(parents=True, exist_ok=True)
+        env["PYINSTALLER_CONFIG_DIR"] = str(cache_dir)
+    return env
+
+
+def run_pre_release_checks(root: Path, *, dry_run: bool = False) -> None:
+    """Run linter, test suite, and frontend TypeScript typecheck."""
+    _run(
+        ["uv", "run", "ruff", "check", "backend", "desktop", "scripts/release.py", "tests"],
+        cwd=root,
+        dry_run=dry_run,
+    )
+    _run(["uv", "run", "pytest", "-q"], cwd=root, dry_run=dry_run)
+    _run(["npm", "run", "typecheck"], cwd=root / "frontend", dry_run=dry_run)
+
+
+def build_frontend(root: Path, *, dry_run: bool = False) -> None:
+    """Build production React/Vite bundle into frontend/dist."""
+    _run(["npm", "run", "build"], cwd=root / "frontend", dry_run=dry_run)
+
+
+def build_macos_app(root: Path, *, dry_run: bool = False) -> None:
+    """Build dist/LearnedLeague.app with PyInstaller."""
+    _run(
+        ["uv", "run", "pyinstaller", "desktop/learnedleague.spec", "--noconfirm", "--clean"],
+        cwd=root,
+        env=_pyinstaller_env(create=not dry_run),
+        dry_run=dry_run,
+    )
+
+
+def dmg_artifact_paths(root: Path, version: str, arch: str | None = None) -> tuple[Path, Path]:
+    """Return canonical (dmg_path, sha256_path) for a versioned macOS release."""
+    norm_ver = normalize_version(version)
+    resolved_arch = arch or platform.machine() or "arm64"
+    dmg_path = root / "dist" / f"LearnedLeague-{norm_ver}-macos-{resolved_arch}.dmg"
+    sha_path = Path(f"{dmg_path}.sha256")
+    return dmg_path, sha_path
+
+
+def write_sha256_file(artifact_path: Path, sha_path: Path | None = None) -> Path:
+    """Compute SHA-256 digest of artifact_path and write `<hex>  <filename>`."""
+    out_path = sha_path or Path(f"{artifact_path}.sha256")
+    digest = hashlib.sha256()
+    with artifact_path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    out_path.write_text(f"{digest.hexdigest()}  {artifact_path.name}\n", encoding="utf-8")
+    return out_path
+
+
+def package_dmg(
+    root: Path,
+    version: str,
+    *,
+    arch: str | None = None,
+    dry_run: bool = False,
+) -> tuple[Path, Path]:
+    """Package dist/LearnedLeague.app into a verified UDZO .dmg + .sha256 checksum."""
+    if sys.platform != "darwin":
+        raise ReleaseError("macOS .dmg packaging requires macOS (darwin).")
+
+    dmg_path, sha_path = dmg_artifact_paths(root, version, arch=arch)
+    app_path = root / "dist" / "LearnedLeague.app"
+    staging_dir = root / "dist" / "dmg_staging"
+
+    if dry_run:
+        print(f"[dry-run] Stage {app_path} + /Applications symlink in {staging_dir}")
+        print(
+            "[dry-run] hdiutil create -volname LearnedLeague "
+            f"-srcfolder {staging_dir} -ov -format UDZO {dmg_path}"
+        )
+        print(f"[dry-run] hdiutil verify {dmg_path}")
+        print(f"[dry-run] Write SHA-256 checksum -> {sha_path}")
+        return dmg_path, sha_path
+
+    if not app_path.is_dir():
+        raise ReleaseError(
+            f"Missing app bundle at {app_path}. Run build first or omit --package-dmg-only."
+        )
+
+    dmg_path.parent.mkdir(parents=True, exist_ok=True)
+    if staging_dir.exists():
+        shutil.rmtree(staging_dir)
+
+    try:
+        staging_dir.mkdir(parents=True)
+        _run(["ditto", str(app_path), str(staging_dir / "LearnedLeague.app")], cwd=root)
+        os.symlink("/Applications", staging_dir / "Applications")
+        _run(
+            [
+                "hdiutil",
+                "create",
+                "-volname",
+                "LearnedLeague",
+                "-srcfolder",
+                str(staging_dir),
+                "-ov",
+                "-format",
+                "UDZO",
+                str(dmg_path),
+            ],
+            cwd=root,
+        )
+        _run(["hdiutil", "verify", str(dmg_path)], cwd=root)
+        write_sha256_file(dmg_path, sha_path)
+    finally:
+        if staging_dir.exists():
+            shutil.rmtree(staging_dir, ignore_errors=True)
+
+    return dmg_path, sha_path
+
+
+def _ensure_binary(name: str) -> None:
+    if shutil.which(name) is None:
+        raise ReleaseError(f"Required executable '{name}' was not found on PATH.")
+
+
+def _check_git_clean(root: Path) -> None:
+    res = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=root,
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+    if res.stdout.strip():
+        raise ReleaseError(
+            "Git working tree has uncommitted changes. Commit/stash them or pass --allow-dirty."
+        )
+
+
+def _local_tag_exists(root: Path, tag: str) -> bool:
+    res = subprocess.run(
+        ["git", "rev-parse", "--verify", "--quiet", f"refs/tags/{tag}"],
+        cwd=root,
+        text=True,
+        capture_output=True,
+    )
+    return res.returncode == 0
+
+
+def _remote_tag_exists(root: Path, tag: str, *, allow_offline: bool = False) -> bool:
+    res = subprocess.run(
+        ["git", "ls-remote", "--tags", "origin", f"refs/tags/{tag}"],
+        cwd=root,
+        text=True,
+        capture_output=True,
+    )
+    if res.returncode != 0:
+        if allow_offline:
+            print(f"[dry-run] Warning: could not query origin for tag {tag}: {res.stderr.strip()}")
+            return False
+        raise ReleaseError(f"Failed to query origin tags: {res.stderr.strip()}")
+    return bool(res.stdout.strip())
+
+
+def _github_release_exists(root: Path, tag: str) -> bool:
+    res = subprocess.run(
+        ["gh", "release", "view", tag],
+        cwd=root,
+        text=True,
+        capture_output=True,
+    )
+    return res.returncode == 0
+
+
+def _check_gh_auth(root: Path) -> None:
+    res = subprocess.run(
+        ["gh", "auth", "status"],
+        cwd=root,
+        text=True,
+        capture_output=True,
+    )
+    if res.returncode != 0:
+        detail = res.stderr.strip() or res.stdout.strip()
+        raise ReleaseError(f"GitHub CLI is not authenticated. Run 'gh auth login'. ({detail})")
+
+
+def run_release(args: argparse.Namespace, root: Path = ROOT_DIR) -> int:
+    """Execute the requested release workflow mode."""
+    if args.check_version:
+        ok, message, versions = check_version_consistency(root, expect_tag=args.expect_tag)
+        for label, value in versions.items():
+            print(f"  {label}: {value}")
+        print(message)
+        return 0 if ok else 1
+
+    if args.extract_notes:
+        notes = extract_changelog_section(root / "changelog.md", args.extract_notes)
+        if notes:
+            print(notes)
+        return 0
+
+    ok, message, versions = check_version_consistency(root)
+    if not ok:
+        raise ReleaseError(message)
+    current_version = next(iter(versions.values()))
+
+    target_arg = args.version
+    if not target_arg:
+        if args.build_only or args.package_dmg_only:
+            target_arg = "current"
+        else:
+            raise ReleaseError(
+                "Missing version argument (patch, minor, major, current, or X.Y.Z). "
+                "Use --build-only or --package-dmg-only to default to current."
+            )
+
+    target_version = compute_next_version(current_version, target_arg)
+    tag_name = f"v{target_version}"
+
+    if args.package_dmg_only:
+        dmg_path, sha_path = package_dmg(root, target_version, dry_run=args.dry_run)
+        print(f"Packaged: {dmg_path}")
+        print(f"Checksum: {sha_path}")
+        return 0
+
+    if args.build_only:
+        if not args.skip_checks:
+            run_pre_release_checks(root, dry_run=args.dry_run)
+        build_frontend(root, dry_run=args.dry_run)
+        build_macos_app(root, dry_run=args.dry_run)
+        dmg_path, sha_path = package_dmg(root, target_version, dry_run=args.dry_run)
+        print(f"Built & packaged: {dmg_path}")
+        print(f"Checksum: {sha_path}")
+        return 0
+
+    # Full or upload-only release preflight
+    _ensure_binary("git")
+    will_upload = not args.no_upload
+    if will_upload:
+        _ensure_binary("gh")
+        if not args.dry_run:
+            _check_gh_auth(root)
+
+    if not args.upload_only and not args.allow_dirty:
+        _check_git_clean(root)
+
+    allow_existing_tag = bool(args.upload_only or args.clobber)
+    if not args.upload_only:
+        if _local_tag_exists(root, tag_name):
+            raise ReleaseError(f"Git tag {tag_name} already exists locally.")
+        if not args.no_push and _remote_tag_exists(root, tag_name, allow_offline=args.dry_run):
+            raise ReleaseError(f"Git tag {tag_name} already exists on origin.")
+    elif not allow_existing_tag:
+        raise ReleaseError("Specify --upload-only or --clobber when updating an existing tag.")
+
+    print(f"Release version: {current_version} -> {target_version} (tag {tag_name})")
+
+    if not args.upload_only and not args.skip_checks:
+        run_pre_release_checks(root, dry_run=args.dry_run)
+
+    bumped_paths: list[Path] = []
+    if not args.upload_only and target_version != current_version:
+        if args.dry_run:
+            for rel_path in TRACKED_VERSION_FILES:
+                print(
+                    f"[dry-run] Update {root / rel_path}: "
+                    f"{current_version} -> {target_version}"
+                )
+        else:
+            bumped_paths = write_version(root, target_version)
+            print(f"Updated version in {len(bumped_paths)} file(s) to {target_version}.")
+
+    if not args.upload_only and not args.skip_build:
+        build_frontend(root, dry_run=args.dry_run)
+        build_macos_app(root, dry_run=args.dry_run)
+        dmg_path, sha_path = package_dmg(root, target_version, dry_run=args.dry_run)
+    else:
+        dmg_path, sha_path = dmg_artifact_paths(root, target_version)
+        if not args.dry_run:
+            if not dmg_path.is_file():
+                raise ReleaseError(f"Expected DMG not found at {dmg_path}")
+            if not sha_path.is_file():
+                write_sha256_file(dmg_path, sha_path)
+
+    if not args.upload_only:
+        if bumped_paths or (args.dry_run and target_version != current_version):
+            _run(["git", "add", *TRACKED_VERSION_FILES], cwd=root, dry_run=args.dry_run)
+            _run(
+                ["git", "commit", "-m", f"chore(release): {tag_name}"],
+                cwd=root,
+                dry_run=args.dry_run,
+            )
+
+        _run(
+            ["git", "tag", "-a", tag_name, "-m", f"Release {tag_name}"],
+            cwd=root,
+            dry_run=args.dry_run,
+        )
+
+        if not args.no_push:
+            _run(["git", "push", "origin", "HEAD"], cwd=root, dry_run=args.dry_run)
+            _run(["git", "push", "origin", tag_name], cwd=root, dry_run=args.dry_run)
+
+    if will_upload:
+        _publish_github_release(
+            root=root,
+            tag_name=tag_name,
+            version=target_version,
+            dmg_path=dmg_path,
+            sha_path=sha_path,
+            args=args,
+        )
+
+    return 0
+
+
+def _publish_github_release(
+    *,
+    root: Path,
+    tag_name: str,
+    version: str,
+    dmg_path: Path,
+    sha_path: Path,
+    args: argparse.Namespace,
+) -> None:
+    """Create or update a GitHub Release with the packaged DMG and checksum."""
+    assets = [str(dmg_path), str(sha_path)]
+    if args.clobber and not args.dry_run and _github_release_exists(root, tag_name):
+        _run(["gh", "release", "upload", tag_name, *assets, "--clobber"], cwd=root)
+        return
+
+    if args.upload_only:
+        if args.dry_run or _github_release_exists(root, tag_name):
+            _run(
+                ["gh", "release", "upload", tag_name, *assets, "--clobber"],
+                cwd=root,
+                dry_run=args.dry_run,
+            )
+            return
+
+    temp_notes_path: Path | None = None
+    notes_flag: list[str]
+    if args.notes_file:
+        notes_path = Path(args.notes_file)
+        if not args.dry_run and not notes_path.is_file():
+            raise ReleaseError(f"Release notes file not found: {notes_path}")
+        notes_flag = ["--notes-file", str(notes_path)]
+    else:
+        extracted = extract_changelog_section(root / "changelog.md", version)
+        if extracted:
+            if args.dry_run:
+                notes_flag = ["--notes-file", "<changelog-section>"]
+            else:
+                with tempfile.NamedTemporaryFile(
+                    "w",
+                    encoding="utf-8",
+                    suffix=".md",
+                    delete=False,
+                ) as tmp:
+                    tmp.write(extracted + "\n")
+                    temp_notes_path = Path(tmp.name)
+                notes_flag = ["--notes-file", str(temp_notes_path)]
+        else:
+            notes_flag = ["--generate-notes"]
+
+    cmd = [
+        "gh",
+        "release",
+        "create",
+        tag_name,
+        *assets,
+        "--title",
+        f"LearnedLeague {tag_name}",
+        *notes_flag,
+    ]
+    if args.draft:
+        cmd.append("--draft")
+    if args.prerelease:
+        cmd.append("--prerelease")
+
+    try:
+        _run(cmd, cwd=root, dry_run=args.dry_run)
+    finally:
+        if temp_notes_path and temp_notes_path.exists():
+            temp_notes_path.unlink(missing_ok=True)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """Create CLI argument parser."""
+    parser = argparse.ArgumentParser(
+        description=(
+            "Synchronize version numbers, build LearnedLeague.app + macOS .dmg, "
+            "tag git, and publish to GitHub Releases."
+        )
+    )
+    parser.add_argument(
+        "version",
+        nargs="?",
+        help="Bump kind (patch, minor, major, current) or explicit semver (e.g. 9.1.0 or v9.1.0).",
+    )
+    parser.add_argument(
+        "--check-version",
+        action="store_true",
+        help="Verify all tracked version files agree and exit.",
+    )
+    parser.add_argument(
+        "--expect-tag",
+        help="With --check-version, also require versions match this tag (e.g. v9.0.0).",
+    )
+    parser.add_argument(
+        "--extract-notes",
+        metavar="VERSION",
+        help="Extract release notes for VERSION from changelog.md to stdout and exit.",
+    )
+    parser.add_argument(
+        "--build-only",
+        action="store_true",
+        help="Build frontend, LearnedLeague.app, .dmg, and .sha256 locally without git/GitHub.",
+    )
+    parser.add_argument(
+        "--package-dmg-only",
+        action="store_true",
+        help="Package existing dist/LearnedLeague.app into .dmg and .sha256 and exit.",
+    )
+    parser.add_argument(
+        "--upload-only",
+        action="store_true",
+        help="Upload existing .dmg + .sha256 for the target version to GitHub Releases.",
+    )
+    parser.add_argument(
+        "--clobber",
+        action="store_true",
+        help="Overwrite matching assets if the GitHub Release already exists.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print release actions without modifying files, git, or GitHub.",
+    )
+    parser.add_argument(
+        "--draft",
+        action="store_true",
+        help="Create the GitHub Release as a draft.",
+    )
+    parser.add_argument(
+        "--prerelease",
+        action="store_true",
+        help="Mark the GitHub Release as a prerelease.",
+    )
+    parser.add_argument(
+        "--skip-checks",
+        action="store_true",
+        help="Skip ruff, pytest, and frontend typecheck before building.",
+    )
+    parser.add_argument(
+        "--skip-build",
+        action="store_true",
+        help="Skip frontend/PyInstaller/.dmg build and expect dist artifacts to exist.",
+    )
+    parser.add_argument(
+        "--allow-dirty",
+        action="store_true",
+        help="Allow running even when git working tree has uncommitted changes.",
+    )
+    parser.add_argument(
+        "--no-push",
+        action="store_true",
+        help="Do not push commit or git tag to origin.",
+    )
+    parser.add_argument(
+        "--no-upload",
+        action="store_true",
+        help="Do not create or upload assets to GitHub Releases.",
+    )
+    parser.add_argument(
+        "--notes-file",
+        help="Explicit markdown file to use for GitHub Release notes.",
+    )
+    return parser
+
+
+def main(argv: Sequence[str] | None = None, *, root: Path = ROOT_DIR) -> int:
+    """CLI entrypoint."""
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    try:
+        return run_release(args, root=root)
+    except ReleaseError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

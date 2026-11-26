@@ -1,0 +1,15 @@
+# Example host-installed Caddy reverse proxy config for ll.n890gf.com
+ll.n890gf.com {
+    encode zstd gzip
+
+    tls {
+        protocols tls1.2 tls1.3
+    }
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        -Server
+    }
+
+    reverse_proxy 127.0.0.1:8000
+}

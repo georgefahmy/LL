@@ -1,0 +1,8 @@
+# Example Cloudflare Tunnel ingress config (if your Linux server is behind NAT/home ISP)
+tunnel: your-tunnel-uuid
+credentials-file: /etc/cloudflared/your-tunnel-uuid.json
+
+ingress:
+  - hostname: ll.n890gf.com
+    service: http://127.0.0.1:8000
+  - service: http_status:404
