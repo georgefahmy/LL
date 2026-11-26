@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from bs4 import BeautifulSoup
@@ -8,10 +9,51 @@ from ..cache import CacheStore
 from ..constants import BASE_URL
 from ..http_client import LLHttpClient, LLNotFoundError
 
+_OUTCOME_RE = re.compile(r"^(?:([WLTF])|Forfeit)\b", re.IGNORECASE)
+_SCORE_RE = re.compile(r"\d+\s*\(\d+\)\s*[-–]\s*\d+")
+
 
 def _safe_int(text: str) -> int:
     digits = "".join(ch for ch in text if ch.isdigit())
     return int(digits) if digits else 0
+
+
+def _parse_opponent_row(row: Any, fallback_day: int) -> dict[str, Any] | None:
+    """Parse one opponent schedule row from profile &1 results table."""
+    img = row.find("img")
+    flag = row.find("a", {"class": "flag"})
+    if not img or not img.get("title") or not flag or not flag.get("href"):
+        return None
+
+    username = str(img.get("title")).strip()
+    profile_id = str(flag.get("href")).split("?")[-1].strip()
+    cells = row.find_all("td")
+    day_num = _safe_int(cells[0].get_text(strip=True)) if cells else 0
+    match_day = day_num if 1 <= day_num <= 25 else fallback_day
+
+    flag_cell = flag.find_parent("td")
+    extra_cells = [c for idx, c in enumerate(cells) if idx > 0 and c is not flag_cell]
+
+    played: bool | None = False if extra_cells else None
+    result = ""
+    for cell in extra_cells:
+        txt = cell.get_text(" ", strip=True)
+        if not txt:
+            continue
+        out_match = _OUTCOME_RE.match(txt)
+        if out_match:
+            played = True
+            result = (out_match.group(1) or "F").upper()
+        elif _SCORE_RE.search(txt):
+            played = True
+
+    return {
+        "username": username,
+        "profile_id": profile_id,
+        "match_day": match_day,
+        "played": played,
+        "result": result,
+    }
 
 
 def parse_profile_latest(html: str) -> dict[str, Any]:
@@ -29,15 +71,14 @@ def parse_profile_latest(html: str) -> dict[str, Any]:
     formatted_username = name_el.get_text(" ", strip=True)
 
     opponents: dict[str, str] = {}
+    opponent_schedule: list[dict[str, Any]] = []
     op_table = soup.find("table", {"summary": "Data table for LL results"})
     if op_table:
         for row in op_table.find_all("tr")[1:]:
-            img = row.find("img")
-            flag = row.find("a", {"class": "flag"})
-            if img and img.get("title") and flag and flag.get("href"):
-                opponents[str(img.get("title")).strip()] = (
-                    str(flag.get("href")).split("?")[-1].strip()
-                )
+            entry = _parse_opponent_row(row, len(opponent_schedule) + 1)
+            if entry is not None:
+                opponents[entry["username"]] = entry["profile_id"]
+                opponent_schedule.append(entry)
 
     category_metrics: dict[str, dict[str, Any]] = {}
     cat_table = soup.find("table", {"class": "std sortable this_sea std_bord"}) or soup.find(
@@ -65,6 +106,7 @@ def parse_profile_latest(html: str) -> dict[str, Any]:
         "formatted_username": formatted_username,
         "link": f"{BASE_URL}/profiles.php?{profile_id}",
         "opponents": opponents,
+        "opponent_schedule": opponent_schedule,
         "category_metrics": category_metrics,
     }
 

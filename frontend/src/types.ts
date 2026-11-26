@@ -159,12 +159,21 @@ export interface PlayerQuestionHistoryItem {
   url: string;
 }
 
+export interface OpponentScheduleItem {
+  username: string;
+  profile_id: string;
+  match_day: number;
+  played: boolean | null;
+  result?: string;
+}
+
 export interface PlayerProfile {
   profile_id: string;
   username: string;
   formatted_username: string;
   link: string;
   opponents: Record<string, string>;
+  opponent_schedule?: OpponentScheduleItem[];
   category_metrics: Record<string, CategoryMetric>;
   question_history: Record<string, PlayerQuestionHistoryItem>;
   stats: {

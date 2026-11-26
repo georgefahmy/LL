@@ -1303,6 +1303,18 @@ export function DefensePage({
   }
 
   const opponentChoices = p1Profile ? Object.keys(p1Profile.opponents) : [];
+  const scheduleByName = new Map(
+    (p1Profile?.opponent_schedule ?? []).map((item) => [
+      item.username.toLowerCase(),
+      item,
+    ])
+  );
+  const firstUnplayedSched = (p1Profile?.opponent_schedule ?? []).find(
+    (item) => item.played === false
+  );
+  const firstUpcomingDay = firstUnplayedSched
+    ? firstUnplayedSched.match_day
+    : currentDay + 1;
 
   return (
     <div className="space-y-4">
@@ -1385,9 +1397,26 @@ export function DefensePage({
                     className="absolute left-0 right-0 top-full mt-1 max-h-64 overflow-y-auto ll-card shadow-lg z-30 py-1 text-sm divide-y"
                     style={{ borderColor: "var(--border-subtle)" }}
                   >
-                    {opponentChoices.map((o) => {
+                    {opponentChoices.map((o, idx) => {
                       const isSelected =
                         o.toLowerCase() === opponentInput.trim().toLowerCase();
+                      const sched = scheduleByName.get(o.toLowerCase());
+                      const matchDay = sched?.match_day ?? idx + 1;
+                      const isPlayed =
+                        sched?.played !== null && sched?.played !== undefined
+                          ? sched.played
+                          : matchDay <= currentDay;
+                      const isNext = !isPlayed && matchDay === firstUpcomingDay;
+                      const statusNote = isPlayed
+                        ? `MD ${matchDay} · Played${sched?.result ? ` (${sched.result})` : ""}`
+                        : isNext
+                          ? `MD ${matchDay} · Up next`
+                          : `MD ${matchDay} · Upcoming`;
+                      const noteClass = isPlayed
+                        ? ""
+                        : isNext
+                          ? "text-blue-600 dark:text-blue-400 font-medium"
+                          : "text-emerald-600 dark:text-emerald-400";
                       return (
                         <li key={o} style={{ borderColor: "var(--border-subtle)" }}>
                           <button
@@ -1399,13 +1428,21 @@ export function DefensePage({
                               setOppMenuOpen(false);
                               void loadOpponent(o);
                             }}
-                            className={`w-full text-left px-3 py-1.5 cursor-pointer transition-colors ${
+                            className={`w-full text-left px-3 py-1.5 flex items-center justify-between gap-2 cursor-pointer transition-colors ${
                               isSelected
                                 ? "bg-blue-600/15 text-blue-700 dark:text-blue-300 font-semibold"
                                 : "hover:bg-slate-500/10"
                             }`}
                           >
-                            {o}
+                            <span className="truncate">{o}</span>
+                            <span
+                              className={`text-xs font-normal shrink-0 ${noteClass}`}
+                              style={
+                                isPlayed ? { color: "var(--text-secondary)" } : undefined
+                              }
+                            >
+                              {statusNote}
+                            </span>
                           </button>
                         </li>
                       );

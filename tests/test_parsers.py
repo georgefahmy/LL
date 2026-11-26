@@ -154,5 +154,77 @@ def test_parse_profiles_and_rookie_edge_cases() -> None:
     assert past["LL108"]["results"] == {"wins": 1, "ties": 1, "losses": 0}
     assert parse_profile_past_seasons("<html><body>No past seasons</body></html>") == {}
 
+    # Minimal 2-column fixture leaves played=None while preserving match_day
+    assert latest["opponent_schedule"] == [
+        {
+            "username": "BobOpp",
+            "profile_id": "22222",
+            "match_day": 1,
+            "played": None,
+            "result": "",
+        },
+        {
+            "username": "CarolOpp",
+            "profile_id": "33333",
+            "match_day": 2,
+            "played": None,
+            "result": "",
+        },
+    ]
+
     with pytest.raises(LLNotFoundError):
         parse_profile_latest("<html><body><p>Not found</p></body></html>")
+
+
+def test_parse_profile_opponent_schedule_played_and_upcoming() -> None:
+    html = """
+    <html><body>
+      <h1 class="namecss">AlicePlayer</h1>
+      <div class="flagdiv"><a href="/profiles.php?12345"></a></div>
+      <table summary="Data table for LL results">
+        <tr><th>MD</th><th>Opponent</th><th>Result</th><th>Score</th></tr>
+        <tr>
+          <td>1</td>
+          <td><a class="flag" href="/profiles.php?201"><img title="PlayedWin" /></a></td>
+          <td>W</td>
+          <td>7(5)-4(3)</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><a class="flag" href="/profiles.php?202"><img title="PlayedLoss" /></a></td>
+          <td>L</td>
+          <td>3(2)-6(4)</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><a class="flag" href="/profiles.php?203"><img title="UpNextOpp" /></a></td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+        </tr>
+      </table>
+    </body></html>
+    """
+    parsed = parse_profile_latest(html)
+    assert parsed["opponent_schedule"] == [
+        {
+            "username": "PlayedWin",
+            "profile_id": "201",
+            "match_day": 1,
+            "played": True,
+            "result": "W",
+        },
+        {
+            "username": "PlayedLoss",
+            "profile_id": "202",
+            "match_day": 2,
+            "played": True,
+            "result": "L",
+        },
+        {
+            "username": "UpNextOpp",
+            "profile_id": "203",
+            "match_day": 3,
+            "played": False,
+            "result": "",
+        },
+    ]

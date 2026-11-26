@@ -1,22 +1,52 @@
-resources/
-.eggs/
-*.egg-info/
+# Runtime data & secrets
+.data/
+.secret_key
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+.env
+.env.*
+!.env.example
+.deploy.env
+!.deploy.env.example
+.LearnedLeague*
+seed_questions.json.gz
+
+# Build, desktop & release artifacts
 build/
 dist/
-todo_list.notes
-utilities/
-.DS_Store*
+*.dmg
+*.dmg.sha256
+release_notes.md
+release_assets/
+*.crx
+*.pem
+
+# Python & test/lint caches
 __pycache__/
-*.pyc
-VERSION
-universal_wheels/*.whl
-.LearnedLeague*
-*.csv
-.env
-.deploy.env
+*.py[cod]
 .venv/
+.eggs/
+*.egg-info/
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+universal_wheels/*.whl
+
+# Frontend
 frontend/node_modules/
 frontend/dist/
-seed_questions.json.gz
+*.tsbuildinfo
+
+# Data & misc
+*.csv
+!tests/fixtures/*.csv
+resources/
+utilities/
+todo_list.notes
+VERSION
+.DS_Store*
