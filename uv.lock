@@ -1,5 +1,5 @@
 version = 1
-requires-python = ">=3.12"
+requires-python = ">=3.12.1"
 resolution-markers = [
     "python_full_version < '3.13' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
@@ -547,10 +547,10 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "keyring", marker = "extra == 'desktop'", specifier = ">=25.5.0" },
-    { name = "lxml", specifier = ">=5.3.0" },
+    { name = "lxml", specifier = ">=6.1.0" },
     { name = "packaging", specifier = ">=24.0" },
     { name = "pandas", specifier = ">=2.2.0" },
-    { name = "pillow", specifier = ">=10.4.0" },
+    { name = "pillow", specifier = ">=13.0.0" },
     { name = "pydantic", specifier = ">=2.9.0" },
     { name = "pydantic-settings", specifier = ">=2.6.0" },
     { name = "pyinstaller", marker = "extra == 'desktop'", specifier = ">=6.11.0" },

@@ -167,3 +167,10 @@ def test_cli_check_version_and_dry_run_do_not_mutate_files(
         for rel in release.TRACKED_VERSION_FILES
     }
     assert snapshot_after == snapshot_before
+
+    monkeypatch.setattr(release.sys, "platform", "linux")
+    assert release.main(["patch", "--dry-run", "--allow-dirty"], root=repo) == 0
+    capsys.readouterr()
+
+    with pytest.raises(release.ReleaseError, match="requires macOS"):
+        release.package_dmg(repo, "9.0.1", dry_run=False)

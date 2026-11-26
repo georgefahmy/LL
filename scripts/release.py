@@ -305,6 +305,21 @@ def build_macos_app(root: Path, *, dry_run: bool = False) -> None:
     )
 
 
+def smoke_test_macos_app(root: Path, *, dry_run: bool = False) -> None:
+    """Run bundled macOS binary with --self-test to catch startup import crashes."""
+    exe_path = root / "dist" / "LearnedLeague.app" / "Contents" / "MacOS" / "LearnedLeague"
+    if dry_run:
+        print(f"[dry-run] {exe_path} --self-test")
+        return
+    if not exe_path.is_file():
+        raise ReleaseError(f"Missing macOS binary for smoke test: {exe_path}")
+    res = _run([str(exe_path), "--self-test"], cwd=root, capture_output=True)
+    if "OK" not in res.stdout.splitlines():
+        raise ReleaseError(
+            f"Desktop smoke test failed (missing OK): stdout={res.stdout!r} stderr={res.stderr!r}"
+        )
+
+
 def dmg_artifact_paths(root: Path, version: str, arch: str | None = None) -> tuple[Path, Path]:
     """Return canonical (dmg_path, sha256_path) for a versioned macOS release."""
     norm_ver = normalize_version(version)
@@ -333,9 +348,6 @@ def package_dmg(
     dry_run: bool = False,
 ) -> tuple[Path, Path]:
     """Package dist/LearnedLeague.app into a verified UDZO .dmg + .sha256 checksum."""
-    if sys.platform != "darwin":
-        raise ReleaseError("macOS .dmg packaging requires macOS (darwin).")
-
     dmg_path, sha_path = dmg_artifact_paths(root, version, arch=arch)
     app_path = root / "dist" / "LearnedLeague.app"
     staging_dir = root / "dist" / "dmg_staging"
@@ -349,6 +361,9 @@ def package_dmg(
         print(f"[dry-run] hdiutil verify {dmg_path}")
         print(f"[dry-run] Write SHA-256 checksum -> {sha_path}")
         return dmg_path, sha_path
+
+    if sys.platform != "darwin":
+        raise ReleaseError("macOS .dmg packaging requires macOS (darwin).")
 
     if not app_path.is_dir():
         raise ReleaseError(
@@ -497,6 +512,7 @@ def run_release(args: argparse.Namespace, root: Path = ROOT_DIR) -> int:
             run_pre_release_checks(root, dry_run=args.dry_run)
         build_frontend(root, dry_run=args.dry_run)
         build_macos_app(root, dry_run=args.dry_run)
+        smoke_test_macos_app(root, dry_run=args.dry_run)
         dmg_path, sha_path = package_dmg(root, target_version, dry_run=args.dry_run)
         print(f"Built & packaged: {dmg_path}")
         print(f"Checksum: {sha_path}")
@@ -542,6 +558,7 @@ def run_release(args: argparse.Namespace, root: Path = ROOT_DIR) -> int:
     if not args.upload_only and not args.skip_build:
         build_frontend(root, dry_run=args.dry_run)
         build_macos_app(root, dry_run=args.dry_run)
+        smoke_test_macos_app(root, dry_run=args.dry_run)
         dmg_path, sha_path = package_dmg(root, target_version, dry_run=args.dry_run)
     else:
         dmg_path, sha_path = dmg_artifact_paths(root, target_version)
