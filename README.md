@@ -69,6 +69,9 @@ uv run python scripts/release.py dry-run patch
 
 # 3. Build, bump version, tag git, and publish to GitHub Releases
 uv run python scripts/release.py publish patch   # or minor, major, 9.1.0 (optional --draft)
+
+# 4. Bump (optional) and package Chrome Extension zip independently
+uv run python scripts/release.py extension       # or extension patch | minor | 1.1.0
 ```
 
 ---

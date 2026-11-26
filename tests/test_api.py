@@ -53,6 +53,13 @@ def test_public_endpoints_and_auth_guards(tmp_path: Path) -> None:
         r_health = client.get("/api/health")
         assert r_health.status_code == 200
         assert r_health.json()["status"] == "ok"
+        assert r_health.json()["version"] == app.state.ll.settings.extension_version
+        assert r_health.json()["extension_version"] == app.state.ll.settings.extension_version
+
+        r_meta = client.get("/api/meta")
+        assert r_meta.status_code == 200
+        assert r_meta.json()["version"] == app.state.ll.settings.extension_version
+        assert r_meta.json()["extension_version"] == app.state.ll.settings.extension_version
 
         r_qs = client.get("/api/questions?category=SCIENCE")
         assert r_qs.status_code == 200
@@ -95,6 +102,14 @@ def test_public_endpoints_and_auth_guards(tmp_path: Path) -> None:
 
         # Web mode disables server-side personal storage
         assert client.get("/api/local-store/favorites").status_code == 400
+
+    desktop_app = _make_test_app(tmp_path / "desktop", mode="desktop")
+    with TestClient(desktop_app) as d_client:
+        d_health = d_client.get("/api/health").json()
+        assert d_health["version"] == desktop_app.state.ll.settings.app_version
+        d_meta = d_client.get("/api/meta").json()
+        assert d_meta["version"] == desktop_app.state.ll.settings.app_version
+        assert d_meta["extension_version"] == desktop_app.state.ll.settings.extension_version
 
 
 def test_access_gate_enforcement(tmp_path: Path) -> None:

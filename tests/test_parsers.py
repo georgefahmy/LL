@@ -94,11 +94,28 @@ def test_parse_todays_questions_states() -> None:
     assert past_hidden["status"] == "ok"
     assert "(Past Match)" in past_hidden["message"]
     assert len(past_hidden["questions"]) == 6
+    assert past_hidden["questions"][0]["submitted_answer"] == "--"
     assert past_hidden["questions"][0]["correct_answer"] == "hidden"
     assert past_hidden["questions"][0]["points_assigned"] == "76%"
 
     past_shown = parse_todays_questions(_read("match_day_past.html"), 109, 5, display_answers=True)
+    assert past_shown["questions"][0]["submitted_answer"] == "--"
     assert past_shown["questions"][0]["correct_answer"] == "ERIE CANAL"
+
+    past_with_sub_html = _read("match_day_past.html").replace(
+        '<div class="a-red">ERIE CANAL</div>',
+        '<div class="ans_1">USER ERIE</div><div class="a-red">ERIE CANAL</div>',
+        1,
+    )
+    past_sub_hidden = parse_todays_questions(
+        past_with_sub_html, 109, 5, display_answers=False
+    )
+    assert past_sub_hidden["questions"][0]["submitted_answer"] == "hidden"
+    past_sub_shown = parse_todays_questions(
+        past_with_sub_html, 109, 5, display_answers=True
+    )
+    assert past_sub_shown["questions"][0]["submitted_answer"] == "USER ERIE"
+    assert past_sub_shown["questions"][1]["submitted_answer"] == "--"
 
 
 def test_parse_oneday_catalog_and_detail() -> None:

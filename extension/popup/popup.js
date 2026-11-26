@@ -29,6 +29,11 @@ async function refreshAuthStatus() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  const versionEl = document.getElementById("ext-version");
+  if (versionEl && chrome.runtime.getManifest) {
+    versionEl.textContent = `v${chrome.runtime.getManifest().version}`;
+  }
+
   const urlInput = document.getElementById("app-url");
   const stored = await chrome.storage.local.get(APP_URL_KEY);
   urlInput.value = stored[APP_URL_KEY] || DEFAULT_APP_URL;

@@ -58,6 +58,14 @@ const NAV_ITEMS: { id: PageId; label: string; requiresAuth: boolean }[] = [
   { id: "settings", label: "Settings", requiresAuth: false },
 ];
 
+const WEB_NAV_IDS: ReadonlySet<PageId> = new Set([
+  "stats",
+  "defense",
+  "luck",
+  "history",
+  "settings",
+]);
+
 const COLOR_SCHEME_STORAGE_KEY = "ll-color-scheme";
 
 function readStoredScheme(): ColorSchemePref {
@@ -153,14 +161,21 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const label = NAV_ITEMS.find((it) => it.id === activePage)?.label ?? "Practice";
-    document.title = `${label} | LearnedLeague Practice Tool`;
-  }, [activePage]);
+    const label = NAV_ITEMS.find((it) => it.id === activePage)?.label ?? "Defense";
+    const appTitle =
+      meta?.mode === "web"
+        ? "LearnedLeague Analytics"
+        : "LearnedLeague Practice Tool";
+    document.title = `${label} | ${appTitle}`;
+  }, [activePage, meta?.mode]);
 
   const refreshMetaAndAuth = useCallback(async () => {
     try {
       const m = await api.getMeta();
       setMeta(m);
+      if (m.mode === "web") {
+        setActivePage((prev) => (WEB_NAV_IDS.has(prev) ? prev : "defense"));
+      }
       const hasExt = m.mode === "web" ? await detectExtension(500) : false;
       setExtDetected(hasExt);
       if (!m.access_gate_required || m.access_gate_unlocked) {
@@ -292,6 +307,14 @@ export function App() {
   const renderedDark =
     colorScheme === "dark" || (colorScheme === "system" && systemDark);
 
+  const visibleNavItems = useMemo(
+    () =>
+      meta.mode === "web"
+        ? NAV_ITEMS.filter((it) => WEB_NAV_IDS.has(it.id))
+        : NAV_ITEMS,
+    [meta.mode]
+  );
+
   return (
     <div className="min-h-screen flex flex-col">
       <header
@@ -306,18 +329,28 @@ export function App() {
             <img src="/ll_logo.png" alt="" className="w-8 h-8 rounded-lg" />
             <div>
               <div className="font-bold text-sm leading-tight">
-                LearnedLeague Practice Tool
+                {meta.mode === "web"
+                  ? "LearnedLeague Analytics"
+                  : "LearnedLeague Practice Tool"}
               </div>
               <div className="text-xs flex items-center gap-2" style={{ color: "var(--text-secondary)" }}>
-                <span>v{meta.version}</span>
-                <span>&bull;</span>
-                <span>{meta.question_count.toLocaleString()} Qs</span>
-                {meta.sync_status.running && (
-                  <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400">
-                    <RefreshCw className="w-3 h-3 animate-spin" aria-hidden="true" />
-                    Syncing {meta.sync_status.completed_days}/
-                    {meta.sync_status.total_missing_days}
+                {meta.mode === "web" ? (
+                  <span>
+                    Extension Edition v{meta.extension_version ?? meta.version}
                   </span>
+                ) : (
+                  <>
+                    <span>v{meta.version}</span>
+                    <span>&bull;</span>
+                    <span>{meta.question_count.toLocaleString()} Qs</span>
+                    {meta.sync_status.running && (
+                      <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                        <RefreshCw className="w-3 h-3 animate-spin" aria-hidden="true" />
+                        Syncing {meta.sync_status.completed_days}/
+                        {meta.sync_status.total_missing_days}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -410,7 +443,7 @@ export function App() {
           aria-label="Primary"
           className="max-w-[1680px] mx-auto px-4 flex items-center gap-1 overflow-x-auto pb-2"
         >
-          {NAV_ITEMS.map((item) => {
+          {visibleNavItems.map((item) => {
             const active = activePage === item.id;
             const locked = item.requiresAuth && !auth.authenticated;
             return (
@@ -456,14 +489,18 @@ export function App() {
       </header>
 
       <main className="flex-1 max-w-[1680px] w-full mx-auto p-4 md:p-6">
-        {activePage === "practice" && (
+        {meta.mode === "desktop" && activePage === "practice" && (
           <PracticePage categories={meta.categories} localStore={localStore} />
         )}
-        {activePage === "onedays" && (
+        {meta.mode === "desktop" && activePage === "onedays" && (
           <OneDaysPage modkosUrl={meta.modkos_url} localStore={localStore} />
         )}
-        {activePage === "minileagues" && <MiniLeaguesPage />}
-        {activePage === "mockday" && <MockDayPage localStore={localStore} />}
+        {meta.mode === "desktop" && activePage === "minileagues" && (
+          <MiniLeaguesPage />
+        )}
+        {meta.mode === "desktop" && activePage === "mockday" && (
+          <MockDayPage localStore={localStore} />
+        )}
         {activePage === "stats" && (
           <StatsPage
             auth={auth}

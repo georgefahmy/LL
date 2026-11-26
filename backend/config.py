@@ -52,6 +52,7 @@ class AppSettings(BaseSettings):
     disable_background_sync: bool = False
     disable_update_check: bool = False
     app_version: str = "9.1.0"
+    extension_version: str = "1.0.0"
     github_repo: str = "georgefahmy/LL"
 
     @property

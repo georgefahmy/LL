@@ -1718,24 +1718,90 @@ export function DefensePage({
           <p className="text-sm">{todaysModal.data.message}</p>
         ) : (
           <div className="space-y-3">
-            {todaysModal.data?.questions.map((q) => (
-              <div key={q.id} className="ll-muted p-3.5 rounded-xl space-y-2">
-                <div className="text-xs font-mono font-bold">Q{q.id}</div>
-                <p className="text-sm leading-relaxed">{q.question}</p>
-                <div className="flex flex-wrap gap-3 text-xs">
-                  <span className="px-2 py-1 rounded ll-card">
-                    Submitted: <strong>{q.submitted_answer}</strong>
-                  </span>
-                  <span className="px-2 py-1 rounded ll-card">
-                    {q.points_assigned.endsWith("%") ? "League %:" : "Pts Assigned:"}{" "}
-                    <strong>{q.points_assigned}</strong>
-                  </span>
-                  <span className="px-2 py-1 rounded ll-card">
-                    Correct Answer: <strong>{q.correct_answer}</strong>
-                  </span>
+            {todaysModal.showAnswers &&
+              todaysModal.data?.questions.some((q) => q.submitted_answer === "--") && (
+                <p className="text-xs m-0" style={{ color: "var(--text-secondary)" }}>
+                  LearnedLeague&apos;s past match day page does not include verbatim typed
+                  answers — showing Correct/Incorrect results from Question History instead.
+                </p>
+              )}
+            {todaysModal.data?.questions.map((q) => {
+              const qcode = todaysModal.data
+                ? `S${todaysModal.data.season}D${String(todaysModal.data.day).padStart(
+                    2,
+                    "0"
+                  )}Q${q.id}`
+                : "";
+              const myHist = qcode ? p1Profile?.question_history?.[qcode] : undefined;
+              const oppHist = qcode ? oppProfile?.question_history?.[qcode] : undefined;
+
+              return (
+                <div key={q.id} className="ll-muted p-3.5 rounded-xl space-y-2">
+                  <div className="text-xs font-mono font-bold">Q{q.id}</div>
+                  <p className="text-sm leading-relaxed">{q.question}</p>
+                  <div className="flex flex-wrap gap-3 text-xs">
+                    {q.submitted_answer !== "--" ? (
+                      <span className="px-2 py-1 rounded ll-card">
+                        Submitted: <strong>{q.submitted_answer}</strong>
+                      </span>
+                    ) : todaysModal.showAnswers ? (
+                      <>
+                        <span className="px-2 py-1 rounded ll-card inline-flex items-center gap-1.5">
+                          Your Result:{" "}
+                          {myHist ? (
+                            <strong
+                              className={
+                                myHist.correct
+                                  ? "text-emerald-700 dark:text-emerald-300"
+                                  : "text-rose-700 dark:text-rose-300"
+                              }
+                            >
+                              {myHist.correct ? "Correct" : "Incorrect"}
+                            </strong>
+                          ) : (
+                            <strong style={{ color: "var(--text-secondary)" }}>
+                              Not in history
+                            </strong>
+                          )}
+                        </span>
+                        {oppHist !== undefined && oppProfile && (
+                          <span className="px-2 py-1 rounded ll-card inline-flex items-center gap-1.5">
+                            {oppProfile.formatted_username}:{" "}
+                            <strong
+                              className={
+                                oppHist.correct
+                                  ? "text-emerald-700 dark:text-emerald-300"
+                                  : "text-rose-700 dark:text-rose-300"
+                              }
+                            >
+                              {oppHist.correct ? "Correct" : "Incorrect"}
+                            </strong>
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <span className="px-2 py-1 rounded ll-card">
+                          Your Result: <strong>hidden</strong>
+                        </span>
+                        {oppHist !== undefined && oppProfile && (
+                          <span className="px-2 py-1 rounded ll-card">
+                            {oppProfile.formatted_username}: <strong>hidden</strong>
+                          </span>
+                        )}
+                      </>
+                    )}
+                    <span className="px-2 py-1 rounded ll-card">
+                      {q.points_assigned.endsWith("%") ? "League %:" : "Pts Assigned:"}{" "}
+                      <strong>{q.points_assigned}</strong>
+                    </span>
+                    <span className="px-2 py-1 rounded ll-card">
+                      Correct Answer: <strong>{q.correct_answer}</strong>
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </ModalDialog>

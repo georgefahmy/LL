@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import zipfile
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -63,6 +64,24 @@ VERSION_SLOTS: tuple[VersionSlot, ...] = (
 
 TRACKED_VERSION_FILES: tuple[str, ...] = tuple(dict.fromkeys(s.rel_path for s in VERSION_SLOTS))
 
+EXTENSION_VERSION_SLOTS: tuple[VersionSlot, ...] = (
+    VersionSlot(
+        label="extension/manifest.json",
+        rel_path="extension/manifest.json",
+        pattern=re.compile(r'^(\s*"version"\s*:\s*")([^"]+)(")', re.MULTILINE),
+    ),
+    VersionSlot(
+        label="backend/config.py (extension_version)",
+        rel_path="backend/config.py",
+        pattern=re.compile(
+            r'^(\s*extension_version\s*:\s*str\s*=\s*")([^"]+)(")',
+            re.MULTILINE,
+        ),
+    ),
+)
+
+JSON_VERSION_FILES: frozenset[str] = frozenset({"frontend/package.json", "extension/manifest.json"})
+
 
 class ReleaseError(RuntimeError):
     """Raised when a preflight, build, packaging, or publish step fails."""
@@ -101,12 +120,12 @@ def compute_next_version(current: str, target: str) -> str:
     return normalize_version(target)
 
 
-def read_versions(root: Path = ROOT_DIR) -> dict[str, str]:
-    """Read all tracked version fields from repository files."""
+def _read_slots(root: Path, slots: tuple[VersionSlot, ...]) -> dict[str, str]:
+    """Read version values for a given set of version slots."""
     file_cache: dict[str, str] = {}
     versions: dict[str, str] = {}
 
-    for slot in VERSION_SLOTS:
+    for slot in slots:
         if slot.rel_path not in file_cache:
             path = root / slot.rel_path
             if not path.is_file():
@@ -119,12 +138,12 @@ def read_versions(root: Path = ROOT_DIR) -> dict[str, str]:
             raise ReleaseError(f"Could not locate version field for {slot.label}")
 
         value = match.group(2).strip()
-        if slot.rel_path == "frontend/package.json":
+        if slot.rel_path in JSON_VERSION_FILES:
             pkg = json.loads(text)
             json_ver = str(pkg.get("version", "")).strip()
             if json_ver != value:
                 raise ReleaseError(
-                    f"frontend/package.json version mismatch between regex ({value}) "
+                    f"{slot.rel_path} version mismatch between regex ({value}) "
                     f"and JSON ({json_ver})"
                 )
         versions[slot.label] = value
@@ -132,17 +151,21 @@ def read_versions(root: Path = ROOT_DIR) -> dict[str, str]:
     return versions
 
 
-def check_version_consistency(
-    root: Path = ROOT_DIR,
+def _check_slots(
+    root: Path,
+    slots: tuple[VersionSlot, ...],
+    *,
     expect_tag: str | None = None,
+    group_name: str = "",
 ) -> tuple[bool, str, dict[str, str]]:
-    """Verify every tracked version slot agrees (and matches expect_tag if provided)."""
-    versions = read_versions(root)
+    """Verify every slot in a group agrees (and matches expect_tag if provided)."""
+    versions = _read_slots(root, slots)
     unique_values = set(versions.values())
+    prefix = f"{group_name} " if group_name else ""
 
     if len(unique_values) != 1:
         details = ", ".join(f"{k}={v}" for k, v in versions.items())
-        return False, f"Version mismatch across files: {details}", versions
+        return False, f"{prefix}Version mismatch across files: {details}", versions
 
     current = next(iter(unique_values))
     try:
@@ -158,31 +181,32 @@ def check_version_consistency(
         if norm_current != expected:
             return (
                 False,
-                f"Version mismatch: files are at {norm_current}, expected {expected} "
+                f"{prefix}Version mismatch: files are at {norm_current}, expected {expected} "
                 f"(from {expect_tag})",
                 versions,
             )
 
-    return True, f"All {len(versions)} version slots match ({norm_current}).", versions
+    msg = f"All {len(versions)} {prefix.lower()}version slots match ({norm_current})."
+    return True, msg, versions
 
 
-def write_version(root: Path, new_version: str) -> list[Path]:
-    """Update all tracked repository files to new_version and return modified file paths."""
+def _write_slots(root: Path, slots: tuple[VersionSlot, ...], new_version: str) -> list[Path]:
+    """Update all slots in a group to new_version and return modified paths."""
     norm_version = normalize_version(new_version)
     modified: list[Path] = []
 
     slots_by_file: dict[str, list[VersionSlot]] = {}
-    for slot in VERSION_SLOTS:
+    for slot in slots:
         slots_by_file.setdefault(slot.rel_path, []).append(slot)
 
-    for rel_path, slots in slots_by_file.items():
+    for rel_path, file_slots in slots_by_file.items():
         path = root / rel_path
         if not path.is_file():
             raise ReleaseError(f"Missing version file: {path}")
 
         original = path.read_text(encoding="utf-8")
         updated = original
-        for slot in slots:
+        for slot in file_slots:
             updated, count = slot.pattern.subn(
                 rf"\g<1>{norm_version}\g<3>",
                 updated,
@@ -196,6 +220,47 @@ def write_version(root: Path, new_version: str) -> list[Path]:
             modified.append(path)
 
     return modified
+
+
+def read_versions(root: Path = ROOT_DIR) -> dict[str, str]:
+    """Read all tracked desktop/app version fields from repository files."""
+    return _read_slots(root, VERSION_SLOTS)
+
+
+def check_version_consistency(
+    root: Path = ROOT_DIR,
+    expect_tag: str | None = None,
+) -> tuple[bool, str, dict[str, str]]:
+    """Verify every desktop/app version slot agrees (and matches expect_tag if provided)."""
+    return _check_slots(root, VERSION_SLOTS, expect_tag=expect_tag)
+
+
+def write_version(root: Path, new_version: str) -> list[Path]:
+    """Update all tracked desktop/app version files to new_version."""
+    return _write_slots(root, VERSION_SLOTS, new_version)
+
+
+def read_extension_versions(root: Path = ROOT_DIR) -> dict[str, str]:
+    """Read all tracked Chrome Extension version fields."""
+    return _read_slots(root, EXTENSION_VERSION_SLOTS)
+
+
+def check_extension_version_consistency(
+    root: Path = ROOT_DIR,
+    expect_tag: str | None = None,
+) -> tuple[bool, str, dict[str, str]]:
+    """Verify all Chrome Extension version fields agree."""
+    return _check_slots(
+        root,
+        EXTENSION_VERSION_SLOTS,
+        expect_tag=expect_tag,
+        group_name="Extension",
+    )
+
+
+def write_extension_version(root: Path, new_version: str) -> list[Path]:
+    """Update all tracked Chrome Extension version files to new_version."""
+    return _write_slots(root, EXTENSION_VERSION_SLOTS, new_version)
 
 
 def extract_changelog_section(changelog_path: Path, target_version: str) -> str | None:
@@ -402,6 +467,35 @@ def package_dmg(
     return dmg_path, sha_path
 
 
+def package_extension_zip(
+    root: Path,
+    version: str,
+    *,
+    dry_run: bool = False,
+) -> tuple[Path, Path]:
+    """Package Chrome Extension directory into dist/LearnedLeague-Extension-<version>.zip."""
+    ext_dir = root / "extension"
+    norm_ver = normalize_version(version)
+    zip_path = root / "dist" / f"LearnedLeague-Extension-{norm_ver}.zip"
+    sha_path = Path(f"{zip_path}.sha256")
+
+    if dry_run:
+        print(f"[dry-run] Package {ext_dir} -> {zip_path}")
+        return zip_path, sha_path
+
+    if not ext_dir.is_dir():
+        raise ReleaseError(f"Missing Chrome Extension directory at {ext_dir}")
+
+    zip_path.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for file_path in sorted(ext_dir.rglob("*")):
+            if not file_path.is_file() or file_path.name == ".DS_Store":
+                continue
+            zf.write(file_path, arcname=file_path.relative_to(ext_dir).as_posix())
+    write_sha256_file(zip_path, sha_path)
+    return zip_path, sha_path
+
+
 def _ensure_binary(name: str) -> None:
     if shutil.which(name) is None:
         raise ReleaseError(f"Required executable '{name}' was not found on PATH.")
@@ -470,12 +564,33 @@ def run_release(args: argparse.Namespace, root: Path = ROOT_DIR) -> int:
         for label, value in versions.items():
             print(f"  {label}: {value}")
         print(message)
-        return 0 if ok else 1
+
+        ext_ok = True
+        if (root / "extension" / "manifest.json").is_file():
+            ext_ok, ext_msg, ext_versions = check_extension_version_consistency(root)
+            for label, value in ext_versions.items():
+                print(f"  {label}: {value}")
+            print(ext_msg)
+        return 0 if (ok and ext_ok) else 1
 
     if args.extract_notes:
         notes = extract_changelog_section(root / "changelog.md", args.extract_notes)
         if notes:
             print(notes)
+        return 0
+
+    if args.command == "extension":
+        ext_ok, ext_msg, ext_versions = check_extension_version_consistency(root)
+        if not ext_ok:
+            raise ReleaseError(ext_msg)
+        cur_ext = next(iter(ext_versions.values()))
+        target_ext = compute_next_version(cur_ext, args.version)
+        if target_ext != cur_ext:
+            write_extension_version(root, target_ext)
+            print(f"Updated extension version: {cur_ext} -> {target_ext}")
+        zip_path, sha_path = package_extension_zip(root, target_ext)
+        print(f"Packaged extension: {zip_path}")
+        print(f"Checksum: {sha_path}")
         return 0
 
     ok, message, versions = check_version_consistency(root)
@@ -636,7 +751,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--extract-notes", metavar="VERSION", help=argparse.SUPPRESS)
     parser.add_argument("--package-dmg-only", metavar="VERSION", help=argparse.SUPPRESS)
 
-    subparsers = parser.add_subparsers(dest="command", metavar="{build,dry-run,publish}")
+    subparsers = parser.add_subparsers(
+        dest="command", metavar="{build,dry-run,publish,extension}"
+    )
     p_build = subparsers.add_parser(
         "build",
         help="Build .app and .dmg locally (dist/) without touching git or GitHub.",
@@ -676,6 +793,17 @@ def build_parser() -> argparse.ArgumentParser:
         "--draft",
         action="store_true",
         help="Create the GitHub Release as a draft.",
+    )
+
+    p_ext = subparsers.add_parser(
+        "extension",
+        help="Bump (optional) and package the Chrome Extension zip into dist/.",
+    )
+    p_ext.add_argument(
+        "version",
+        nargs="?",
+        default="current",
+        help="Optional bump (current, patch, minor, major, or X.Y.Z).",
     )
     return parser
 

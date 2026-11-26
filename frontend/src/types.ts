@@ -1,6 +1,7 @@
 export interface AppMeta {
   mode: "web" | "desktop";
   version: string;
+  extension_version?: string;
   update: {
     current_version: string;
     latest_version: string;

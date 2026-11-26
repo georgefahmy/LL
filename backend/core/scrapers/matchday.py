@@ -56,12 +56,15 @@ def parse_todays_questions(
 
     past_records = parse_match_day_questions(html, season, day)
     if past_records:
-        return {
-            "status": "ok",
-            "season": season,
-            "day": day,
-            "message": f"LL {season} Match Day {day} (Past Match)",
-            "questions": [
+        submitted_divs = soup.find_all("div", {"class": re.compile(r"ans_1")})
+        past_questions: list[dict[str, Any]] = []
+        for idx, rec in enumerate(past_records):
+            if idx < len(submitted_divs):
+                raw_sub = submitted_divs[idx].get_text(" ", strip=True) or "--"
+                submitted_val = raw_sub if display_answers else "hidden"
+            else:
+                submitted_val = "--"
+            past_questions.append(
                 {
                     "id": rec["q_num"],
                     "question": (
@@ -69,14 +72,19 @@ def parse_todays_questions(
                         if rec.get("category")
                         else rec["question"]
                     ),
-                    "submitted_answer": "--",
+                    "submitted_answer": submitted_val,
                     "correct_answer": rec["answer"] if display_answers else "hidden",
                     "points_assigned": (
                         f"{rec['percent']}%" if rec.get("percent") is not None else "--"
                     ),
                 }
-                for rec in past_records
-            ],
+            )
+        return {
+            "status": "ok",
+            "season": season,
+            "day": day,
+            "message": f"LL {season} Match Day {day} (Past Match)",
+            "questions": past_questions,
         }
 
     h1 = soup.find("h1")

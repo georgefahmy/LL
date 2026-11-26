@@ -138,58 +138,60 @@ export function SettingsPage({
         </div>
       </section>
 
-      {/* Question Archive Sync */}
-      <section className="ll-card p-5 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-base font-semibold m-0">Question Archive</h2>
-          <button
-            type="button"
-            disabled={busy || meta.sync_status.running}
-            onClick={() => void handleSyncNow()}
-            className="px-3.5 min-h-9 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 inline-flex items-center gap-1.5 cursor-pointer"
-          >
-            <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
-            {busy || meta.sync_status.running ? "Syncing..." : "Sync New Match Days"}
-          </button>
-        </div>
+      {/* Question Archive Sync (Desktop only) */}
+      {meta.mode === "desktop" && (
+        <section className="ll-card p-5 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-base font-semibold m-0">Question Archive</h2>
+            <button
+              type="button"
+              disabled={busy || meta.sync_status.running}
+              onClick={() => void handleSyncNow()}
+              className="px-3.5 min-h-9 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
+              {busy || meta.sync_status.running ? "Syncing..." : "Sync New Match Days"}
+            </button>
+          </div>
 
-        <dl className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm m-0">
-          <div className="ll-muted p-3 rounded-lg">
-            <dt className="text-xs" style={{ color: "var(--text-secondary)" }}>
-              Cached Questions
-            </dt>
-            <dd className="text-lg font-mono font-bold m-0">
-              {meta.question_count.toLocaleString()}
-            </dd>
-          </div>
-          <div className="ll-muted p-3 rounded-lg">
-            <dt className="text-xs" style={{ color: "var(--text-secondary)" }}>
-              Latest Season / Day
-            </dt>
-            <dd className="text-lg font-mono font-bold m-0">
-              LL {meta.latest_season} &bull; MD {meta.current_day}
-            </dd>
-          </div>
-          <div className="ll-muted p-3 rounded-lg">
-            <dt className="text-xs" style={{ color: "var(--text-secondary)" }}>
-              Sync Status
-            </dt>
-            <dd className="text-sm font-medium m-0 mt-1">
-              {meta.sync_status.running
-                ? `${meta.sync_status.completed_days}/${meta.sync_status.total_missing_days} days`
-                : busy
-                  ? "syncing (extension)"
-                  : meta.sync_status.phase}
-            </dd>
-          </div>
-        </dl>
+          <dl className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm m-0">
+            <div className="ll-muted p-3 rounded-lg">
+              <dt className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                Cached Questions
+              </dt>
+              <dd className="text-lg font-mono font-bold m-0">
+                {meta.question_count.toLocaleString()}
+              </dd>
+            </div>
+            <div className="ll-muted p-3 rounded-lg">
+              <dt className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                Latest Season / Day
+              </dt>
+              <dd className="text-lg font-mono font-bold m-0">
+                LL {meta.latest_season} &bull; MD {meta.current_day}
+              </dd>
+            </div>
+            <div className="ll-muted p-3 rounded-lg">
+              <dt className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                Sync Status
+              </dt>
+              <dd className="text-sm font-medium m-0 mt-1">
+                {meta.sync_status.running
+                  ? `${meta.sync_status.completed_days}/${meta.sync_status.total_missing_days} days`
+                  : busy
+                    ? "syncing (extension)"
+                    : meta.sync_status.phase}
+              </dd>
+            </div>
+          </dl>
 
-        {!busy && meta.sync_status.last_error && (
-          <p className="text-xs text-rose-600 dark:text-rose-400 m-0">
-            Last sync error: {meta.sync_status.last_error}
-          </p>
-        )}
-      </section>
+          {!busy && meta.sync_status.last_error && (
+            <p className="text-xs text-rose-600 dark:text-rose-400 m-0">
+              Last sync error: {meta.sync_status.last_error}
+            </p>
+          )}
+        </section>
+      )}
 
       {/* Personal Data Backup */}
       <section className="ll-card p-5 space-y-3">

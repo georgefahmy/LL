@@ -9,17 +9,31 @@ import pytest
 from scripts import release
 
 
-def _create_repo_fixture(tmp_path: Path, version: str = "9.0.0") -> Path:
+def _create_repo_fixture(
+    tmp_path: Path,
+    version: str = "9.0.0",
+    ext_version: str = "1.0.0",
+) -> Path:
     (tmp_path / "backend").mkdir(parents=True, exist_ok=True)
     (tmp_path / "frontend").mkdir(parents=True, exist_ok=True)
     (tmp_path / "desktop").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "extension").mkdir(parents=True, exist_ok=True)
 
     (tmp_path / "pyproject.toml").write_text(
         f'[project]\nname = "learnedleague-tool"\nversion = "{version}"\n',
         encoding="utf-8",
     )
     (tmp_path / "backend" / "config.py").write_text(
-        f'class AppSettings:\n    app_version: str = "{version}"\n',
+        (
+            "class AppSettings:\n"
+            f'    app_version: str = "{version}"\n'
+            f'    extension_version: str = "{ext_version}"\n'
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "extension" / "manifest.json").write_text(
+        json.dumps({"manifest_version": 3, "name": "LL Ext", "version": ext_version}, indent=2)
+        + "\n",
         encoding="utf-8",
     )
     (tmp_path / "frontend" / "package.json").write_text(
@@ -174,3 +188,31 @@ def test_cli_check_version_and_dry_run_do_not_mutate_files(
 
     with pytest.raises(release.ReleaseError, match="requires macOS"):
         release.package_dmg(repo, "9.0.1", dry_run=False)
+
+
+def test_extension_version_tracking_and_packaging(tmp_path: Path) -> None:
+    repo = _create_repo_fixture(tmp_path, version="9.1.0", ext_version="1.0.0")
+    (repo / "extension" / "service-worker.js").write_text("console.log('ok');\n", encoding="utf-8")
+
+    ext_vers = release.read_extension_versions(repo)
+    assert ext_vers == {
+        "extension/manifest.json": "1.0.0",
+        "backend/config.py (extension_version)": "1.0.0",
+    }
+    ok, _, _ = release.check_extension_version_consistency(repo)
+    assert ok is True
+
+    # Bump extension independently without touching desktop 9.1.0
+    assert release.main(["extension", "minor"], root=repo) == 0
+    assert set(release.read_extension_versions(repo).values()) == {"1.1.0"}
+    assert set(release.read_versions(repo).values()) == {"9.1.0"}
+    assert (repo / "dist" / "LearnedLeague-Extension-1.1.0.zip").is_file()
+    assert (repo / "dist" / "LearnedLeague-Extension-1.1.0.zip.sha256").is_file()
+
+    # Drift detection in extension slots
+    manifest = repo / "extension" / "manifest.json"
+    manifest.write_text(manifest.read_text(encoding="utf-8").replace("1.1.0", "1.2.0"), "utf-8")
+    ok_drift, drift_msg, _ = release.check_extension_version_consistency(repo)
+    assert ok_drift is False
+    assert "Extension Version mismatch" in drift_msg
+    assert release.main(["--check-version"], root=repo) == 1

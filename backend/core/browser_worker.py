@@ -60,6 +60,8 @@ class _WorkerBridgeState:
         self.window: Any | None = None
         self.lock = threading.Lock()
         self.loaded_event = threading.Event()
+        self.nav_event = threading.Event()
+        self.nav_lock = threading.Lock()
         self.closed = False
         self.authenticated = False
         self.username: str | None = None
@@ -129,11 +131,16 @@ class _WorkerBridgeState:
             except Exception:
                 pass
 
+    def mark_loaded(self) -> None:
+        self.loaded_event.set()
+        self.nav_event.set()
+
     def mark_closed(self) -> None:
         with self.lock:
             self.closed = True
             pending_items = list(self.pending_fetches.values())
             self.pending_fetches.clear()
+        self.nav_event.set()
         for p in pending_items:
             p.result = {
                 "ok": False,
@@ -241,22 +248,19 @@ def _check_dom_login(state: _WorkerBridgeState) -> dict[str, Any]:
     return {"running": True, "authenticated": False}
 
 
-def _run_in_browser_fetch(
-    state: _WorkerBridgeState,
-    url: str,
-    *,
-    require_auth: bool,
-) -> dict[str, Any]:
-    if not is_allowed_ll_url(url):
-        raise ValueError("Only https://learnedleague.com URLs are allowed.")
-    if state.window is None or state.closed or not state.loaded_event.is_set():
-        return {
-            "ok": False,
-            "status": 0,
-            "final_url": url,
-            "body": "Interactive browser session is not ready.",
-        }
+def _is_transient_or_cors_fetch_error(result: dict[str, Any]) -> bool:
+    if result.get("ok") or int(result.get("status", 0)) != 0:
+        return False
+    body_lower = str(result.get("body", "")).lower()
+    if "window was closed" in body_lower or "not ready" in body_lower:
+        return False
+    return any(
+        marker in body_lower
+        for marker in ("load failed", "failed to fetch", "networkerror", "typeerror")
+    )
 
+
+def _dispatch_js_fetch(state: _WorkerBridgeState, url: str) -> dict[str, Any]:
     req_id, pending = state.register_fetch()
     fetch_js = f"""
     (() => {{
@@ -313,7 +317,94 @@ def _run_in_browser_fetch(
         }
 
     state.pop_fetch(req_id)
-    result = pending.result
+    return pending.result
+
+
+_READ_DOC_JS = """
+(() => ({
+  url: window.location.href || "",
+  html: document.documentElement ? document.documentElement.outerHTML : ""
+}))()
+"""
+
+
+def _navigate_and_read_html(state: _WorkerBridgeState, url: str) -> dict[str, Any]:
+    with state.nav_lock:
+        if state.window is None or state.closed:
+            return {
+                "ok": False,
+                "status": 0,
+                "final_url": url,
+                "body": "Interactive browser session is not ready.",
+            }
+        state.nav_event.clear()
+        try:
+            state.window.load_url(url)
+        except Exception as exc:
+            return {
+                "ok": False,
+                "status": 0,
+                "final_url": url,
+                "body": f"Browser navigation failed: {exc}",
+            }
+
+        if not state.nav_event.wait(timeout=20.0) or state.closed:
+            return {
+                "ok": False,
+                "status": 0,
+                "final_url": url,
+                "body": "Timed out waiting for browser navigation.",
+            }
+
+        try:
+            nav_res = state.window.evaluate_js(_READ_DOC_JS)
+        except Exception as exc:
+            return {
+                "ok": False,
+                "status": 0,
+                "final_url": url,
+                "body": f"Browser DOM read failed: {exc}",
+            }
+
+    if isinstance(nav_res, dict) and nav_res.get("html"):
+        return {
+            "ok": True,
+            "status": 200,
+            "final_url": str(nav_res.get("url") or url),
+            "body": str(nav_res["html"]),
+        }
+    return {
+        "ok": False,
+        "status": 0,
+        "final_url": url,
+        "body": "Empty document returned after browser navigation.",
+    }
+
+
+def _run_in_browser_fetch(
+    state: _WorkerBridgeState,
+    url: str,
+    *,
+    require_auth: bool,
+) -> dict[str, Any]:
+    if not is_allowed_ll_url(url):
+        raise ValueError("Only https://learnedleague.com URLs are allowed.")
+    if state.window is None or state.closed or not state.loaded_event.is_set():
+        return {
+            "ok": False,
+            "status": 0,
+            "final_url": url,
+            "body": "Interactive browser session is not ready.",
+        }
+
+    result = _dispatch_js_fetch(state, url)
+    if _is_transient_or_cors_fetch_error(result) and not state.closed:
+        result = _dispatch_js_fetch(state, url)
+    if _is_transient_or_cors_fetch_error(result) and not state.closed:
+        nav_result = _navigate_and_read_html(state, url)
+        if nav_result.get("ok"):
+            result = nav_result
+
     status = int(result.get("status", 0))
     body_lower = str(result.get("body", ""))[:6000].lower()
     final_url_lower = str(result.get("final_url", "")).lower()
@@ -433,8 +524,8 @@ class InProcessBrowserBridge:
                 raise RuntimeError("Could not create interactive login window.")
             state.window = window
             if window.events.loaded.is_set():
-                state.loaded_event.set()
-            window.events.loaded += state.loaded_event.set
+                state.mark_loaded()
+            window.events.loaded += state.mark_loaded
             window.events.closed += state.mark_closed
             return {"status": "waiting_for_user", "authenticated": False}
 
@@ -504,7 +595,7 @@ def main(argv: list[str] | None = None) -> int:
     state.window = window
 
     def _on_loaded() -> None:
-        state.loaded_event.set()
+        state.mark_loaded()
 
     def _on_closed() -> None:
         state.mark_closed()

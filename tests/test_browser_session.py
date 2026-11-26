@@ -580,3 +580,104 @@ def test_interactive_browser_manager_in_process_mode(
     assert mgr.is_authenticated() is False
     with pytest.raises(LLAuthExpiredError):
         mgr.fetch_text("https://www.learnedleague.com/profiles.php?101", require_auth=True)
+
+
+def test_run_in_browser_fetch_retries_and_falls_back_to_navigation() -> None:
+    import re
+
+    from backend.core.browser_worker import _run_in_browser_fetch, _WorkerBridgeState
+
+    class _FakeWindow:
+        def __init__(
+            self,
+            state: _WorkerBridgeState,
+            *,
+            succeed_on_attempt: int | None = None,
+        ) -> None:
+            self._state = state
+            self._succeed_on_attempt = succeed_on_attempt
+            self.fetch_attempts = 0
+            self.loaded_urls: list[str] = []
+            self.shown = False
+
+        def show(self) -> None:
+            self.shown = True
+
+        def hide(self) -> None:
+            return
+
+        def load_url(self, target: str) -> None:
+            self.loaded_urls.append(target)
+            threading.Timer(0.01, self._state.mark_loaded).start()
+
+        def evaluate_js(self, script: str):
+            if "documentElement.outerHTML" in script:
+                return {
+                    "url": "https://learnedleague.com/profiles.php?99999&1",
+                    "html": "<html><body><h1 class='namecss'>FahmyB</h1></body></html>",
+                }
+            match = re.search(r'const reqId = "([^"]+)"', script)
+            assert match is not None
+            req_id = match.group(1)
+            self.fetch_attempts += 1
+            if (
+                self._succeed_on_attempt is not None
+                and self.fetch_attempts >= self._succeed_on_attempt
+            ):
+                threading.Timer(
+                    0.01,
+                    self._state.complete_fetch,
+                    args=(
+                        req_id,
+                        True,
+                        200,
+                        "https://www.learnedleague.com/profiles.php?99999&1",
+                        "<html>Recovered via retry</html>",
+                    ),
+                ).start()
+            else:
+                threading.Timer(
+                    0.01,
+                    self._state.complete_fetch,
+                    args=(
+                        req_id,
+                        False,
+                        0,
+                        "https://www.learnedleague.com/profiles.php?fahmyb&1",
+                        "TypeError: Load failed",
+                    ),
+                ).start()
+            return "dispatched"
+
+    # Case 1: 2nd JS fetch retry succeeds without top-level navigation
+    state1 = _WorkerBridgeState(token="t1")
+    win1 = _FakeWindow(state1, succeed_on_attempt=2)
+    state1.window = win1
+    state1.mark_loaded()
+    res1 = _run_in_browser_fetch(
+        state1,
+        "https://www.learnedleague.com/profiles.php?fahmyb&1",
+        require_auth=True,
+    )
+    assert res1["ok"] is True
+    assert res1["status"] == 200
+    assert res1["body"] == "<html>Recovered via retry</html>"
+    assert win1.fetch_attempts == 2
+    assert win1.loaded_urls == []
+
+    # Case 2: Both JS fetches throw TypeError: Load failed -> falls back to load_url navigation
+    state2 = _WorkerBridgeState(token="t2")
+    win2 = _FakeWindow(state2, succeed_on_attempt=None)
+    state2.window = win2
+    state2.mark_loaded()
+    res2 = _run_in_browser_fetch(
+        state2,
+        "https://www.learnedleague.com/profiles.php?fahmyb&1",
+        require_auth=True,
+    )
+    assert res2["ok"] is True
+    assert res2["status"] == 200
+    assert res2["final_url"] == "https://learnedleague.com/profiles.php?99999&1"
+    assert "FahmyB" in res2["body"]
+    assert win2.fetch_attempts == 2
+    assert win2.loaded_urls == ["https://www.learnedleague.com/profiles.php?fahmyb&1"]

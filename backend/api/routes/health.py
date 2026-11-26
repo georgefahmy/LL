@@ -10,11 +10,20 @@ from ..deps import GATE_COOKIE_NAME, AppState, get_app_state
 router = APIRouter(prefix="/api", tags=["health"])
 
 
+def _active_version(state: AppState) -> str:
+    return (
+        state.settings.extension_version
+        if state.settings.mode == "web"
+        else state.settings.app_version
+    )
+
+
 @router.get("/health")
 def health(state: AppState = Depends(get_app_state)) -> dict:
     return {
         "status": "ok",
-        "version": state.settings.app_version,
+        "version": _active_version(state),
+        "extension_version": state.settings.extension_version,
         "mode": state.settings.mode,
     }
 
@@ -30,17 +39,18 @@ def metadata(
         if not gate_required
         else state.gate_codec.verify_token(request.cookies.get(GATE_COOKIE_NAME, ""))
     )
+    active_ver = _active_version(state)
 
-    if state.settings.disable_update_check:
+    if state.settings.disable_update_check or state.settings.mode == "web":
         update_info = {
-            "current_version": state.settings.app_version,
-            "latest_version": state.settings.app_version,
+            "current_version": active_ver,
+            "latest_version": active_ver,
             "update_available": False,
             "release_url": f"https://github.com/{state.settings.github_repo}/releases/latest",
         }
     else:
         update_info = check_latest_release(
-            state.settings.app_version,
+            active_ver,
             state.settings.github_repo,
         )
 
@@ -59,7 +69,8 @@ def metadata(
 
     return {
         "mode": state.settings.mode,
-        "version": state.settings.app_version,
+        "version": active_ver,
+        "extension_version": state.settings.extension_version,
         "update": update_info,
         "question_count": state.cache.count_questions(),
         "latest_season": latest_season,
