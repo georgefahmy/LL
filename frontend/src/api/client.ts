@@ -122,16 +122,6 @@ export const api = {
       body: JSON.stringify({ code }),
     }),
   getAuthMe: () => apiFetch<AuthMe>("/api/auth/me"),
-  login: (username: string, password: string, remember_me: boolean) =>
-    apiFetch<AuthMe>("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ username, password, remember_me }),
-    }),
-  loginWithCookie: (cookie: string, remember_me: boolean) =>
-    apiFetch<AuthMe>("/api/auth/cookie", {
-      method: "POST",
-      body: JSON.stringify({ cookie, remember_me }),
-    }),
   startInteractiveLogin: () =>
     apiFetch<AuthMe & { status: "waiting_for_user" | "authenticated" }>(
       "/api/auth/interactive/start",

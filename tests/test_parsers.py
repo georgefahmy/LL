@@ -86,6 +86,18 @@ def test_parse_todays_questions_states() -> None:
     inactive = parse_todays_questions("<div><h2>Match is not yet active</h2></div>", 109, 15)
     assert inactive["status"] == "not_yet_active"
 
+    past_hidden = parse_todays_questions(
+        _read("match_day_past.html"), 109, 5, display_answers=False
+    )
+    assert past_hidden["status"] == "ok"
+    assert "(Past Match)" in past_hidden["message"]
+    assert len(past_hidden["questions"]) == 6
+    assert past_hidden["questions"][0]["correct_answer"] == "hidden"
+    assert past_hidden["questions"][0]["points_assigned"] == "76%"
+
+    past_shown = parse_todays_questions(_read("match_day_past.html"), 109, 5, display_answers=True)
+    assert past_shown["questions"][0]["correct_answer"] == "ERIE CANAL"
+
 
 def test_parse_oneday_catalog_and_detail() -> None:
     items = parse_oneday_catalog(_read("onedaysalpha.html"), now=datetime(2026, 1, 1))

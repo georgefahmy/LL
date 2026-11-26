@@ -159,10 +159,9 @@ export function App() {
 
   const refreshMetaAndAuth = useCallback(async () => {
     try {
-      const extPromise = detectExtension(500);
       const m = await api.getMeta();
       setMeta(m);
-      const hasExt = await extPromise;
+      const hasExt = m.mode === "web" ? await detectExtension(500) : false;
       setExtDetected(hasExt);
       if (!m.access_gate_required || m.access_gate_unlocked) {
         let me = await api.getAuthMe();
@@ -179,7 +178,7 @@ export function App() {
         if (me.authenticated) {
           setAuth(me);
           setAuthSource("server");
-        } else if (hasExt && !isExtensionManuallyDisconnected()) {
+        } else if (m.mode === "web" && hasExt && !isExtensionManuallyDisconnected()) {
           try {
             const extMe = await extCheckAuth();
             setExtensionAuth(extMe);
@@ -513,7 +512,6 @@ export function App() {
         open={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
         mode={meta.mode}
-        keychainAvailable={auth.desktop_keychain_available}
         onSuccess={(nextAuth) => {
           setAuth((prev) => ({ ...prev, ...nextAuth, authenticated: true }));
           setAuthSource(isExtensionAuthActive() ? "extension" : "server");

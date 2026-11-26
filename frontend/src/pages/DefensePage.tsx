@@ -362,14 +362,25 @@ export function DefensePage({
     }
   };
 
-  const handleOpenTodaysQuestions = async (showAns = todaysModal.showAnswers) => {
-    setTodaysModal((prev) => ({ ...prev, open: true, loading: true, showAnswers: showAns }));
+  const handleOpenTodaysQuestions = async (
+    showAns = todaysModal.showAnswers,
+    targetDay = currentDay + 1
+  ) => {
+    setTodaysModal((prev) => ({
+      ...prev,
+      open: true,
+      loading: true,
+      showAnswers: showAns,
+      data: null,
+    }));
     try {
-      const data = await api.getTodaysQuestions(showAns, latestSeason, currentDay + 1);
+      const data = await api.getTodaysQuestions(showAns, latestSeason, targetDay);
       setTodaysModal({ open: true, showAnswers: showAns, loading: false, data });
     } catch (err) {
       setTodaysModal((prev) => ({ ...prev, open: false, loading: false }));
-      setError(err instanceof Error ? err.message : "Failed loading Today's Questions.");
+      setError(
+        err instanceof Error ? err.message : "Failed loading Match Day questions."
+      );
     }
   };
 
@@ -1316,6 +1327,21 @@ export function DefensePage({
     ? firstUnplayedSched.match_day
     : currentDay + 1;
 
+  const trimmedOpp = opponentInput.trim();
+  const selectedOppIdx = opponentChoices.findIndex(
+    (o) => o.toLowerCase() === trimmedOpp.toLowerCase()
+  );
+  const selectedOppSched = scheduleByName.get(trimmedOpp.toLowerCase());
+  const selectedOppDay =
+    selectedOppSched?.match_day ?? (selectedOppIdx >= 0 ? selectedOppIdx + 1 : null);
+  const selectedOppIsPast =
+    selectedOppDay !== null &&
+    (selectedOppSched?.played !== null && selectedOppSched?.played !== undefined
+      ? selectedOppSched.played
+      : selectedOppDay <= currentDay);
+  const targetQuestionsDay =
+    selectedOppIsPast && selectedOppDay !== null ? selectedOppDay : currentDay + 1;
+
   return (
     <div className="space-y-4">
       {renderModeSwitcher()}
@@ -1502,11 +1528,20 @@ export function DefensePage({
           <button
             type="button"
             disabled={busy}
-            onClick={() => void handleOpenTodaysQuestions(todaysModal.showAnswers)}
+            onClick={() =>
+              void handleOpenTodaysQuestions(todaysModal.showAnswers, targetQuestionsDay)
+            }
+            title={
+              selectedOppIsPast && selectedOppDay !== null
+                ? `View LL ${latestSeason} MD ${selectedOppDay} questions vs ${trimmedOpp}`
+                : "View Today's Questions"
+            }
             className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 inline-flex items-center gap-1.5 cursor-pointer"
           >
             <CalendarClock className="w-3.5 h-3.5" aria-hidden="true" />
-            Today&apos;s Questions
+            {selectedOppIsPast && selectedOppDay !== null
+              ? `MD ${selectedOppDay} Questions`
+              : "Today's Questions"}
           </button>
           <label className="inline-flex items-center gap-1.5 text-xs cursor-pointer">
             <input
@@ -1663,16 +1698,21 @@ export function DefensePage({
         />
       )}
 
-      {/* Today's Questions Modal */}
+      {/* Match Day Questions Modal */}
       <ModalDialog
         open={todaysModal.open}
         onClose={() => setTodaysModal((prev) => ({ ...prev, open: false }))}
-        title={todaysModal.data?.message || "Today's Questions"}
+        title={
+          todaysModal.data?.message ||
+          (selectedOppIsPast && selectedOppDay !== null
+            ? `LL ${latestSeason} MD ${selectedOppDay} Questions`
+            : "Today's Questions")
+        }
         wide
       >
         {todaysModal.loading ? (
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            Loading Today&apos;s Questions from LearnedLeague...
+            Loading Match Day Questions from LearnedLeague...
           </p>
         ) : todaysModal.data && todaysModal.data.questions.length === 0 ? (
           <p className="text-sm">{todaysModal.data.message}</p>
@@ -1687,7 +1727,8 @@ export function DefensePage({
                     Submitted: <strong>{q.submitted_answer}</strong>
                   </span>
                   <span className="px-2 py-1 rounded ll-card">
-                    Pts Assigned: <strong>{q.points_assigned}</strong>
+                    {q.points_assigned.endsWith("%") ? "League %:" : "Pts Assigned:"}{" "}
+                    <strong>{q.points_assigned}</strong>
                   </span>
                   <span className="px-2 py-1 rounded ll-card">
                     Correct Answer: <strong>{q.correct_answer}</strong>

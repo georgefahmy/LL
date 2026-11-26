@@ -25,9 +25,9 @@ from backend.core.http_client import (
 )
 
 
-def _make_test_app(tmp_path: Path):
+def _make_test_app(tmp_path: Path, *, mode: str = "web"):
     settings = AppSettings(
-        mode="web",
+        mode=mode,
         data_dir=tmp_path,
         secret_key="test-secret-key",
         cookie_secure=False,
@@ -200,7 +200,12 @@ def test_interactive_auth_endpoints_issue_session_and_route_get_ll_client(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    app = _make_test_app(tmp_path)
+    web_app = _make_test_app(tmp_path / "web", mode="web")
+    with TestClient(web_app) as web_client:
+        assert web_client.post("/api/auth/interactive/start").status_code == 400
+        assert web_client.get("/api/auth/interactive/status").status_code == 400
+
+    app = _make_test_app(tmp_path / "desktop", mode="desktop")
     mgr = app.state.ll.browser_manager
 
     state_box = {"auth": False}

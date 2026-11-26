@@ -203,12 +203,24 @@ def auth_auto_login(
     }
 
 
+def _require_desktop_interactive(state: AppState) -> None:
+    if state.settings.mode != "desktop":
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Interactive browser login is only available in the desktop app. "
+                "Use the Chrome extension on the web."
+            ),
+        )
+
+
 @router.post("/interactive/start", dependencies=[Depends(require_access_gate)])
 def auth_interactive_start(
     request: Request,
     response: Response,
     state: AppState = Depends(get_app_state),
 ) -> dict:
+    _require_desktop_interactive(state)
     _enforce_auth_guards(request, state)
     if not state.browser_manager.is_supported():
         raise HTTPException(
@@ -248,6 +260,7 @@ def auth_interactive_status(
     response: Response,
     state: AppState = Depends(get_app_state),
 ) -> dict:
+    _require_desktop_interactive(state)
     status = state.browser_manager.get_status()
     if status.get("authenticated") and status.get("profile_id"):
         pid = str(status["profile_id"])
