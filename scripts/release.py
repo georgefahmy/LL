@@ -491,11 +491,15 @@ def run_release(args: argparse.Namespace, root: Path = ROOT_DIR) -> int:
         return 0
 
     if args.command == "build":
+        target_version = compute_next_version(current_version, args.version)
         run_pre_release_checks(root)
+        if target_version != current_version:
+            bumped_paths = write_version(root, target_version)
+            print(f"Updated version in {len(bumped_paths)} file(s) to {target_version}.")
         build_frontend(root)
         build_macos_app(root)
         smoke_test_macos_app(root)
-        dmg_path, sha_path = package_dmg(root, current_version)
+        dmg_path, sha_path = package_dmg(root, target_version)
         print(f"Built & packaged: {dmg_path}")
         print(f"Checksum: {sha_path}")
         return 0
@@ -633,9 +637,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--package-dmg-only", metavar="VERSION", help=argparse.SUPPRESS)
 
     subparsers = parser.add_subparsers(dest="command", metavar="{build,dry-run,publish}")
-    subparsers.add_parser(
+    p_build = subparsers.add_parser(
         "build",
         help="Build .app and .dmg locally (dist/) without touching git or GitHub.",
+    )
+    p_build.add_argument(
+        "version",
+        nargs="?",
+        default="current",
+        help="Optional bump before building (current, patch, minor, major, or X.Y.Z).",
     )
 
     p_dry = subparsers.add_parser(

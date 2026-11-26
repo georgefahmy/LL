@@ -13,9 +13,17 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import urlparse
 
-import webview
-
 from .constants import LOGIN_URL
+
+
+def _import_webview() -> Any:
+    try:
+        import webview
+    except ImportError as exc:
+        raise RuntimeError(
+            "Interactive browser login requires pywebview, which is not installed."
+        ) from exc
+    return webview
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +57,7 @@ class _PendingFetch:
 class _WorkerBridgeState:
     def __init__(self, token: str) -> None:
         self.token = token
-        self.window: webview.Window | None = None
+        self.window: Any | None = None
         self.lock = threading.Lock()
         self.loaded_event = threading.Event()
         self.closed = False
@@ -407,10 +415,11 @@ class InProcessBrowserBridge:
                 self._state.show_window()
                 return {"status": "waiting_for_user", "authenticated": False}
 
+            wv = _import_webview()
             state = _WorkerBridgeState(token="in-process")
             js_api = _WorkerJsApi(state)
             self._state = state
-            window = webview.create_window(
+            window = wv.create_window(
                 "LearnedLeague Interactive Sign-In",
                 url=LOGIN_URL,
                 js_api=js_api,
@@ -463,6 +472,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--port", type=int, required=True)
     parser.add_argument("--token", type=str, required=True)
     args = parser.parse_args(argv)
+    wv = _import_webview()
 
     state = _WorkerBridgeState(token=args.token)
     server_ref: dict[str, ThreadingHTTPServer] = {}
@@ -478,7 +488,7 @@ def main(argv: list[str] | None = None) -> int:
     server_thread.start()
 
     js_api = _WorkerJsApi(state)
-    window = webview.create_window(
+    window = wv.create_window(
         "LearnedLeague Interactive Sign-In",
         url=LOGIN_URL,
         js_api=js_api,
@@ -506,7 +516,7 @@ def main(argv: list[str] | None = None) -> int:
     window.events.closed += _on_closed
 
     try:
-        webview.start(private_mode=False)
+        wv.start(private_mode=False)
     finally:
         state.mark_closed()
         try:

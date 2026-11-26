@@ -61,7 +61,7 @@ Existing `~/.LearnedLeague/` data (questions, practice answer history, favorites
 Use `scripts/release.py` to keep versions synchronized across `pyproject.toml`, `backend/config.py`, `frontend/package.json`, and `desktop/learnedleague.spec`, package a compressed macOS `.dmg` + `.sha256`, tag git, and publish to GitHub Releases (requires `gh auth login`):
 
 ```bash
-# 1. Build locally (.app + .dmg in dist/, no git/GitHub changes)
+# 1. Build locally (.app + .dmg in dist/, optional bump: build patch | minor | major | X.Y.Z)
 uv run python scripts/release.py build
 
 # 2. Dry-run a release (preview version bump, git tag, and GitHub Release)

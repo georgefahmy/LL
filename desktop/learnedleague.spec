@@ -95,8 +95,8 @@ if sys.platform == "darwin":
         icon=icon_path,
         bundle_identifier="com.georgefahmy.learnedleague",
         info_plist={
-            "CFBundleShortVersionString": "9.0.0",
-            "CFBundleVersion": "9.0.0",
+            "CFBundleShortVersionString": "9.1.0",
+            "CFBundleVersion": "9.1.0",
             "NSHighResolutionCapable": True,
         },
     )

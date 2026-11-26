@@ -172,7 +172,10 @@ class InteractiveBrowserManager:
 
     @staticmethod
     def is_supported() -> bool:
-        return importlib.util.find_spec("webview") is not None
+        try:
+            return importlib.util.find_spec("webview") is not None
+        except (ImportError, ValueError):
+            return False
 
     def _headers(self) -> dict[str, str]:
         return {"X-Bridge-Token": self._token}

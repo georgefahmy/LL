@@ -494,7 +494,11 @@ def test_season_sync_worker_respects_batch_cap_and_aborts_on_rate_limit(
 def test_interactive_browser_manager_in_process_mode(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    import importlib
     import subprocess
+    import sys
+
+    from backend.core import browser_worker
 
     monkeypatch.setattr(
         subprocess,
@@ -502,8 +506,15 @@ def test_interactive_browser_manager_in_process_mode(
         lambda *_a, **_kw: pytest.fail("In-process mode must not spawn a subprocess"),
     )
 
+    # Simulate Linux CI / web-only installs where pywebview is not installed
+    monkeypatch.setitem(sys.modules, "webview", None)
+    importlib.reload(browser_worker)
+
     mgr = InteractiveBrowserManager()
     mgr.enable_in_process_mode()
+    assert mgr.is_supported() is False
+    with pytest.raises(RuntimeError, match="pywebview"):
+        mgr._in_process_bridge.start_or_show()
 
     bridge_state = {"running": True, "auth": False, "shutdown": False}
 
