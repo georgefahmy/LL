@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from backend.core.cache import CacheStore
 from backend.core.http_client import LLNotFoundError, LLParseError
 from backend.core.scrapers.matchday import parse_todays_questions
 from backend.core.scrapers.minileagues import (
@@ -14,6 +15,7 @@ from backend.core.scrapers.minileagues import (
 )
 from backend.core.scrapers.onedays import parse_oneday_catalog, parse_oneday_detail
 from backend.core.scrapers.profiles import (
+    fetch_player_profile,
     parse_profile_latest,
     parse_profile_past_seasons,
     parse_profile_qhistory,
@@ -240,3 +242,28 @@ def test_parse_profile_opponent_schedule_played_and_upcoming() -> None:
             "result": "",
         },
     ]
+
+
+def test_fetch_player_profile_lowercases_username_in_url(tmp_path: Path) -> None:
+    requested_urls: list[str] = []
+
+    class _FakeClient:
+        def get_text(self, url: str, *, require_auth: bool = False) -> str:
+            requested_urls.append(url)
+            if url.endswith("&1"):
+                return _read("profile_latest.html")
+            if url.endswith("&9"):
+                return _read("profile_qhistory.html")
+            if url.endswith("&2"):
+                return _read("profile_stats.html")
+            if url.endswith("&7"):
+                return _read("profile_past_seasons.html")
+            raise AssertionError(f"Unexpected URL: {url}")
+
+    cache = CacheStore(tmp_path / "profiles.db")
+    try:
+        profile = fetch_player_profile("FahmyB", _FakeClient(), cache)  # type: ignore[arg-type]
+        assert profile["profile_id"] == "12345"
+        assert requested_urls[0] == "https://www.learnedleague.com/profiles.php?fahmyb&1"
+    finally:
+        cache.close()

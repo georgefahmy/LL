@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { History, RefreshCw } from "lucide-react";
 
 import { api } from "../api/client";
@@ -28,14 +28,27 @@ export function HistoryPage({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (!username && auth.formatted_username) {
+      setUsername(auth.formatted_username);
+    }
+  }, [username, auth.formatted_username]);
+
   const handleFetch = async (e: FormEvent) => {
     e.preventDefault();
-    if (!username.trim()) return;
+    const clean = username.trim();
+    if (!clean) return;
     setLoading(true);
     setError("");
     setSelected({});
     try {
-      const res = await api.getPlayerProfile(username.trim(), undefined, refresh);
+      const lowerClean = clean.toLowerCase();
+      const matchesMe =
+        lowerClean === (auth.username || "").toLowerCase() ||
+        lowerClean === (auth.formatted_username || "").toLowerCase();
+      const matchedProfileId =
+        matchesMe && auth.profile_id ? auth.profile_id : undefined;
+      const res = await api.getPlayerProfile(clean, matchedProfileId, refresh);
       setProfile(res);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed loading player history.");

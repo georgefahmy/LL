@@ -248,7 +248,7 @@ def fetch_player_profile(
     ttl_minutes: int = 30,
 ) -> dict[str, Any]:
     """Fetch full LearnedLeague player profile using authenticated client + TTL cache."""
-    lookup_key = (profile_id or identifier).strip()
+    lookup_key = (profile_id or identifier).strip().lower()
     if not lookup_key:
         raise LLNotFoundError("Player username or profile ID is required.")
 

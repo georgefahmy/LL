@@ -82,7 +82,7 @@ async function fetchProfileViaExtension(
   profileId?: string,
   refresh = false
 ): Promise<PlayerProfile> {
-  const lookupKey = (profileId || identifier).trim();
+  const lookupKey = (profileId || identifier).trim().toLowerCase();
   const cached = getCachedExtProfile(lookupKey, refresh);
   if (cached) return cached;
 
