@@ -91,6 +91,7 @@ def main() -> None:
         )
         settings = AppSettings(mode="desktop")
         app = create_app(settings)
+        app.state.ll.browser_manager.enable_in_process_mode()
 
         port = _find_free_port()
         config = uvicorn.Config(
@@ -114,7 +115,7 @@ def main() -> None:
             server.should_exit = True
             sys.exit(1)
 
-        webview.create_window(
+        main_window = webview.create_window(
             "LearnedLeague Practice Tool",
             url=base_url,
             width=1440,
@@ -122,9 +123,12 @@ def main() -> None:
             min_size=(960, 680),
             text_select=True,
         )
+        if main_window is not None:
+            main_window.events.closed += app.state.ll.browser_manager.shutdown
         try:
             webview.start(private_mode=False)
         finally:
+            app.state.ll.browser_manager.shutdown()
             server.should_exit = True
             server_thread.join(timeout=3.0)
     except Exception:

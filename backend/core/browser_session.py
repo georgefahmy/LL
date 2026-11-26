@@ -131,10 +131,11 @@ class BrowserBackedLLClient:
 
 
 class InteractiveBrowserManager:
-    """Manages a visible pywebview subprocess for interactive LL sign-in and fetches."""
+    """Manages an in-process or subprocess pywebview window for interactive LL sign-in."""
 
     def __init__(self) -> None:
         self._lock = threading.RLock()
+        self._in_process_bridge: Any | None = None
         self._proc: subprocess.Popen[bytes] | None = None
         self._port: int | None = None
         self._token: str = ""
@@ -144,6 +145,30 @@ class InteractiveBrowserManager:
             "formatted_username": None,
             "profile_id": None,
         }
+
+    def enable_in_process_mode(self) -> None:
+        """Use the caller's existing pywebview GUI loop instead of spawning a second app icon."""
+        from .browser_worker import InProcessBrowserBridge
+
+        with self._lock:
+            if self._in_process_bridge is None:
+                self._in_process_bridge = InProcessBrowserBridge()
+
+    def _sync_cached_auth(self, data: dict[str, Any] | None) -> None:
+        if data and data.get("authenticated"):
+            self._cached_auth = {
+                "authenticated": True,
+                "username": data.get("username"),
+                "formatted_username": data.get("formatted_username"),
+                "profile_id": data.get("profile_id"),
+            }
+        elif not data or not data.get("running"):
+            self._cached_auth = {
+                "authenticated": False,
+                "username": None,
+                "formatted_username": None,
+                "profile_id": None,
+            }
 
     @staticmethod
     def is_supported() -> bool:
@@ -199,6 +224,15 @@ class InteractiveBrowserManager:
                     "Interactive browser login requires pywebview, which is not installed."
                 )
 
+            bridge = self._in_process_bridge
+
+        if bridge is not None:
+            data = bridge.start_or_show()
+            with self._lock:
+                self._sync_cached_auth(data)
+            return data
+
+        with self._lock:
             if self._proc is not None and self._proc.poll() is None:
                 status = self._poll_worker_status()
                 if status and status.get("authenticated"):
@@ -260,6 +294,14 @@ class InteractiveBrowserManager:
 
     def get_status(self) -> dict[str, Any]:
         with self._lock:
+            bridge = self._in_process_bridge
+        if bridge is not None:
+            data = bridge.get_status()
+            with self._lock:
+                self._sync_cached_auth(data)
+            return data
+
+        with self._lock:
             if self._proc is None or self._proc.poll() is not None:
                 self._reset_state()
                 return {"running": False, "authenticated": False}
@@ -269,6 +311,14 @@ class InteractiveBrowserManager:
             return data
 
     def is_authenticated(self) -> bool:
+        with self._lock:
+            bridge = self._in_process_bridge
+        if bridge is not None:
+            data = bridge.get_status()
+            with self._lock:
+                self._sync_cached_auth(data)
+            return bool(data.get("authenticated"))
+
         with self._lock:
             if self._proc is None or self._proc.poll() is not None:
                 self._reset_state()
@@ -281,6 +331,34 @@ class InteractiveBrowserManager:
     def fetch_text(self, url: str, *, require_auth: bool = False) -> str:
         if not is_valid_ll_https_url(url):
             raise LLInvalidUrlError(f"Disallowed URL for LearnedLeague fetch: {url}")
+
+        with self._lock:
+            bridge = self._in_process_bridge
+
+        if bridge is not None:
+            try:
+                payload = bridge.fetch(url, require_auth=require_auth)
+            except RuntimeError as exc:
+                with self._lock:
+                    self._cached_auth = {
+                        "authenticated": False,
+                        "username": None,
+                        "formatted_username": None,
+                        "profile_id": None,
+                    }
+                raise LLAuthExpiredError(
+                    "Interactive browser session is no longer running. Please sign in again."
+                ) from exc
+            except ValueError as exc:
+                raise LLInvalidUrlError(str(exc)) from exc
+            return validate_browser_fetch_response(
+                url,
+                ok=bool(payload.get("ok", False)),
+                status=int(payload.get("status", 0)),
+                final_url=str(payload.get("final_url", url)),
+                body=str(payload.get("body", "")),
+                require_auth=require_auth,
+            )
 
         with self._lock:
             if self._proc is None or self._proc.poll() is not None:
@@ -325,10 +403,15 @@ class InteractiveBrowserManager:
 
     def shutdown(self) -> None:
         with self._lock:
+            bridge = self._in_process_bridge
             proc = self._proc
             port = self._port
             token = self._token
             self._reset_state()
+
+        if bridge is not None:
+            bridge.shutdown()
+            return
 
         if proc is None:
             return

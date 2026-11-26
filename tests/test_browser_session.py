@@ -489,3 +489,83 @@ def test_season_sync_worker_respects_batch_cap_and_aborts_on_rate_limit(
         assert st2["last_error"] is not None and "429" in st2["last_error"]
     finally:
         cache2.close()
+
+
+def test_interactive_browser_manager_in_process_mode(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import subprocess
+
+    monkeypatch.setattr(
+        subprocess,
+        "Popen",
+        lambda *_a, **_kw: pytest.fail("In-process mode must not spawn a subprocess"),
+    )
+
+    mgr = InteractiveBrowserManager()
+    mgr.enable_in_process_mode()
+
+    bridge_state = {"running": True, "auth": False, "shutdown": False}
+
+    class _FakeInProcessBridge:
+        def start_or_show(self):
+            bridge_state["running"] = True
+            return {"status": "waiting_for_user", "authenticated": False}
+
+        def get_status(self):
+            if not bridge_state["running"]:
+                return {"running": False, "authenticated": False}
+            if bridge_state["auth"]:
+                return {
+                    "running": True,
+                    "authenticated": True,
+                    "username": "alice",
+                    "formatted_username": "Alice",
+                    "profile_id": "101",
+                }
+            return {"running": True, "authenticated": False}
+
+        def fetch(self, url: str, *, require_auth: bool = False):
+            if not bridge_state["running"]:
+                raise RuntimeError("Interactive browser session is not running.")
+            if "waf" in url:
+                return {"ok": True, "status": 403, "final_url": url, "body": "Just a moment..."}
+            if "expired" in url:
+                return {
+                    "ok": True,
+                    "status": 200,
+                    "final_url": "https://www.learnedleague.com/ucp.php?mode=login",
+                    "body": "login",
+                }
+            return {"ok": True, "status": 200, "final_url": url, "body": "<html>OK</html>"}
+
+        def shutdown(self):
+            bridge_state["running"] = False
+            bridge_state["shutdown"] = True
+
+    mgr._in_process_bridge = _FakeInProcessBridge()
+    monkeypatch.setattr(mgr, "is_supported", lambda: True)
+
+    start_res = mgr.start_or_show()
+    assert start_res == {"status": "waiting_for_user", "authenticated": False}
+    assert mgr.is_authenticated() is False
+
+    bridge_state["auth"] = True
+    assert mgr.is_authenticated() is True
+    assert mgr.get_status()["profile_id"] == "101"
+
+    assert mgr.fetch_text("https://www.learnedleague.com/profiles.php?101", require_auth=True) == (
+        "<html>OK</html>"
+    )
+    with pytest.raises(LLInvalidUrlError):
+        mgr.fetch_text("https://example.com/")
+    with pytest.raises(LLRateLimitError):
+        mgr.fetch_text("https://www.learnedleague.com/waf", require_auth=True)
+    with pytest.raises(LLAuthExpiredError):
+        mgr.fetch_text("https://www.learnedleague.com/expired", require_auth=True)
+
+    mgr.shutdown()
+    assert bridge_state["shutdown"] is True
+    assert mgr.is_authenticated() is False
+    with pytest.raises(LLAuthExpiredError):
+        mgr.fetch_text("https://www.learnedleague.com/profiles.php?101", require_auth=True)

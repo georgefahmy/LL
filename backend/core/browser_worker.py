@@ -391,6 +391,73 @@ def _make_handler(state: _WorkerBridgeState, server_ref: dict[str, ThreadingHTTP
     return _BridgeHandler
 
 
+class InProcessBrowserBridge:
+    """In-process pywebview login window controller for single-Dock-icon desktop launches."""
+
+    def __init__(self) -> None:
+        self._lock = threading.RLock()
+        self._state: _WorkerBridgeState | None = None
+
+    def start_or_show(self) -> dict[str, Any]:
+        with self._lock:
+            if self._state is not None and not self._state.closed:
+                status = _check_dom_login(self._state)
+                if status.get("authenticated"):
+                    return {"status": "authenticated", **status}
+                self._state.show_window()
+                return {"status": "waiting_for_user", "authenticated": False}
+
+            state = _WorkerBridgeState(token="in-process")
+            js_api = _WorkerJsApi(state)
+            self._state = state
+            window = webview.create_window(
+                "LearnedLeague Interactive Sign-In",
+                url=LOGIN_URL,
+                js_api=js_api,
+                width=1024,
+                height=760,
+                min_size=(760, 580),
+                text_select=True,
+            )
+            if window is None:
+                self._state = None
+                raise RuntimeError("Could not create interactive login window.")
+            state.window = window
+            if window.events.loaded.is_set():
+                state.loaded_event.set()
+            window.events.loaded += state.loaded_event.set
+            window.events.closed += state.mark_closed
+            return {"status": "waiting_for_user", "authenticated": False}
+
+    def get_status(self) -> dict[str, Any]:
+        with self._lock:
+            state = self._state
+        if state is None or state.closed:
+            return {"running": False, "authenticated": False}
+        return _check_dom_login(state)
+
+    def fetch(self, url: str, *, require_auth: bool = False) -> dict[str, Any]:
+        with self._lock:
+            state = self._state
+        if state is None or state.closed:
+            raise RuntimeError("Interactive browser session is not running.")
+        return _run_in_browser_fetch(state, url, require_auth=require_auth)
+
+    def shutdown(self) -> None:
+        with self._lock:
+            state = self._state
+            self._state = None
+        if state is None:
+            return
+        win = state.window
+        state.mark_closed()
+        if win is not None:
+            try:
+                win.destroy()
+            except Exception:
+                pass
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Interactive LearnedLeague pywebview worker.")
     parser.add_argument("--port", type=int, required=True)
