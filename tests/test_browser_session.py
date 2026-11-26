@@ -681,3 +681,46 @@ def test_run_in_browser_fetch_retries_and_falls_back_to_navigation() -> None:
     assert "FahmyB" in res2["body"]
     assert win2.fetch_attempts == 2
     assert win2.loaded_urls == ["https://www.learnedleague.com/profiles.php?fahmyb&1"]
+
+
+def test_background_sync_disabled_by_default_and_manual_trigger_runs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from backend.core.cache import CacheStore
+    from backend.core.http_client import TokenBucketRateLimiter
+    from backend.core.scrapers import seasons as seasons_mod
+
+    default_settings = AppSettings(
+        mode="desktop",
+        data_dir=tmp_path / "app",
+        secret_key="test-secret-key",
+        cookie_secure=False,
+        disable_update_check=True,
+    )
+    assert default_settings.disable_background_sync is True
+
+    app = create_app(default_settings)
+    with TestClient(app):
+        worker = app.state.ll.sync_worker
+        assert worker._thread is None
+        status = worker.status()
+        assert status["phase"] == "idle"
+        assert status["last_error"] is None
+
+    cache = CacheStore(tmp_path / "manual.db")
+    try:
+        worker2 = seasons_mod.SeasonSyncWorker(
+            cache,
+            TokenBucketRateLimiter(1000.0),
+            sync_delay_seconds=0.0,
+        )
+        ran = threading.Event()
+        monkeypatch.setattr(worker2, "sync_once", lambda: ran.set())
+
+        assert worker2._thread is None
+        assert worker2.trigger_now() is True
+        assert ran.wait(timeout=2.0) is True
+        worker2.stop()
+    finally:
+        cache.close()

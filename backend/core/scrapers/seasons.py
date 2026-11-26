@@ -193,6 +193,7 @@ class SeasonSyncWorker:
         self._stop_event = threading.Event()
         self._wake_event = threading.Event()
         self._thread: threading.Thread | None = None
+        self._manual_thread: threading.Thread | None = None
         self._status_lock = threading.Lock()
         self._status: dict[str, Any] = {
             "running": False,
@@ -251,13 +252,26 @@ class SeasonSyncWorker:
     def stop(self) -> None:
         self._stop_event.set()
         self._wake_event.set()
-        if self._thread and self._thread.is_alive():
-            self._thread.join(timeout=2.0)
+        for thread in (self._thread, self._manual_thread):
+            if thread and thread.is_alive():
+                thread.join(timeout=2.0)
 
     def trigger_now(self) -> bool:
         with self._status_lock:
             if self._status["running"]:
                 return False
+            periodic_alive = bool(self._thread and self._thread.is_alive())
+            if not periodic_alive:
+                if self._manual_thread and self._manual_thread.is_alive():
+                    return False
+                self._stop_event.clear()
+                self._manual_thread = threading.Thread(
+                    target=self.sync_once,
+                    name="ll-season-sync-manual",
+                    daemon=True,
+                )
+                self._manual_thread.start()
+                return True
         self._wake_event.set()
         return True
 

@@ -114,6 +114,14 @@ export function App() {
     [meta?.mode]
   );
 
+  const visibleNavItems = useMemo(
+    () =>
+      meta?.mode === "web"
+        ? NAV_ITEMS.filter((it) => WEB_NAV_IDS.has(it.id))
+        : NAV_ITEMS,
+    [meta?.mode]
+  );
+
   const updateColorScheme = useCallback((pref: ColorSchemePref) => {
     setColorScheme(pref);
     applyMetaScheme(pref);
@@ -243,6 +251,30 @@ export function App() {
     return () => window.clearInterval(timer);
   }, [meta?.sync_status.running]);
 
+  // Refresh live latest_season and current_day once authenticated
+  useEffect(() => {
+    if (!auth.authenticated) return;
+    let cancelled = false;
+    api
+      .getLatestSeason()
+      .then((info) => {
+        if (cancelled) return;
+        setMeta((prev) =>
+          prev
+            ? {
+                ...prev,
+                latest_season: info.latest_season,
+                current_day: info.current_day,
+              }
+            : prev
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [auth.authenticated]);
+
   const handleQuickConnectExtension = async () => {
     setConnectingExt(true);
     try {
@@ -306,14 +338,6 @@ export function App() {
 
   const renderedDark =
     colorScheme === "dark" || (colorScheme === "system" && systemDark);
-
-  const visibleNavItems = useMemo(
-    () =>
-      meta.mode === "web"
-        ? NAV_ITEMS.filter((it) => WEB_NAV_IDS.has(it.id))
-        : NAV_ITEMS,
-    [meta.mode]
-  );
 
   return (
     <div className="min-h-screen flex flex-col">

@@ -1,7 +1,9 @@
-import type { AuthMe, PlayerProfile } from "../types";
+import type { AuthMe, PlayerProfile, TodaysQuestionsResponse } from "../types";
 
 const PROFILE_CACHE_TTL_MS = 30 * 60 * 1000;
 const EXT_DISCONNECTED_KEY = "ll-ext-disconnected";
+const PAST_MATCHDAYS_STORAGE_KEY = "ll-ext-past-matchdays-v1";
+const MAX_CACHED_PAST_MATCHDAYS = 250;
 
 let activeExtensionAuth: AuthMe | null = null;
 const profileCache = new Map<string, { data: PlayerProfile; ts: number }>();
@@ -71,6 +73,88 @@ export function setCachedExtProfile(profile: PlayerProfile): void {
   for (const k of new Set(keys)) {
     profileCache.set(k, entry);
   }
+}
+
+export function getCachedExtProfileNames(): string[] {
+  const now = Date.now();
+  const names = new Set<string>();
+  for (const [key, entry] of profileCache.entries()) {
+    if (now - entry.ts > PROFILE_CACHE_TTL_MS) {
+      profileCache.delete(key);
+      continue;
+    }
+    const name = entry.data.formatted_username?.trim();
+    if (name) {
+      names.add(name);
+    }
+  }
+  return Array.from(names).sort((a, b) =>
+    a.toLowerCase().localeCompare(b.toLowerCase())
+  );
+}
+
+function pastMatchDayKey(season: number, day: number): string {
+  return `S${season}D${day}`;
+}
+
+function readPastMatchDayCache(): Record<string, TodaysQuestionsResponse> {
+  try {
+    const raw = localStorage.getItem(PAST_MATCHDAYS_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, TodaysQuestionsResponse>;
+    }
+  } catch {
+    // Ignore storage read/parse errors
+  }
+  return {};
+}
+
+function writePastMatchDayCache(
+  store: Record<string, TodaysQuestionsResponse>
+): void {
+  try {
+    localStorage.setItem(PAST_MATCHDAYS_STORAGE_KEY, JSON.stringify(store));
+  } catch {
+    // Ignore storage quota or private-mode errors
+  }
+}
+
+export function getCachedExtPastMatchDay(
+  season: number,
+  day: number
+): TodaysQuestionsResponse | null {
+  const store = readPastMatchDayCache();
+  const entry = store[pastMatchDayKey(season, day)];
+  if (!entry || entry.status !== "ok" || !Array.isArray(entry.questions)) {
+    return null;
+  }
+  return entry;
+}
+
+export function setCachedExtPastMatchDay(data: TodaysQuestionsResponse): void {
+  if (
+    data.status !== "ok" ||
+    !Array.isArray(data.questions) ||
+    data.questions.length === 0 ||
+    !data.message.includes("(Past Match)")
+  ) {
+    return;
+  }
+  const store = readPastMatchDayCache();
+  const key = pastMatchDayKey(data.season, data.day);
+  if (key in store) {
+    delete store[key];
+  }
+  store[key] = data;
+  const keys = Object.keys(store);
+  if (keys.length > MAX_CACHED_PAST_MATCHDAYS) {
+    for (const staleKey of keys.slice(0, keys.length - MAX_CACHED_PAST_MATCHDAYS)) {
+      delete store[staleKey];
+    }
+  }
+  writePastMatchDayCache(store);
 }
 
 export function detectExtension(timeoutMs = 500): Promise<boolean> {

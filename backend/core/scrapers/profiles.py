@@ -165,14 +165,43 @@ def parse_profile_stats(html: str) -> dict[str, dict[str, str]]:
         for td in table.find("thead").find_all("td")
     ]
     tbody = table.find("tbody")
+    all_rows = tbody.find_all("tr")
     total_row = tbody.find("tr", {"class": "grandtotal-row"})
-    first_row = tbody.find("tr")
+
+    def _is_total_row(row: Any) -> bool:
+        if total_row is not None and row is total_row:
+            return True
+        classes = [str(c).lower() for c in (row.get("class") or [])]
+        if "grandtotal-row" in classes:
+            return True
+        first_td = row.find("td")
+        if first_td is None:
+            return False
+        first_text = first_td.get_text(" ", strip=True).lower()
+        return "tot" in first_text or "career" in first_text
+
+    season_rows = [row for row in all_rows if not _is_total_row(row)]
+
+    def _season_num(row: Any) -> int:
+        first_td = row.find("td")
+        if first_td is None:
+            return -1
+        match = re.search(r"(\d+)", first_td.get_text(" ", strip=True))
+        return int(match.group(1)) if match else -1
+
+    current_row: Any | None = None
+    if season_rows:
+        current_row = max(season_rows, key=_season_num)
+        if _season_num(current_row) < 0:
+            current_row = season_rows[0]
+    elif all_rows:
+        current_row = all_rows[0]
 
     total_cells = (
         [td.get_text(strip=True) for td in total_row.find_all("td")] if total_row else []
     )
     current_cells = (
-        [td.get_text(strip=True) for td in first_row.find_all("td")] if first_row else []
+        [td.get_text(strip=True) for td in current_row.find_all("td")] if current_row else []
     )
 
     if not total_cells and current_cells:

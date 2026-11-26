@@ -49,9 +49,9 @@ class AppSettings(BaseSettings):
     sync_delay_seconds: float = 2.5
     sync_max_days_per_run: int = 25
     profile_cache_ttl_minutes: int = 30
-    disable_background_sync: bool = False
+    disable_background_sync: bool = True
     disable_update_check: bool = False
-    app_version: str = "9.1.0"
+    app_version: str = "9.5.0"
     extension_version: str = "1.0.0"
     github_repo: str = "georgefahmy/LL"
 

@@ -1,8 +1,11 @@
 import {
   extFetchText,
+  getCachedExtPastMatchDay,
   getCachedExtProfile,
+  getCachedExtProfileNames,
   getExtensionAuth,
   isExtensionAuthActive,
+  setCachedExtPastMatchDay,
   setCachedExtProfile,
 } from "./extensionBridge";
 import type {
@@ -76,6 +79,21 @@ export async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 const LL_BASE = "https://www.learnedleague.com";
+
+function applyAnswerVisibility(
+  data: TodaysQuestionsResponse,
+  showAnswers: boolean
+): TodaysQuestionsResponse {
+  if (showAnswers) return data;
+  return {
+    ...data,
+    questions: data.questions.map((q) => ({
+      ...q,
+      submitted_answer: q.submitted_answer === "--" ? "--" : "hidden",
+      correct_answer: "hidden",
+    })),
+  };
+}
 
 async function fetchProfileViaExtension(
   identifier: string,
@@ -276,8 +294,12 @@ export const api = {
       `/api/players/${encodeURIComponent(identifier)}?${qs.toString()}`
     );
   },
-  getCachedPlayerNames: () =>
-    apiFetch<{ usernames: string[] }>("/api/players/cached-names"),
+  getCachedPlayerNames: async () => {
+    if (isExtensionAuthActive()) {
+      return { usernames: getCachedExtProfileNames() };
+    }
+    return apiFetch<{ usernames: string[] }>("/api/players/cached-names");
+  },
 
   recommendDefense: async (payload: {
     opponent: string;
@@ -425,10 +447,14 @@ export const api = {
         resolvedSeason = resolvedSeason ?? latest.latest_season;
         resolvedDay = resolvedDay ?? latest.current_day + 1;
       }
+      const cached = getCachedExtPastMatchDay(resolvedSeason, resolvedDay);
+      if (cached) {
+        return applyAnswerVisibility(cached, showAnswers);
+      }
       const html = await extFetchText(
         `${LL_BASE}/match.php?${resolvedSeason}&${resolvedDay}`
       );
-      return apiFetch<TodaysQuestionsResponse>(
+      const parsed = await apiFetch<TodaysQuestionsResponse>(
         "/api/extension/parse-todays-questions",
         {
           method: "POST",
@@ -436,10 +462,12 @@ export const api = {
             html,
             season: resolvedSeason,
             day: resolvedDay,
-            show_answers: showAnswers,
+            show_answers: true,
           }),
         }
       );
+      setCachedExtPastMatchDay(parsed);
+      return applyAnswerVisibility(parsed, showAnswers);
     }
     const qs = new URLSearchParams({ show_answers: String(showAnswers) });
     if (season !== undefined) qs.set("season", String(season));

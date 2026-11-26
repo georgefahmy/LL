@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "learnedleague-tool"
-version = "9.1.0"
+version = "9.5.0"
 description = "LearnedLeague Practice Tool & Analytics Suite (Unified Web + Desktop)"
 readme = "README.md"
 requires-python = ">=3.12.1"

@@ -75,6 +75,22 @@ const EMPTY_OCR_STATUS: OcrTabStatus = {
   error: "",
 };
 
+function extractQuestionCategory(
+  questionText: string,
+  catMap: Map<string, string>
+): string {
+  const sepIdx = questionText.includes(" - ")
+    ? questionText.indexOf(" - ")
+    : questionText.indexOf("-");
+  if (sepIdx <= 0) return "";
+  const rawPrefix = questionText
+    .slice(0, sepIdx)
+    .replace(/^(?:Q\s*)?\d+\s*[.:)\-]?\s*/i, "")
+    .trim()
+    .toUpperCase();
+  return catMap.get(rawPrefix) ?? "";
+}
+
 function loadStoredMyStats(): Record<string, CategoryMetric> {
   try {
     const raw = localStorage.getItem(MY_STATS_STORAGE_KEY);
@@ -217,6 +233,11 @@ export function DefensePage({
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  const profileSeasonMatch =
+    p1Profile?.stats?.current_season?.["Seas."]?.match(/(\d+)/);
+  const profileSeason = profileSeasonMatch ? Number(profileSeasonMatch[1]) : 0;
+  const effectiveSeason = Math.max(latestSeason, profileSeason);
 
   useEffect(() => {
     try {
@@ -374,8 +395,21 @@ export function DefensePage({
       data: null,
     }));
     try {
-      const data = await api.getTodaysQuestions(showAns, latestSeason, targetDay);
+      const data = await api.getTodaysQuestions(showAns, effectiveSeason, targetDay);
       setTodaysModal({ open: true, showAnswers: showAns, loading: false, data });
+      if (data.status === "ok" && data.questions.length > 0) {
+        const catMap = new Map(categories.map((c) => [c.toUpperCase(), c]));
+        const extracted = data.questions
+          .slice(0, 6)
+          .map((q) => extractQuestionCategory(q.question, catMap));
+        if (extracted.some(Boolean)) {
+          setSlotCats((prev) =>
+            prev.map((existing, idx) => extracted[idx] || existing)
+          );
+          setRecs(null);
+          setDefenseMeta(null);
+        }
+      }
     } catch (err) {
       setTodaysModal((prev) => ({ ...prev, open: false, loading: false }));
       setError(
@@ -1533,7 +1567,7 @@ export function DefensePage({
             }
             title={
               selectedOppIsPast && selectedOppDay !== null
-                ? `View LL ${latestSeason} MD ${selectedOppDay} questions vs ${trimmedOpp}`
+                ? `View LL ${effectiveSeason} MD ${selectedOppDay} questions vs ${trimmedOpp}`
                 : "View Today's Questions"
             }
             className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 inline-flex items-center gap-1.5 cursor-pointer"
@@ -1705,7 +1739,7 @@ export function DefensePage({
         title={
           todaysModal.data?.message ||
           (selectedOppIsPast && selectedOppDay !== null
-            ? `LL ${latestSeason} MD ${selectedOppDay} Questions`
+            ? `LL ${effectiveSeason} MD ${selectedOppDay} Questions`
             : "Today's Questions")
         }
         wide

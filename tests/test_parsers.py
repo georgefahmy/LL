@@ -284,3 +284,29 @@ def test_fetch_player_profile_lowercases_username_in_url(tmp_path: Path) -> None
         assert requested_urls[0] == "https://www.learnedleague.com/profiles.php?fahmyb&1"
     finally:
         cache.close()
+
+
+def test_parse_profile_stats_skips_top_total_row_and_picks_latest_season() -> None:
+    html = """
+    <html><body>
+      <table class="std std_bord stats_all">
+        <thead>
+          <tr><td>Season</td><td>W</td><td>L</td><td>T</td><td>Rundle</td></tr>
+        </thead>
+        <tbody>
+          <tr class="grandtotal-row">
+            <td>16SeasonsTot</td><td>177</td><td>149</td><td>61</td><td>Career</td>
+          </tr>
+          <tr><td>LL110</td><td>10</td><td>9</td><td>6</td><td>B East</td></tr>
+          <tr><td>LL111</td><td>9</td><td>3</td><td>1</td><td>A East</td></tr>
+          <tr><td>LL109</td><td>8</td><td>12</td><td>5</td><td>B East</td></tr>
+        </tbody>
+      </table>
+    </body></html>
+    """
+    stats = parse_profile_stats(html)
+    assert stats["total"]["Seas."] == "Total"
+    assert stats["total"]["W"] == "177"
+    assert stats["current_season"]["Seas."] == "LL111"
+    assert stats["current_season"]["W"] == "9"
+    assert stats["current_season"]["Rundle"] == "A East"
